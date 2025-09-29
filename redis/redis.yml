@@ -1,0 +1,44 @@
+# =========================================================
+# REDIS - ARMAZENAMENTO EM MEMÓRIA
+# =========================================================
+# Versão: 8.2
+# Descrição: Configuração do serviço Redis para cache, filas
+#            e armazenamento temporário de dados em memória.
+# =========================================================
+
+services:
+  # =========================================================
+  # SERVIÇO: REDIS
+  # =========================================================
+  # Cache e sessões para Chatwoot, N8N e Evolution API
+  # Configurado com persistência e autenticação
+  # =========================================================
+  redis:
+    image: ${REDIS_IMAGE}                   # Imagem oficial Redis 7 Alpine
+    container_name: ${CONTAINER_NAME}       # Nome do contêiner
+    command: ${REDIS_COMMAND}               # Comando com configurações de persistência
+    networks:
+      - app_network                         # Conexão com a rede compartilhada
+    volumes:
+      - redis_data:/data                    # Volume para persistência dos dados
+    ports:
+      - "${REDIS_PORT}:6379"               # Porta exposta (host:container)
+    restart: ${RESTART_POLICY}             # Reinicia automaticamente em caso de falha
+
+# =========================================================
+# VOLUMES
+# =========================================================
+# Configuração de volumes para persistência de dados
+# =========================================================
+volumes:
+  redis_data:                              # Volume para dados do Redis
+    driver: local                          # Driver local para armazenamento
+
+# =========================================================
+# NETWORKS
+# =========================================================
+# Configuração de rede para comunicação entre serviços
+# =========================================================
+networks:
+  app_network:                             # Rede compartilhada entre todos os serviços
+    external: true                         # Indica que a rede é criada externamente

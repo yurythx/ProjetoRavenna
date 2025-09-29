@@ -1,0 +1,168 @@
+# =========================================================
+# CHATWOOT - PLATAFORMA DE ATENDIMENTO AO CLIENTE
+# =========================================================
+# Versão: v3.14.0 (latest)
+# Descrição: Configuração dos serviços Chatwoot para gerenciamento de conversas
+#            e atendimento ao cliente através de múltiplos canais.
+# =========================================================
+
+services:
+  # =========================================================
+  # SERVIÇO: CHATWOOT-RAILS
+  # =========================================================
+  # Responsável pela interface web e API do Chatwoot
+  # Expõe a porta 3000 para acesso à interface de usuário
+  # =========================================================
+  chatwoot-rails:
+    image: ${CHATWOOT_IMAGE}
+    depends_on:
+      - postgres
+      - redis
+      - minio
+
+    environment:
+      # SMTP Configuration
+      - MAILER_SENDER_EMAIL=${MAILER_SENDER_EMAIL}
+      - SMTP_DOMAIN=${SMTP_DOMAIN}
+      - SMTP_ADDRESS=${SMTP_ADDRESS}
+      - SMTP_PORT=${SMTP_PORT}
+      - SMTP_USERNAME=${SMTP_USERNAME}
+      - SMTP_PASSWORD=${SMTP_PASSWORD}
+      - SMTP_AUTHENTICATION=${SMTP_AUTHENTICATION}
+      - SMTP_ENABLE_STARTTLS_AUTO=${SMTP_ENABLE_STARTTLS_AUTO}
+      - SMTP_OPENSSL_VERIFY_MODE=${SMTP_OPENSSL_VERIFY_MODE}
+      - MAILER_INBOUND_EMAIL_DOMAIN=${MAILER_INBOUND_EMAIL_DOMAIN}
+      
+      # Environment Configuration
+      - RAILS_ENV=${RAILS_ENV}
+      - NODE_ENV=${NODE_ENV}
+      - INSTALLATION_ENV=${INSTALLATION_ENV}
+      - SECRET_KEY_BASE=${SECRET_KEY_BASE}
+      - FRONTEND_URL=${FRONTEND_URL}
+      - FORCE_SSL=${FORCE_SSL}
+      - ENABLE_ACCOUNT_SIGNUP=${ENABLE_ACCOUNT_SIGNUP}
+      - USE_INBOX_AVATAR_FOR_BOT=${USE_INBOX_AVATAR_FOR_BOT}
+      
+      # Database Configuration
+      - POSTGRES_HOST=${POSTGRES_HOST}
+      - POSTGRES_USERNAME=${POSTGRES_USERNAME}
+      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD}
+      - POSTGRES_DATABASE=${POSTGRES_DATABASE}
+      
+      # Redis Configuration
+      - REDIS_URL=${REDIS_URL}
+      - REDIS_PASSWORD=${REDIS_PASSWORD}
+      
+      # MinIO Storage Configuration
+      - STORAGE_ACCESS_KEY_ID=${STORAGE_ACCESS_KEY_ID}
+      - STORAGE_SECRET_ACCESS_KEY=${STORAGE_SECRET_ACCESS_KEY}
+      - STORAGE_REGION=${STORAGE_REGION}
+      - STORAGE_BUCKET=${STORAGE_BUCKET}
+      - STORAGE_ENDPOINT=${STORAGE_ENDPOINT}
+      - STORAGE_FORCE_PATH_STYLE=${STORAGE_FORCE_PATH_STYLE}
+      - AWS_REGION=${AWS_REGION}
+      
+      # Optional OpenAI Integration
+      - OPENAI_API_KEY=${OPENAI_API_KEY}
+      
+      # Logging Configuration
+      - RAILS_LOG_TO_STDOUT=${RAILS_LOG_TO_STDOUT}
+      - LOG_LEVEL=${LOG_LEVEL}
+
+    networks:
+      - app_network
+    ports:
+      - "${CHATWOOT_PORT}:3000"
+    volumes:
+      - chatwoot_data:/app/storage
+    restart: ${RESTART_POLICY}
+    entrypoint: docker/entrypoints/rails.sh
+    command: ["bundle", "exec", "rails", "s", "-p", "3000", "-b", "0.0.0.0"]
+
+  # =========================================================
+  # SERVIÇO: CHATWOOT-SIDEKIQ
+  # =========================================================
+  # Responsável pelo processamento de jobs em background
+  # Processa e-mails, notificações e outras tarefas assíncronas
+  # =========================================================
+  chatwoot-sidekiq:
+    image: ${CHATWOOT_IMAGE}
+    depends_on:
+      - postgres
+      - redis
+      - minio
+
+    environment:
+      # SMTP Configuration
+      - MAILER_SENDER_EMAIL=${MAILER_SENDER_EMAIL}
+      - SMTP_DOMAIN=${SMTP_DOMAIN}
+      - SMTP_ADDRESS=${SMTP_ADDRESS}
+      - SMTP_PORT=${SMTP_PORT}
+      - SMTP_USERNAME=${SMTP_USERNAME}
+      - SMTP_PASSWORD=${SMTP_PASSWORD}
+      - SMTP_AUTHENTICATION=${SMTP_AUTHENTICATION}
+      - SMTP_ENABLE_STARTTLS_AUTO=${SMTP_ENABLE_STARTTLS_AUTO}
+      - SMTP_OPENSSL_VERIFY_MODE=${SMTP_OPENSSL_VERIFY_MODE}
+      - MAILER_INBOUND_EMAIL_DOMAIN=${MAILER_INBOUND_EMAIL_DOMAIN}
+      
+      # Environment Configuration
+      - RAILS_ENV=${RAILS_ENV}
+      - NODE_ENV=${NODE_ENV}
+      - INSTALLATION_ENV=${INSTALLATION_ENV}
+      - SECRET_KEY_BASE=${SECRET_KEY_BASE}
+      - FRONTEND_URL=${FRONTEND_URL}
+      - FORCE_SSL=${FORCE_SSL}
+      - ENABLE_ACCOUNT_SIGNUP=${ENABLE_ACCOUNT_SIGNUP}
+      - USE_INBOX_AVATAR_FOR_BOT=${USE_INBOX_AVATAR_FOR_BOT}
+      
+      # Database Configuration
+      - POSTGRES_HOST=${POSTGRES_HOST}
+      - POSTGRES_USERNAME=${POSTGRES_USERNAME}
+      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD}
+      - POSTGRES_DATABASE=${POSTGRES_DATABASE}
+      
+      # Redis Configuration
+      - REDIS_URL=${REDIS_URL}
+      - REDIS_PASSWORD=${REDIS_PASSWORD}
+      
+      # MinIO Storage Configuration
+      - STORAGE_ACCESS_KEY_ID=${STORAGE_ACCESS_KEY_ID}
+      - STORAGE_SECRET_ACCESS_KEY=${STORAGE_SECRET_ACCESS_KEY}
+      - STORAGE_REGION=${STORAGE_REGION}
+      - STORAGE_BUCKET=${STORAGE_BUCKET}
+      - STORAGE_ENDPOINT=${STORAGE_ENDPOINT}
+      - STORAGE_FORCE_PATH_STYLE=${STORAGE_FORCE_PATH_STYLE}
+      - AWS_REGION=${AWS_REGION}
+      
+      # Optional OpenAI Integration
+      - OPENAI_API_KEY=${OPENAI_API_KEY}
+      
+      # Logging Configuration
+      - RAILS_LOG_TO_STDOUT=${RAILS_LOG_TO_STDOUT}
+      - LOG_LEVEL=${LOG_LEVEL}
+
+    networks:
+      - app_network
+    volumes:
+      - chatwoot_data:/app/storage
+    restart: ${RESTART_POLICY}
+    container_name: ${CHATWOOT_SIDEKIQ_CONTAINER}
+    command: ["bundle", "exec", "sidekiq", "-C", "config/sidekiq.yml"]
+
+# =========================================================
+# VOLUMES
+# =========================================================
+# Configuração de volumes para persistência de dados
+# =========================================================
+volumes:
+  chatwoot_data:                           # Volume para dados do Chatwoot
+    driver: local                          # Driver local para armazenamento
+
+# =========================================================
+# NETWORKS
+# =========================================================
+# Configuração de rede para comunicação entre serviços
+# =========================================================
+networks:
+  app_network:                             # Rede compartilhada entre todos os serviços
+    external: true                         # Indica que a rede é criada externamente

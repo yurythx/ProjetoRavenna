@@ -1,0 +1,62 @@
+# =========================================================
+# POSTGRESQL - BANCO DE DADOS RELACIONAL
+# =========================================================
+# Versão: 16
+# Descrição: Configuração do serviço PostgreSQL para armazenamento
+#            de dados dos serviços Chatwoot, N8N e Evolution API.
+# =========================================================
+
+# Comando para criar a rede Docker (executar antes da primeira inicialização)
+#docker network create app_network
+
+# =========================================================
+# PROCEDIMENTO PARA INSTALAR PGVECTOR (EXTENSÃO PARA VETORES)
+# =========================================================
+# Descomente e execute os comandos abaixo dentro do contêiner para instalar
+# a extensão pgvector, necessária para funcionalidades de IA e busca vetorial
+# =========================================================
+#apt-get update
+#apt-get install -y git build-essential postgresql-server-dev-16 curl
+#git clone https://github.com/pgvector/pgvector.git /usr/src/pgvector
+#cd /usr/src/pgvector
+#make && make install
+
+# Após a instalação, conecte ao PostgreSQL e ative a extensão:
+#CREATE EXTENSION IF NOT EXISTS vector;
+services:
+  # =========================================================
+  # SERVIÇO: POSTGRESQL
+  # =========================================================
+  # Banco de dados principal para Chatwoot, N8N e Evolution API
+  # Configurado com persistência de dados e rede compartilhada
+  # =========================================================
+  postgres:
+    image: ${POSTGRES_IMAGE}                # Imagem oficial PostgreSQL 16
+    container_name: ${CONTAINER_NAME}       # Nome do contêiner
+    environment:
+      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD}  # Senha do usuário postgres
+    volumes:
+      - postgres_data:/var/lib/postgresql/data  # Volume para persistência dos dados
+    networks:
+      - app_network                         # Conexão com a rede compartilhada
+    ports:
+      - "${POSTGRES_PORT}:5432"            # Porta exposta (host:container)
+    restart: ${RESTART_POLICY}             # Reinicia automaticamente em caso de falha
+
+# =========================================================
+# VOLUMES
+# =========================================================
+# Configuração de volumes para persistência de dados
+# =========================================================
+volumes:
+  postgres_data:                           # Volume para dados do PostgreSQL
+    driver: local                          # Driver local para armazenamento
+
+# =========================================================
+# NETWORKS
+# =========================================================
+# Configuração de rede para comunicação entre serviços
+# =========================================================
+networks:
+  app_network:                             # Rede compartilhada entre todos os serviços
+    external: true                         # Indica que a rede é criada externamente

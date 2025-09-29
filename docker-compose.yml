@@ -1,0 +1,96 @@
+# =========================================================
+# DOCKER COMPOSE PRINCIPAL - PROJETO RAVENNA
+# =========================================================
+# Descrição: Arquivo principal para orquestração de todos os serviços
+#            do Projeto Ravenna. Este arquivo importa as configurações
+#            de cada serviço individual e permite iniciar toda a
+#            infraestrutura com um único comando.
+# =========================================================
+
+version: '3.8'
+
+# =========================================================
+# IMPORTAÇÃO DOS ARQUIVOS DE CONFIGURAÇÃO INDIVIDUAIS
+# =========================================================
+# Cada serviço possui seu próprio arquivo YAML para facilitar
+# a manutenção e organização das configurações
+# =========================================================
+include:
+  - path: ./postgres/postgres.yml    # Banco de dados PostgreSQL v16
+  - path: ./redis/redis.yml          # Serviço Redis v8.2 para cache e filas
+  - path: ./minio/minio.yml          # Armazenamento S3-compatível MinIO
+  - path: ./chatwoot/chatwoot.yml    # Plataforma de atendimento Chatwoot v4.6.0
+  - path: ./n8n/n8n.yml              # Automação de fluxos N8N v1.112.5
+  - path: ./evolution/evolution.yml  # API WhatsApp Evolution v2.3.4
+  - path: ./cloudflare/cloudflare.yml # Túnel seguro Cloudflare
+
+# =========================================================
+# NETWORKS
+# =========================================================
+# Definição da rede compartilhada entre todos os serviços
+# Esta rede deve ser criada antes de iniciar os contêineres
+# Comando: docker network create app_network
+# =========================================================
+networks:
+  app_network:
+    external: true
+
+# =========================================================
+# INSTRUÇÕES DE USO
+# =========================================================
+# PASSO 1 - CRIAÇÃO DA REDE (OBRIGATÓRIO - EXECUTAR PRIMEIRO):
+#   docker network create app_network
+#
+# PASSO 2 - VERIFICAR CONFIGURAÇÕES:
+#   - Revisar CONFIGURACAO_SEGURANCA.md para alterar senhas padrão
+#   - Revisar URLS_E_IPS.md para configurar IPs corretos
+#   - Configurar token do Cloudflare em cloudflare/cloudflare.yml (se usar)
+#
+# PASSO 3 - INICIALIZAÇÃO:
+#
+# OPÇÃO A - INICIALIZAÇÃO COMPLETA (RECOMENDADO):
+#   docker-compose up -d
+#
+# OPÇÃO B - INICIALIZAÇÃO POR ETAPAS (PARA TROUBLESHOOTING):
+#   1. Infraestrutura base (OBRIGATÓRIO PRIMEIRO):
+#      docker-compose up -d postgres_db redis_cache minio_server
+#      # Aguardar 30-60 segundos para inicialização completa
+#   
+#   2. Serviços principais (DEPENDEM DA INFRAESTRUTURA):
+#      docker-compose up -d chatwoot-rails chatwoot-sidekiq
+#      docker-compose up -d n8n_editor n8n_webhook n8n_worker
+#      docker-compose up -d evolution_api
+#      # Aguardar cada grupo inicializar antes do próximo
+#   
+#   3. Acesso externo (OPCIONAL):
+#      docker-compose up -d cloudflare_tunnel
+#
+# =========================================================
+# DEPENDÊNCIAS ENTRE SERVIÇOS
+# =========================================================
+# PostgreSQL ← Chatwoot, N8N, Evolution API
+# Redis ← N8N (filas), Evolution API (cache)
+# MinIO ← Evolution API (armazenamento de mídia)
+# Todos os serviços ← app_network
+#
+# ORDEM RECOMENDADA DE INICIALIZAÇÃO:
+# 1º postgres_db, redis_cache, minio_server
+# 2º chatwoot-rails, chatwoot-sidekiq
+# 3º n8n_editor, n8n_webhook, n8n_worker
+# 4º evolution_api
+# 5º cloudflare_tunnel (opcional)
+# =========================================================
+#
+# MONITORAMENTO E DIAGNÓSTICO:
+#   docker-compose ps                    # Status dos serviços
+#   docker-compose logs -f [serviço]     # Logs em tempo real
+#   docker stats                         # Uso de recursos
+#   docker network ls                    # Verificar redes
+#   docker volume ls                     # Verificar volumes
+#
+# MANUTENÇÃO:
+#   docker-compose restart [serviço]     # Reiniciar serviço específico
+#   docker-compose down                  # Parar todos os serviços
+#   docker-compose down -v               # Parar e remover volumes (CUIDADO!)
+#   docker system prune                  # Limpar recursos não utilizados
+# =========================================================

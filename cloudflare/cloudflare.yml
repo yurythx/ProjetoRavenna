@@ -1,0 +1,31 @@
+# =========================================================
+# CLOUDFLARE TUNNEL - EXPOSIÇÃO SEGURA DE SERVIÇOS
+# =========================================================
+# Versão: latest
+# Descrição: Configuração do Cloudflare Tunnel para exposição
+#            segura dos serviços locais através da rede Cloudflare
+# =========================================================
+
+services:
+  # =========================================================
+  # SERVIÇO: CLOUDFLARE TUNNEL
+  # =========================================================
+  # Túnel seguro para exposição de serviços locais
+  # Permite acesso externo sem abrir portas no firewall
+  # =========================================================
+  cloudflared:
+    image: ${CLOUDFLARE_IMAGE}
+    container_name: ${CLOUDFLARE_CONTAINER}
+    networks:
+      - ${NETWORK_NAME}
+    restart: ${RESTART_POLICY}
+    command: ${CLOUDFLARE_COMMAND}
+
+# =========================================================
+# NETWORKS
+# =========================================================
+# Configuração de rede para comunicação entre serviços
+# =========================================================
+networks:
+  ${NETWORK_NAME}:                         # Rede compartilhada entre todos os serviços
+    external: true                         # Indica que a rede é criada externamente
