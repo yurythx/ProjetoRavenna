@@ -1,0 +1,123 @@
+version: '3.8'
+
+services:
+  # =========================================================
+  # PROMETHEUS - COLETA DE MÉTRICAS
+  # =========================================================
+  prometheus:
+    image: prom/prometheus:v2.45.0
+    container_name: prometheus_monitoring
+    restart: always
+    ports:
+      - "9090:9090"
+    volumes:
+      - ./monitoring/prometheus.yml:/etc/prometheus/prometheus.yml
+      - prometheus_data:/prometheus
+    command:
+      - '--config.file=/etc/prometheus/prometheus.yml'
+      - '--storage.tsdb.path=/prometheus'
+      - '--web.console.libraries=/etc/prometheus/console_libraries'
+      - '--web.console.templates=/etc/prometheus/consoles'
+      - '--storage.tsdb.retention.time=200h'
+      - '--web.enable-lifecycle'
+    networks:
+      - app_network
+
+  # =========================================================
+  # GRAFANA - VISUALIZAÇÃO DE MÉTRICAS
+  # =========================================================
+  grafana:
+    image: grafana/grafana:10.0.0
+    container_name: grafana_monitoring
+    restart: always
+    ports:
+      - "3001:3000"
+    environment:
+      - GF_SECURITY_ADMIN_USER=admin
+      - GF_SECURITY_ADMIN_PASSWORD=admin123
+      - GF_USERS_ALLOW_SIGN_UP=false
+    volumes:
+      - grafana_data:/var/lib/grafana
+      - ./monitoring/grafana/provisioning:/etc/grafana/provisioning
+    networks:
+      - app_network
+
+  # =========================================================
+  # NODE EXPORTER - MÉTRICAS DO SISTEMA
+  # =========================================================
+  node-exporter:
+    image: prom/node-exporter:v1.6.0
+    container_name: node_exporter
+    restart: always
+    ports:
+      - "9100:9100"
+    volumes:
+      - /proc:/host/proc:ro
+      - /sys:/host/sys:ro
+      - /:/rootfs:ro
+    command:
+      - '--path.procfs=/host/proc'
+      - '--path.rootfs=/rootfs'
+      - '--path.sysfs=/host/sys'
+      - '--collector.filesystem.mount-points-exclude=^/(sys|proc|dev|host|etc)($$|/)'
+    networks:
+      - app_network
+
+  # =========================================================
+  # CADVISOR - MÉTRICAS DOS CONTAINERS
+  # =========================================================
+  cadvisor:
+    image: gcr.io/cadvisor/cadvisor:v0.47.0
+    container_name: cadvisor
+    restart: always
+    ports:
+      - "8081:8080"
+    volumes:
+      - /:/rootfs:ro
+      - /var/run:/var/run:rw
+      - /sys:/sys:ro
+      - /var/lib/docker/:/var/lib/docker:ro
+      - /dev/disk/:/dev/disk:ro
+    privileged: true
+    devices:
+      - /dev/kmsg
+    networks:
+      - app_network
+
+  # =========================================================
+  # REDIS EXPORTER - MÉTRICAS DO REDIS
+  # =========================================================
+  redis-exporter:
+    image: oliver006/redis_exporter:v1.52.0
+    container_name: redis_exporter
+    restart: always
+    ports:
+      - "9121:9121"
+    environment:
+      - REDIS_ADDR=redis://:${REDIS_PASSWORD}@redis_chatwoot:6379,redis://:${REDIS_PASSWORD}@redis_n8n:6379,redis://:${REDIS_PASSWORD}@redis_evolution:6379
+    networks:
+      - app_network
+
+  # =========================================================
+  # POSTGRES EXPORTER - MÉTRICAS DO POSTGRESQL
+  # =========================================================
+  postgres-exporter:
+    image: prometheuscommunity/postgres-exporter:v0.13.2
+    container_name: postgres_exporter
+    restart: always
+    ports:
+      - "9187:9187"
+    environment:
+      - DATA_SOURCE_NAME=postgresql://postgres:${POSTGRES_PASSWORD}@postgres_chatwoot:5432/chatwoot?sslmode=disable
+    networks:
+      - app_network
+
+volumes:
+  prometheus_data:
+    driver: local
+  grafana_data:
+    driver: local
+
+networks:
+  app_network:
+    external: true

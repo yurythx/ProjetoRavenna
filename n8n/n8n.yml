@@ -1,170 +1,70 @@
 # =========================================================
 # N8N - PLATAFORMA DE AUTOMAÇÃO DE FLUXOS DE TRABALHO
 # =========================================================
-# Versão: 1.112.5
-# Descrição: Configuração dos serviços N8N para automação de
-#            fluxos de trabalho e integração entre aplicações.
+# Versão: 1.113.3
+# Descrição: Configuração unificada do N8N com seu próprio
+#            PostgreSQL e Redis dedicados.
 # =========================================================
 
 services:
   # =========================================================
-  # SERVIÇO: N8N EDITOR
+  # SERVIÇO: N8N UNIFICADO
   # =========================================================
-  # Interface web para criação e edição de fluxos de trabalho
-  # Expõe a porta 5678 para acesso à interface de usuário
+  # Serviço único do N8N com interface web, webhooks e workers
+  # Configurado com banco de dados e Redis próprios
   # =========================================================
-  n8n_editor:
-    image: n8nio/n8n:1.113.3                # Imagem N8N versão 1.113.3
+  n8n:
+    image: n8nio/n8n:1.113.3
     depends_on:
-      - postgres
-      - redis
+      - postgres_n8n
+      - redis_n8n
     ports:
-      - "5678:5678"                         # Porta de acesso à interface web
+      - "5678:5678"
     volumes:
-      - n8n_data:/home/node/.n8n            # Volume para dados persistentes
-      - tmp_data:/home/n8n/.tmp             # Volume para arquivos temporários
+      - n8n_data:/home/node/.n8n
+      - tmp_data:/home/n8n/.tmp
     networks:
-      - app_network                         # Conexão com a rede compartilhada
-    restart: always                         # Reinicia automaticamente em caso de falha
- 
+      - app_network
+    restart: always
+    env_file:
+      - .env
     environment:
       # =========================================================
-      # CONFIGURAÇÃO DE BANCO DE DADOS
+      # CONFIGURAÇÃO DE BANCO DE DADOS DEDICADO
       # =========================================================
-      DB_TYPE: postgresdb                   # Tipo de banco de dados
-      DB_POSTGRESDB_PORT: 5432              # Porta do PostgreSQL
-      DB_POSTGRESDB_HOST: postgres          # Host do PostgreSQL
-      DB_POSTGRESDB_DATABASE: n8n_fila      # Nome do banco de dados
-      DB_POSTGRESDB_USER: postgres          # Usuário do PostgreSQL
-      DB_POSTGRESDB_PASSWORD: minha_senha   # Senha do PostgreSQL
+      DB_TYPE: postgresdb
+      DB_POSTGRESDB_PORT: 5432
+      DB_POSTGRESDB_HOST: postgres_n8n
+      DB_POSTGRESDB_DATABASE: n8n_fila
+      DB_POSTGRESDB_USER: postgres
+      DB_POSTGRESDB_PASSWORD: minha_senha_super_segura_2024!
       
       # =========================================================
       # CONFIGURAÇÃO DE SEGURANÇA E ACESSO
       # =========================================================
-      N8N_ENCRYPTION_KEY: Y8Dmy5FhuRIDGIrs  # Chave para criptografia de dados
-      N8N_HOST: 192.168.1.74:5678           # Host e porta do N8N
-      N8N_EDITOR_BASE_URL: https://192.168.1.74:5678/  # URL base do editor
-      N8N_PROTOCOL: http                    # Protocolo de acesso (http/https)
-      NODE_ENV: production                  # Ambiente de execução
-      WEBHOOK_URL: http://192.168.1.74:5678/  # URL para webhooks
+      N8N_ENCRYPTION_KEY: Y8Dmy5FhuRIDGIrs
+      N8N_HOST: 192.168.1.74:5678
+      N8N_EDITOR_BASE_URL: http://192.168.1.74:5678/
+      N8N_PROTOCOL: http
+      NODE_ENV: production
+      WEBHOOK_URL: http://192.168.1.74:5678/
       
       # =========================================================
-      # CONFIGURAÇÃO DE FILAS E EXECUÇÃO
+      # CONFIGURAÇÃO DE REDIS DEDICADO
       # =========================================================
-      EXECUTIONS_MODE: queue                # Modo de execução em fila
-      QUEUE_BULL_REDIS_HOST: redis          # Host do Redis para filas
-      QUEUE_BULL_REDIS_PORT: 6379           # Porta do Redis
-      QUEUE_BULL_REDIS_DB: 2                # Banco de dados Redis
-      NODE_FUNCTION_ALLOW_EXTERNAL: moment,lodash,moment-with-locales  # Bibliotecas externas permitidas
-      EXECUTIONS_DATA_PRUNE: 'true'         # Limpeza automática de dados
-      EXECUTIONS_DATA_MAX_AGE: 336          # Idade máxima dos dados (horas)
-      N8N_ENFORCE_SETTINGS_FILE_PERMISSIONS: 'true'  # Reforçar permissões de arquivos
-      N8N_SECURE_COOKIE: "false"            # Cookies seguros desativados
-
-      
-  # =========================================================
-  # SERVIÇO: N8N WEBHOOK
-  # =========================================================
-  # Serviço dedicado para processamento de webhooks
-  # Compartilha dados com o editor e worker
-  # =========================================================
-  n8n_webhook:
-    image: n8nio/n8n:1.113.3                # Imagem N8N versão 1.113.3
-    depends_on:
-      - postgres
-      - redis
-    command: webhook                        # Comando para iniciar em modo webhook
-    volumes:
-      - n8n_data:/home/node/.n8n            # Volume para dados persistentes
-    networks:
-      - app_network                         # Conexão com a rede compartilhada
-    restart: always                         # Reinicia automaticamente em caso de falha
-  
-    environment:
-      # =========================================================
-      # CONFIGURAÇÃO DE BANCO DE DADOS
-      # =========================================================
-      DB_TYPE: postgresdb                   # Tipo de banco de dados
-      DB_POSTGRESDB_PORT: 5432              # Porta do PostgreSQL
-      DB_POSTGRESDB_HOST: postgres          # Host do PostgreSQL
-      DB_POSTGRESDB_DATABASE: n8n_fila      # Nome do banco de dados
-      DB_POSTGRESDB_USER: postgres          # Usuário do PostgreSQL
-      DB_POSTGRESDB_PASSWORD: minha_senha   # Senha do PostgreSQL
+      QUEUE_BULL_REDIS_HOST: redis_n8n
+      QUEUE_BULL_REDIS_PORT: 6379
+      QUEUE_BULL_REDIS_DB: 0
       
       # =========================================================
-      # CONFIGURAÇÃO DE SEGURANÇA E ACESSO
+      # CONFIGURAÇÃO DE EXECUÇÃO
       # =========================================================
-      N8N_ENCRYPTION_KEY: Y8Dmy5FhuRIDGIrs  # Chave para criptografia de dados
-      N8N_HOST: 192.168.1.74:5678           # Host e porta do N8N
-      N8N_EDITOR_BASE_URL: https://192.168.1.74:5678/  # URL base do editor
-      N8N_PROTOCOL: http                    # Protocolo de acesso (http/https)
-      NODE_ENV: production                  # Ambiente de execução
-      WEBHOOK_URL: http://192.168.1.74:5678/  # URL para webhooks
-      
-      # =========================================================
-      # CONFIGURAÇÃO DE FILAS E EXECUÇÃO
-      # =========================================================
-      EXECUTIONS_MODE: queue                # Modo de execução em fila
-      QUEUE_BULL_REDIS_HOST: redis          # Host do Redis para filas
-      QUEUE_BULL_REDIS_PORT: 6379           # Porta do Redis
-      QUEUE_BULL_REDIS_DB: 2                # Banco de dados Redis
-      NODE_FUNCTION_ALLOW_EXTERNAL: moment,lodash,moment-with-locales  # Bibliotecas externas permitidas
-      EXECUTIONS_DATA_PRUNE: 'true'         # Limpeza automática de dados
-      EXECUTIONS_DATA_MAX_AGE: 336          # Idade máxima dos dados (horas)
-      N8N_ENFORCE_SETTINGS_FILE_PERMISSIONS: 'true'  # Reforçar permissões de arquivos
-      N8N_SECURE_COOKIE: "false"            # Cookies seguros desativados
-
-  # =========================================================
-  # SERVIÇO: N8N WORKER
-  # =========================================================
-  # Serviço para execução de fluxos de trabalho em segundo plano
-  # Configurado para executar até 5 fluxos simultaneamente
-  # =========================================================
-  n8n_worker:
-    image: n8nio/n8n:1.113.3                # Imagem N8N versão 1.113.3
-    depends_on:
-      - postgres
-      - redis
-    command: worker --concurrency=5         # Inicia em modo worker com 5 processos paralelos
-    volumes:
-      - n8n_data:/home/node/.n8n            # Volume para dados persistentes
-      - tmp_data:/home/n8n/.tmp             # Volume para arquivos temporários
-    networks:
-      - app_network                         # Conexão com a rede compartilhada
-    restart: always                         # Reinicia automaticamente em caso de falha
-    environment:
-      # =========================================================
-      # CONFIGURAÇÃO DE BANCO DE DADOS
-      # =========================================================
-      DB_TYPE: postgresdb                   # Tipo de banco de dados
-      DB_POSTGRESDB_PORT: 5432              # Porta do PostgreSQL
-      DB_POSTGRESDB_HOST: postgres          # Host do PostgreSQL
-      DB_POSTGRESDB_DATABASE: n8n_fila      # Nome do banco de dados
-      DB_POSTGRESDB_USER: postgres          # Usuário do PostgreSQL
-      DB_POSTGRESDB_PASSWORD: minha_senha   # Senha do PostgreSQL
-      
-      # =========================================================
-      # CONFIGURAÇÃO DE SEGURANÇA E ACESSO
-      # =========================================================
-      N8N_ENCRYPTION_KEY: Y8Dmy5FhuRIDGIrs  # Chave para criptografia de dados
-      N8N_HOST: 192.168.1.74:5678           # Host e porta do N8N
-      N8N_EDITOR_BASE_URL: https://192.168.1.74:5678/  # URL base do editor
-      N8N_PROTOCOL: http                    # Protocolo de acesso (http/https)
-      NODE_ENV: production                  # Ambiente de execução
-      WEBHOOK_URL: http://192.168.1.74:5678/  # URL para webhooks
-      
-      # =========================================================
-      # CONFIGURAÇÃO DE FILAS E EXECUÇÃO
-      # =========================================================
-      EXECUTIONS_MODE: queue                # Modo de execução em fila
-      QUEUE_BULL_REDIS_HOST: redis          # Host do Redis para filas
-      QUEUE_BULL_REDIS_PORT: 6379           # Porta do Redis
-      QUEUE_BULL_REDIS_DB: 2                # Banco de dados Redis
-      NODE_FUNCTION_ALLOW_EXTERNAL: moment,lodash,moment-with-locales  # Bibliotecas externas permitidas
-      EXECUTIONS_DATA_PRUNE: 'true'         # Limpeza automática de dados
-      EXECUTIONS_DATA_MAX_AGE: 336          # Idade máxima dos dados (horas)
-      N8N_ENFORCE_SETTINGS_FILE_PERMISSIONS: 'true'  # Reforçar permissões de arquivos
-      N8N_SECURE_COOKIE: "false"            # Cookies seguros desativados
+      EXECUTIONS_MODE: regular
+      NODE_FUNCTION_ALLOW_EXTERNAL: moment,lodash,moment-with-locales
+      EXECUTIONS_DATA_PRUNE: 'true'
+      EXECUTIONS_DATA_MAX_AGE: 336
+      N8N_ENFORCE_SETTINGS_FILE_PERMISSIONS: 'true'
+      N8N_SECURE_COOKIE: "false"
 
 # =========================================================
 # VOLUMES

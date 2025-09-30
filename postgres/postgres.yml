@@ -1,62 +1,81 @@
 # =========================================================
-# POSTGRESQL - BANCO DE DADOS RELACIONAL
+# POSTGRESQL - PROJETO RAVENNA
 # =========================================================
-# Versão: 16
-# Descrição: Configuração do serviço PostgreSQL para armazenamento
-#            de dados dos serviços Chatwoot, N8N e Evolution API.
+# Descrição: Configuração dos bancos de dados PostgreSQL v16
+#            específicos para cada serviço do Projeto Ravenna
 # =========================================================
 
-# Comando para criar a rede Docker (executar antes da primeira inicialização)
-#docker network create app_network
-
-# =========================================================
-# PROCEDIMENTO PARA INSTALAR PGVECTOR (EXTENSÃO PARA VETORES)
-# =========================================================
-# Descomente e execute os comandos abaixo dentro do contêiner para instalar
-# a extensão pgvector, necessária para funcionalidades de IA e busca vetorial
-# =========================================================
-#apt-get update
-#apt-get install -y git build-essential postgresql-server-dev-16 curl
-#git clone https://github.com/pgvector/pgvector.git /usr/src/pgvector
-#cd /usr/src/pgvector
-#make && make install
-
-# Após a instalação, conecte ao PostgreSQL e ative a extensão:
-#CREATE EXTENSION IF NOT EXISTS vector;
 services:
-  # =========================================================
-  # SERVIÇO: POSTGRESQL
-  # =========================================================
-  # Banco de dados principal para Chatwoot, N8N e Evolution API
-  # Configurado com persistência de dados e rede compartilhada
-  # =========================================================
-  postgres:
-    image: ${POSTGRES_IMAGE}                # Imagem oficial PostgreSQL 16
-    container_name: ${CONTAINER_NAME}       # Nome do contêiner
+  postgres_chatwoot:
+    image: postgres:16-alpine
+    container_name: postgres_chatwoot
+    restart: ${RESTART_POLICY}
+    env_file:
+      - .env
     environment:
-      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD}  # Senha do usuário postgres
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_DB: chatwoot_production
     volumes:
-      - postgres_data:/var/lib/postgresql/data  # Volume para persistência dos dados
+      - postgres_chatwoot_data:/var/lib/postgresql/data
     networks:
-      - app_network                         # Conexão com a rede compartilhada
+      - app_network
     ports:
-      - "${POSTGRES_PORT}:5432"            # Porta exposta (host:container)
-    restart: ${RESTART_POLICY}             # Reinicia automaticamente em caso de falha
+      - "${HOST_IP}:5432:5432"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER}"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
 
-# =========================================================
-# VOLUMES
-# =========================================================
-# Configuração de volumes para persistência de dados
-# =========================================================
+  postgres_n8n:
+    image: postgres:16-alpine
+    container_name: postgres_n8n
+    restart: ${RESTART_POLICY}
+    env_file:
+      - .env
+    environment:
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_DB: n8n_production
+    volumes:
+      - postgres_n8n_data:/var/lib/postgresql/data
+    networks:
+      - app_network
+    ports:
+      - "${HOST_IP}:5433:5432"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER}"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+
+  postgres_evolution:
+    image: postgres:16-alpine
+    container_name: postgres_evolution
+    restart: ${RESTART_POLICY}
+    env_file:
+      - .env
+    environment:
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_DB: evolution_production
+    volumes:
+      - postgres_evolution_data:/var/lib/postgresql/data
+    networks:
+      - app_network
+    ports:
+      - "${HOST_IP}:5434:5432"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER}"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+
 volumes:
-  postgres_data:                           # Volume para dados do PostgreSQL
-    driver: local                          # Driver local para armazenamento
-
-# =========================================================
-# NETWORKS
-# =========================================================
-# Configuração de rede para comunicação entre serviços
-# =========================================================
-networks:
-  app_network:                             # Rede compartilhada entre todos os serviços
-    external: true                         # Indica que a rede é criada externamente
+  postgres_chatwoot_data:
+    driver: local
+  postgres_n8n_data:
+    driver: local
+  postgres_evolution_data:
+    driver: local

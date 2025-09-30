@@ -17,8 +17,8 @@ services:
     image: ${EVOLUTION_IMAGE}
     container_name: ${EVOLUTION_CONTAINER}
     depends_on:
-      - postgres
-      - redis
+      - postgres_evolution
+      - redis_evolution
       - minio
 
     environment:

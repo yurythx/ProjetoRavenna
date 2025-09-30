@@ -1,50 +1,36 @@
-# =========================================================
-# MINIO - ARMAZENAMENTO DE OBJETOS COMPATÍVEL COM S3
-# =========================================================
-# Versão: RELEASE.2025-09-07T16-13-09Z
-# Descrição: Configuração do serviço MinIO para armazenamento
-#            de arquivos, mídias e objetos compatível com S3.
-# =========================================================
+version: '3.8'
 
 services:
-  # =========================================================
-  # SERVIÇO: MINIO
-  # =========================================================
-  # Armazenamento de objetos S3-compatível para arquivos e mídias
-  # Utilizado por Chatwoot e Evolution API para armazenar anexos
-  # =========================================================
   minio:
-    image: ${MINIO_IMAGE}                   # Imagem oficial MinIO
-    command: ${MINIO_COMMAND}               # Comando para iniciar o servidor MinIO
-    container_name: ${CONTAINER_NAME}       # Nome do contêiner
-    networks:
-      - app_network                         # Conexão com a rede compartilhada
-    volumes:
-      - minio_data:/data                    # Volume para persistência dos dados
-    ports:
-      - "9000:9000"                        # Porta da API MinIO
-      - "9001:9001"                        # Porta do Console MinIO
+    image: minio/minio:RELEASE.2024-09-13T20-26-02Z
+    container_name: minio
+    restart: ${RESTART_POLICY}
+    env_file:
+      - .env
     environment:
-      - MINIO_ROOT_USER=${MINIO_ROOT_USER}  # Usuário administrador
-      - MINIO_ROOT_PASSWORD=${MINIO_ROOT_PASSWORD}  # Senha do administrador
-      - MINIO_BROWSER_REDIRECT_URL=${MINIO_BROWSER_REDIRECT_URL}  # URL de redirecionamento do console
-      - MINIO_SERVER_URL=${MINIO_SERVER_URL}  # URL do servidor MinIO
-    restart: ${RESTART_POLICY}             # Reinicia automaticamente em caso de falha
+      MINIO_ROOT_USER: ${MINIO_ROOT_USER}
+      MINIO_ROOT_PASSWORD: ${MINIO_ROOT_PASSWORD}
+      MINIO_BROWSER_REDIRECT_URL: ${MINIO_BROWSER_REDIRECT_URL}
+      MINIO_SERVER_URL: ${MINIO_SERVER_URL}
+    command: server /data --console-address ":9001"
+    volumes:
+      - minio_data:/data
+    networks:
+      - app_network
+    ports:
+      - "${HOST_IP}:9000:9000"
+      - "${HOST_IP}:9001:9001"
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:9000/minio/health/live"]
+      interval: 30s
+      timeout: 20s
+      retries: 3
 
-# =========================================================
-# VOLUMES
-# =========================================================
-# Configuração de volumes para persistência de dados
-# =========================================================
 volumes:
-  minio_data:                               # Volume para dados do MinIO
-    driver: local                          # Driver local para armazenamento
+  minio_data:
+    driver: local
 
-# =========================================================
-# NETWORKS
-# =========================================================
-# Configuração de rede para comunicação entre serviços
-# =========================================================
 networks:
-  app_network:                             # Rede compartilhada entre todos os serviços
-    external: true                         # Indica que a rede é criada externamente
+  app_network:
+    name: ${NETWORK_NAME}
+    external: true

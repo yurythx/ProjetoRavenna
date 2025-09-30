@@ -19,6 +19,8 @@ services:
     networks:
       - ${NETWORK_NAME}
     restart: ${RESTART_POLICY}
+    env_file:
+      - .env
     command: ${CLOUDFLARE_COMMAND}
 
 # =========================================================

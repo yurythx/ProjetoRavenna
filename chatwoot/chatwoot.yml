@@ -16,10 +16,12 @@ services:
   chatwoot-rails:
     image: ${CHATWOOT_IMAGE}
     depends_on:
-      - postgres
-      - redis
+      - postgres_chatwoot
+      - redis_chatwoot
       - minio
 
+    env_file:
+      - .env
     environment:
       # SMTP Configuration
       - MAILER_SENDER_EMAIL=${MAILER_SENDER_EMAIL}
@@ -78,6 +80,20 @@ services:
     restart: ${RESTART_POLICY}
     entrypoint: docker/entrypoints/rails.sh
     command: ["bundle", "exec", "rails", "s", "-p", "3000", "-b", "0.0.0.0"]
+    deploy:
+      resources:
+        limits:
+          cpus: '2.0'
+          memory: 2G
+        reservations:
+          cpus: '0.5'
+          memory: 512M
+    healthcheck:
+      test: ["CMD-SHELL", "curl -f http://localhost:3000/health || exit 1"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 60s
 
   # =========================================================
   # SERVIÇO: CHATWOOT-SIDEKIQ
@@ -88,8 +104,8 @@ services:
   chatwoot-sidekiq:
     image: ${CHATWOOT_IMAGE}
     depends_on:
-      - postgres
-      - redis
+      - postgres_chatwoot
+      - redis_chatwoot
       - minio
 
     environment:
@@ -148,6 +164,20 @@ services:
     restart: ${RESTART_POLICY}
     container_name: ${CHATWOOT_SIDEKIQ_CONTAINER}
     command: ["bundle", "exec", "sidekiq", "-C", "config/sidekiq.yml"]
+    deploy:
+      resources:
+        limits:
+          cpus: '1.5'
+          memory: 1G
+        reservations:
+          cpus: '0.25'
+          memory: 256M
+    healthcheck:
+      test: ["CMD-SHELL", "pgrep -f sidekiq || exit 1"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 60s
 
 # =========================================================
 # VOLUMES

@@ -53,30 +53,34 @@ networks:
 #
 # OPÇÃO B - INICIALIZAÇÃO POR ETAPAS (PARA TROUBLESHOOTING):
 #   1. Infraestrutura base (OBRIGATÓRIO PRIMEIRO):
-#      docker-compose up -d postgres_db redis_cache minio_server
+#      docker-compose up -d postgres_chatwoot postgres_n8n postgres_evolution redis_chatwoot redis_n8n redis_evolution minio_server
 #      # Aguardar 30-60 segundos para inicialização completa
 #   
 #   2. Serviços principais (DEPENDEM DA INFRAESTRUTURA):
 #      docker-compose up -d chatwoot-rails chatwoot-sidekiq
-#      docker-compose up -d n8n_editor n8n_webhook n8n_worker
+#      docker-compose up -d n8n
 #      docker-compose up -d evolution_api
 #      # Aguardar cada grupo inicializar antes do próximo
 #   
 #   3. Acesso externo (OPCIONAL):
 #      docker-compose up -d cloudflare_tunnel
-#
+
 # =========================================================
 # DEPENDÊNCIAS ENTRE SERVIÇOS
 # =========================================================
-# PostgreSQL ← Chatwoot, N8N, Evolution API
-# Redis ← N8N (filas), Evolution API (cache)
+# PostgreSQL Chatwoot ← Chatwoot
+# PostgreSQL N8N ← N8N
+# PostgreSQL Evolution ← Evolution API
+# Redis Chatwoot ← Chatwoot
+# Redis N8N ← N8N
+# Redis Evolution ← Evolution API (cache)
 # MinIO ← Evolution API (armazenamento de mídia)
 # Todos os serviços ← app_network
 #
 # ORDEM RECOMENDADA DE INICIALIZAÇÃO:
-# 1º postgres_db, redis_cache, minio_server
+# 1º postgres_chatwoot, postgres_n8n, postgres_evolution, redis_chatwoot, redis_n8n, redis_evolution, minio_server
 # 2º chatwoot-rails, chatwoot-sidekiq
-# 3º n8n_editor, n8n_webhook, n8n_worker
+# 3º n8n (unificado)
 # 4º evolution_api
 # 5º cloudflare_tunnel (opcional)
 # =========================================================
