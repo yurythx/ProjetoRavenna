@@ -38,6 +38,7 @@ services:
       - DATABASE_PROVIDER=${DATABASE_PROVIDER}
       - DATABASE_CONNECTION_URI=${DATABASE_CONNECTION_URI}
       - DATABASE_CONNECTION_CLIENT_NAME=${DATABASE_CONNECTION_CLIENT_NAME}
+      - DATABASE_URL=${DATABASE_URL}
       
       # RabbitMQ Configuration (Disabled)
       - RABBITMQ_ENABLED=${RABBITMQ_ENABLED}
@@ -172,6 +173,91 @@ services:
     volumes:
       - evolution_data:/evolution/instances
     restart: ${RESTART_POLICY}
+    
+    # =========================================================
+    # CONFIGURAÇÃO DE RECURSOS E HEALTH CHECK
+    # =========================================================
+    deploy:
+      resources:
+        limits:
+          cpus: '1.5'
+          memory: 1.5G
+        reservations:
+          cpus: '0.25'
+          memory: 256M
+    
+    healthcheck:
+      test: ["CMD-SHELL", "wget --no-verbose --tries=1 --spider http://localhost:8080/manager/health || exit 1"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 60s
+
+  # =========================================================
+  # SERVIÇO: POSTGRESQL EVOLUTION
+  # =========================================================
+  # Banco de dados dedicado para o Evolution API
+  # =========================================================
+  postgres_evolution:
+    image: postgres:16
+    environment:
+      POSTGRES_DB: evolution_production
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: PostgresRavenna2024!@#DB789
+      POSTGRES_INITDB_ARGS: "--encoding=UTF-8 --lc-collate=C --lc-ctype=C"
+    volumes:
+      - postgres_evolution_data:/var/lib/postgresql/data
+    networks:
+      - app_network
+    restart: always
+    container_name: postgres_evolution
+    ports:
+      - "5434:5432"
+    deploy:
+      resources:
+        limits:
+          cpus: '1.0'
+          memory: 1G
+        reservations:
+          cpus: '0.25'
+          memory: 256M
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres -d evolution_production"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 60s
+
+  # =========================================================
+  # SERVIÇO: REDIS EVOLUTION
+  # =========================================================
+  # Cache dedicado para o Evolution API
+  # =========================================================
+  redis_evolution:
+    image: redis:8.2-alpine
+    command: redis-server --requirepass RedisRavenna2024!@#Cache456 --appendonly yes
+    volumes:
+      - redis_evolution_data:/data
+    networks:
+      - app_network
+    restart: always
+    container_name: redis_evolution
+    ports:
+      - "6380:6379"
+    deploy:
+      resources:
+        limits:
+          cpus: '0.5'
+          memory: 512M
+        reservations:
+          cpus: '0.1'
+          memory: 128M
+    healthcheck:
+      test: ["CMD-SHELL", "redis-cli -a RedisRavenna2024!@#Cache456 ping | grep PONG"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 30s
 
 # =========================================================
 # VOLUMES
@@ -181,6 +267,10 @@ services:
 volumes:
   evolution_data:                          # Volume para dados do Evolution API
     driver: local                          # Driver local para armazenamento
+  postgres_evolution_data:                 # Volume para dados do PostgreSQL Evolution
+    driver: local
+  redis_evolution_data:                    # Volume para dados do Redis Evolution
+    driver: local
 
 # =========================================================
 # NETWORKS

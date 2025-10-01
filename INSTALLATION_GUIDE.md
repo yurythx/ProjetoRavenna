@@ -110,7 +110,7 @@ nano postgres/.env
 ```env
 POSTGRES_PASSWORD=SuaSenhaSegura123!
 POSTGRES_PORT=5432
-POSTGRES_CONTAINER=postgres_db
+POSTGRES_CONTAINER=postgres_chatwoot
 ```
 
 #### Redis
@@ -516,7 +516,7 @@ docker compose up -d
 nano postgres/postgresql.conf
 
 # Aplicar configurações
-docker restart postgres_db
+docker restart postgres_chatwoot
 ```
 
 ### 2. Configurações do Redis
@@ -526,7 +526,7 @@ docker restart postgres_db
 nano redis/redis.conf
 
 # Reiniciar Redis
-docker restart redis_cache
+docker restart redis_chatwoot
 ```
 
 ### 3. Monitoramento de Performance

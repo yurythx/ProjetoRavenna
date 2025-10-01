@@ -65,6 +65,91 @@ services:
       EXECUTIONS_DATA_MAX_AGE: 336
       N8N_ENFORCE_SETTINGS_FILE_PERMISSIONS: 'true'
       N8N_SECURE_COOKIE: "false"
+    
+    # =========================================================
+    # CONFIGURAÇÃO DE RECURSOS E HEALTH CHECK
+    # =========================================================
+    deploy:
+      resources:
+        limits:
+          cpus: '2.0'
+          memory: 2G
+        reservations:
+          cpus: '0.5'
+          memory: 512M
+    
+    healthcheck:
+      test: ["CMD-SHELL", "wget --no-verbose --tries=1 --spider http://localhost:5678/ || exit 1"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 60s
+
+  # =========================================================
+  # SERVIÇO: POSTGRESQL N8N
+  # =========================================================
+  # Banco de dados dedicado para o N8N
+  # =========================================================
+  postgres_n8n:
+    image: postgres:16
+    environment:
+      POSTGRES_DB: n8n_fila
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: minha_senha_super_segura_2024!
+      POSTGRES_INITDB_ARGS: "--encoding=UTF-8 --lc-collate=C --lc-ctype=C"
+    volumes:
+      - postgres_n8n_data:/var/lib/postgresql/data
+    networks:
+      - app_network
+    restart: always
+    container_name: postgres_n8n
+    ports:
+      - "5433:5432"
+    deploy:
+      resources:
+        limits:
+          cpus: '1.0'
+          memory: 1G
+        reservations:
+          cpus: '0.25'
+          memory: 256M
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres -d n8n_fila"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 60s
+
+  # =========================================================
+  # SERVIÇO: REDIS N8N
+  # =========================================================
+  # Cache e filas dedicado para o N8N
+  # =========================================================
+  redis_n8n:
+    image: redis:8.2-alpine
+    command: redis-server --requirepass RedisRavenna2024!@#Cache456 --appendonly yes
+    volumes:
+      - redis_n8n_data:/data
+    networks:
+      - app_network
+    restart: always
+    container_name: redis_n8n
+    ports:
+      - "6381:6379"
+    deploy:
+      resources:
+        limits:
+          cpus: '0.5'
+          memory: 512M
+        reservations:
+          cpus: '0.1'
+          memory: 128M
+    healthcheck:
+      test: ["CMD-SHELL", "redis-cli -a RedisRavenna2024!@#Cache456 ping | grep PONG"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 30s
 
 # =========================================================
 # VOLUMES
@@ -72,9 +157,13 @@ services:
 # Configuração de volumes para persistência de dados
 # =========================================================
 volumes:
-  n8n_data:                               # Volume para dados do N8N
+  n8n_data:                                # Volume para dados do N8N
     driver: local                          # Driver local para armazenamento
-  tmp_data:                               # Volume para arquivos temporários
+  tmp_data:                                # Volume temporário para N8N
+    driver: local
+  postgres_n8n_data:                       # Volume para dados do PostgreSQL N8N
+    driver: local
+  redis_n8n_data:                          # Volume para dados do Redis N8N
     driver: local                          # Driver local para armazenamento
 
 # =========================================================

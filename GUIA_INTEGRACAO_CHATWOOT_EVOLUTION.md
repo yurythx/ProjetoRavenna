@@ -266,7 +266,7 @@ Invoke-WebRequest -Uri "http://localhost:8080/instance/fetchInstances" -Headers 
 docker exec evolution_api ping -c 3 projetoravenna-chatwoot-rails-1
 
 # 3. Verificar banco de dados
-docker exec postgres_db psql -U postgres -d chatwoot -c "SELECT * FROM inboxes;"
+docker exec postgres_chatwoot psql -U postgres -d chatwoot_production -c "SELECT * FROM inboxes;"
 ```
 
 ### ❌ **Problema: Mídia não funciona**
@@ -413,7 +413,7 @@ docker logs evolution_api --follow
 docker logs projetoravenna-chatwoot-rails-1 --follow
 
 # Backup banco
-docker exec postgres_db pg_dump -U postgres chatwoot > backup_chatwoot.sql
+docker exec postgres_chatwoot pg_dump -U postgres chatwoot_production > backup_chatwoot.sql
 ```
 
 ---

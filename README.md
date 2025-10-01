@@ -297,10 +297,10 @@ docker network create app_network
 docker ps | grep postgres
 
 # Testar conexão
-docker exec -it postgres_db psql -U chatwoot -d chatwoot -c "SELECT version();"
+docker exec -it postgres_chatwoot psql -U postgres -d chatwoot_production -c "SELECT version();"
 
 # Verificar logs do PostgreSQL
-docker logs postgres_db
+docker logs postgres_chatwoot
 ```
 
 #### 🔴 Problemas de memória
@@ -326,8 +326,8 @@ docker image prune -a
 ```bash
 # Logs específicos por serviço
 docker logs chatwoot_app          # Chatwoot
-docker logs postgres_db           # PostgreSQL
-docker logs redis_cache           # Redis
+docker logs postgres_chatwoot           # PostgreSQL Chatwoot
+docker logs redis_chatwoot           # Redis Chatwoot
 docker logs minio_server          # MinIO
 docker logs n8n_editor           # N8N
 docker logs evolution_v2         # Evolution API
@@ -384,8 +384,67 @@ docker logs chatwoot_app | grep "Failed login"
 Para configuração avançada e uso em produção, consulte:
 
 - **[🔐 Configuração de Segurança](CONFIGURACAO_SEGURANCA.md)** - Checklist completo de segurança e credenciais
-- **[🌐 URLs e IPs](URLS_E_IPS.md)** - Guia para configuração de endereços e portas
-- **[🚀 Exemplos Práticos](EXEMPLOS_PRATICOS.md)** - Cenários reais de uso e automações
+- **[🔗 Guia de Integração Chatwoot + Evolution](GUIA_INTEGRACAO_CHATWOOT_EVOLUTION.md)** - Integração completa entre os serviços
+- **[📖 Guia de Instalação](INSTALLATION_GUIDE.md)** - Instruções detalhadas de instalação e configuração
+
+## 🛠️ Scripts de Monitoramento
+
+### Script PowerShell para Windows
+```powershell
+# Verificar status de todos os containers
+docker ps --format "table {{.Names}}\t{{.Status}}\t{{.Ports}}"
+
+# Verificar saúde dos serviços
+docker inspect --format='{{.Name}}: {{.State.Health.Status}}' $(docker ps -q)
+
+# Testar conectividade dos serviços
+Test-NetConnection -ComputerName localhost -Port 3000  # Chatwoot
+Test-NetConnection -ComputerName localhost -Port 5678  # N8N
+Test-NetConnection -ComputerName localhost -Port 8080  # Evolution API
+Test-NetConnection -ComputerName localhost -Port 9001  # MinIO Console
+```
+
+### Comandos de Inicialização Recomendados
+```powershell
+# Ordem recomendada de inicialização
+docker-compose up -d minio_server
+Start-Sleep -Seconds 10
+docker-compose up -d postgres_chatwoot redis_chatwoot
+Start-Sleep -Seconds 20
+docker-compose up -d chatwoot-rails chatwoot-sidekiq
+docker-compose up -d evolution_api
+docker-compose up -d n8n_editor n8n_webhook n8n_worker
+```
+
+## 🌐 URLs de Acesso Rápido
+
+Após a instalação, acesse os serviços através das seguintes URLs (substitua `localhost` pelo IP do seu servidor):
+
+| Serviço | URL | Credenciais Padrão |
+|---------|-----|-------------------|
+| **Chatwoot** | http://localhost:3000 | Criar conta no primeiro acesso |
+| **N8N** | http://localhost:5678 | Criar conta no primeiro acesso |
+| **Evolution API** | http://localhost:8080 | API Key: `ies0F6xS9MTy8zxloNaJ5Ec3tyhuPA0f` |
+| **MinIO Console** | http://localhost:9001 | admin / minha_senha |
+
+## 📊 Configuração de IP Personalizado
+
+Para alterar o IP padrão (`192.168.1.74`) em todos os arquivos:
+
+```powershell
+# Script PowerShell para alteração automática
+$oldIP = "192.168.1.74"
+$newIP = Read-Host "Digite o novo IP"
+
+$files = @("chatwoot/chatwoot.yml", "n8n/n8n.yml", "evolution/evolution.yml", "minio/minio.yml")
+
+foreach ($file in $files) {
+    if (Test-Path $file) {
+        (Get-Content $file) -replace $oldIP, $newIP | Set-Content $file
+        Write-Host "✅ $file atualizado" -ForegroundColor Green
+    }
+}
+```
 
 ## 🔐 Licença e Créditos
 
