@@ -1,0 +1,26 @@
+services:
+  portainer:
+    image: portainer/portainer-ce:latest
+    container_name: ravenna_portainer
+    restart: unless-stopped
+    ports:
+      - "9002:9000"
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+      - portainer_data:/data
+    networks:
+      - app_network
+    environment:
+      - PUID=1000
+      - PGID=1000
+    labels:
+      - "traefik.enable=false"
+      - "com.docker.compose.project=ravenna"
+
+volumes:
+  portainer_data:
+    driver: local
+
+networks:
+  app_network:
+    external: true

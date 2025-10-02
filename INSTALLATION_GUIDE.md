@@ -36,8 +36,11 @@ cd ProjetoRavenna
 
 3. **Inicie os serviços**
 ```powershell
-# Iniciar todos os serviços
-docker-compose up -d
+# Criar rede externa (se não existir)
+docker network create app_network || true
+
+# Iniciar todos os serviços (Compose v2)
+docker compose up -d
 
 # Verificar status
 .\monitor-services.ps1
@@ -51,10 +54,12 @@ docker ps
 # Executar script de monitoramento
 .\monitor-services.ps1
 
-# Verificar URLs de acesso
-# Chatwoot: http://localhost:3000
-# Evolution API: http://localhost:8080
-# MinIO: http://localhost:9001
+# Verificar URLs de acesso (servidor 192.168.0.121)
+# Chatwoot: http://192.168.0.121:3000
+# Evolution API: http://192.168.0.121:8080
+# N8N: http://192.168.0.121:5678
+# MinIO: http://192.168.0.121:9001
+# Portainer: http://192.168.0.121:9002
 ```
 
 ## 🚀 Instalação Automática (Linux)
@@ -65,7 +70,7 @@ docker ps
 sudo apt update && sudo apt upgrade -y
 
 # Instalar dependências
-sudo apt install -y docker.io docker-compose git curl
+sudo apt install -y docker.io docker-compose-plugin git curl
 
 # Adicionar usuário ao grupo docker
 sudo usermod -aG docker $USER
@@ -565,3 +570,59 @@ Em caso de problemas:
 
 **Projeto Ravenna** - Guia de Instalação
 Versão: 1.0 | Atualizado: $(date +%Y-%m-%d)
+ 
+## 🧰 Configuração no aaPanel (Ubuntu)
+
+O aaPanel facilita a gestão de serviços web no servidor Ubuntu. Abaixo, um guia rápido para integrar nossos serviços:
+
+### 1) Acesso e preparação
+- Acesse o painel: `http://192.168.0.121:8888` (porta padrão do aaPanel)
+- Atualize o sistema em "App Store" → "Atualizações".
+- Instale `Nginx` (ou `OpenLiteSpeed/Apache`) via App Store.
+
+### 2) Instalar Docker pelo aaPanel (opcional)
+- App Store → Docker → Instalar.
+- Caso prefira via terminal, já cobrimos acima com `docker.io` e `docker-compose-plugin`.
+
+### 3) Abrir portas necessárias no firewall
+No aaPanel (Segurança/Firewall) ou via terminal:
+```bash
+sudo ufw allow 3000/tcp  # Chatwoot
+sudo ufw allow 5678/tcp  # N8N
+sudo ufw allow 8080/tcp  # Evolution API
+sudo ufw allow 9001/tcp  # MinIO Console
+sudo ufw allow 9002/tcp  # Portainer
+sudo ufw reload
+```
+
+### 4) Configurar Reverse Proxy (Nginx)
+Crie sites no aaPanel e configure proxy reverso para cada serviço (substitua pelo seu domínio interno/externo):
+
+- `chatwoot.seu-dominio` → `http://192.168.0.121:3000`
+- `n8n.seu-dominio` → `http://192.168.0.121:5678`
+- `api.seu-dominio` (Evolution) → `http://192.168.0.121:8080`
+- `minio.seu-dominio` → `http://192.168.0.121:9001`
+- `portainer.seu-dominio` → `http://192.168.0.121:9002`
+
+Em Nginx, use a diretiva padrão de proxy:
+```nginx
+location / {
+  proxy_pass http://192.168.0.121:PORTA_ALVO;
+  proxy_set_header Host $host;
+  proxy_set_header X-Real-IP $remote_addr;
+  proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+  proxy_set_header X-Forwarded-Proto $scheme;
+}
+```
+
+### 5) Certificados SSL (Let's Encrypt)
+- Em cada site, vá em "SSL" → "Let's Encrypt" → informe o domínio.
+- Habilite redirecionamento HTTPS.
+
+### 6) Cloudflare Tunnel (opcional)
+- Caso queira expor externamente sem abrir portas, configure o serviço `cloudflared`.
+- Defina o token no arquivo `cloudflare/.env` e atualize `cloudflare.yml` conforme necessidade.
+
+### 7) Testes pós-configuração
+- Acesse os domínios e confirme que cada serviço carrega via HTTPS.
+- Verifique `Portainer` em `http://192.168.0.121:9002` para gerenciar containers.

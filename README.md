@@ -102,7 +102,7 @@ docker network create app_network
 | Chatwoot | 3000 | Interface web |
 | PostgreSQL | 5432 | Banco de dados |
 | Redis | 6379 | Cache e filas |
-| MinIO API | 9002 | API S3 |
+| MinIO API | 9000 | API S3 |
 | MinIO Console | 9001 | Interface administrativa |
 | N8N | 5678 | Automação |
 | Evolution API | 8080 | WhatsApp API |
@@ -120,7 +120,7 @@ cd ProjetoRavenna
 docker network create app_network
 
 # 3. Inicie todos os serviços
-docker-compose up -d
+docker compose up -d
 ```
 
 ### Opção 2: Instalação Manual (Passo a Passo)
@@ -387,6 +387,19 @@ Para configuração avançada e uso em produção, consulte:
 - **[🔗 Guia de Integração Chatwoot + Evolution](GUIA_INTEGRACAO_CHATWOOT_EVOLUTION.md)** - Integração completa entre os serviços
 - **[📖 Guia de Instalação](INSTALLATION_GUIDE.md)** - Instruções detalhadas de instalação e configuração
 
+## 📊 Monitoramento e Gerenciamento
+
+### Portainer - Interface de Gerenciamento
+O projeto inclui o **Portainer** para gerenciamento visual e monitoramento dos containers:
+
+- **Interface Web**: Acesse http://192.168.0.121:9002 (substitua pelo IP do servidor)
+- **Funcionalidades**:
+  - Visualização de todos os containers, volumes e redes
+  - Logs centralizados de todos os serviços
+  - Monitoramento de recursos (CPU, RAM, rede)
+  - Gerenciamento visual de stacks Docker
+  - Restart e controle de containers via interface web
+
 ## 🛠️ Scripts de Monitoramento
 
 ### Script PowerShell para Windows
@@ -402,31 +415,49 @@ Test-NetConnection -ComputerName localhost -Port 3000  # Chatwoot
 Test-NetConnection -ComputerName localhost -Port 5678  # N8N
 Test-NetConnection -ComputerName localhost -Port 8080  # Evolution API
 Test-NetConnection -ComputerName localhost -Port 9001  # MinIO Console
+Test-NetConnection -ComputerName localhost -Port 9000  # Portainer
 ```
 
 ### Comandos de Inicialização Recomendados
 ```powershell
 # Ordem recomendada de inicialização
-docker-compose up -d minio_server
+docker compose up -d minio_server
 Start-Sleep -Seconds 10
-docker-compose up -d postgres_chatwoot redis_chatwoot
+docker compose up -d postgres_chatwoot redis_chatwoot
 Start-Sleep -Seconds 20
-docker-compose up -d chatwoot-rails chatwoot-sidekiq
-docker-compose up -d evolution_api
-docker-compose up -d n8n_editor n8n_webhook n8n_worker
+docker compose up -d chatwoot-rails chatwoot-sidekiq
+docker compose up -d evolution_api
+docker compose up -d n8n_editor n8n_webhook n8n_worker
 ```
 
 ## 🌐 URLs de Acesso Rápido
 
-Após a instalação, acesse os serviços através das seguintes URLs (substitua `localhost` pelo IP do seu servidor):
+Após a instalação, acesse os serviços através das seguintes URLs (use `192.168.0.121` ou o IP do seu servidor):
 
 | Serviço | URL | Credenciais Padrão |
 |---------|-----|-------------------|
-| **Chatwoot** | http://localhost:3000 | Criar conta no primeiro acesso |
-| **N8N** | http://localhost:5678 | Criar conta no primeiro acesso |
-| **Evolution API** | http://localhost:8080 | API Key: `ies0F6xS9MTy8zxloNaJ5Ec3tyhuPA0f` |
-| **MinIO Console** | http://localhost:9001 | admin / minha_senha |
+| **Chatwoot** | http://192.168.0.121:3000 | Criar conta no primeiro acesso |
+| **N8N** | http://192.168.0.121:5678 | Criar conta no primeiro acesso |
+| **Evolution API** | http://192.168.0.121:8080 | API Key: `ies0F6xS9MTy8zxloNaJ5Ec3tyhuPA0f` |
+| **MinIO Console** | http://192.168.0.121:9001 | admin / minha_senha |
+| **Portainer** | http://192.168.0.121:9002 | Criar conta no primeiro acesso |
 
+## 🎯 Objetivo da Stack
+
+- Unificar atendimento via WhatsApp com automação de processos, armazenamento de mídias e gestão centralizada de serviços.
+- Priorizar auto-hospedagem segura em rede local (LAN), com opção de exposição externa via túnel HTTPS sem abrir portas.
+
+## 🧩 Serviços e Vantagens
+
+- Chatwoot — atendimento omnichannel com filas, tags, bots e relatórios; integra com Evolution.
+- Evolution API — conectividade robusta com WhatsApp; multi-instância; webhooks e integrações.
+- N8N — automação low-code; integrações nativas; escalável com workers para alto volume.
+- MinIO — armazenamento compatível com S3; mídias e backups locais; controle de políticas.
+- PostgreSQL — banco relacional confiável, transacional (ACID) e simples de manter.
+- Redis — cache e filas, melhora performance de consultas e processamento de eventos.
+- Portainer — gestão visual de containers, redes e volumes; logs centralizados e métricas.
+- Cloudflare Tunnel (opcional) — exposição segura HTTPS sem abrir portas e proteção DDoS.
+- aaPanel/Nginx (opcional) — reverse proxy, SSL Let's Encrypt, organização por domínios.
 ## 📊 Configuração de IP Personalizado
 
 Para alterar o IP padrão (`192.168.1.74`) em todos os arquivos:
@@ -434,9 +465,17 @@ Para alterar o IP padrão (`192.168.1.74`) em todos os arquivos:
 ```powershell
 # Script PowerShell para alteração automática
 $oldIP = "192.168.1.74"
-$newIP = Read-Host "Digite o novo IP"
+$newIP = "SEU_NOVO_IP"  # Substitua pelo IP desejado
 
-$files = @("chatwoot/chatwoot.yml", "n8n/n8n.yml", "evolution/evolution.yml", "minio/minio.yml")
+# Lista de arquivos para atualizar
+$files = @(
+    "chatwoot\.env",
+    "evolution\.env", 
+    "n8n\.env",
+    "n8n\n8n.yml",
+    "minio\.env",
+    "cloudflare\.env"
+)
 
 foreach ($file in $files) {
     if (Test-Path $file) {

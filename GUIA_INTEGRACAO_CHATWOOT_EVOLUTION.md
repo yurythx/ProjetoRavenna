@@ -138,7 +138,7 @@ $apiKey = "ies0F6xS9MTy8zxloNaJ5Ec3tyhuPA0f_super_segura_2024"
 $instanceName = "chatwoot_principal"
 
 # Criar instância
-Invoke-WebRequest -Uri "http://localhost:8080/instance/create" -Method POST -Headers @{"apikey"=$apiKey} -ContentType "application/json" -Body (@{
+Invoke-WebRequest -Uri "http://192.168.0.121:8080/instance/create" -Method POST -Headers @{"apikey"=$apiKey} -ContentType "application/json" -Body (@{
     instanceName = $instanceName
     integration = "WHATSAPP-BAILEYS"
 } | ConvertTo-Json)
@@ -160,7 +160,7 @@ $chatwootConfig = @{
 }
 
 # Aplicar configuração à instância
-Invoke-RestMethod -Uri "http://localhost:8080/chatwoot/set/$instanceName" -Method POST -Headers @{"apikey"=$apiKey; "Content-Type"="application/json"} -Body ($chatwootConfig | ConvertTo-Json)
+Invoke-RestMethod -Uri "http://192.168.0.121:8080/chatwoot/set/$instanceName" -Method POST -Headers @{"apikey"=$apiKey; "Content-Type"="application/json"} -Body ($chatwootConfig | ConvertTo-Json)
 ```
 
 > **⚠️ ATENÇÃO:** Para obter o `token` e `accountId` corretos:
@@ -173,7 +173,7 @@ Invoke-RestMethod -Uri "http://localhost:8080/chatwoot/set/$instanceName" -Metho
 
 ```powershell
 # 1. Obter QR Code
-$qrResponse = Invoke-WebRequest -Uri "http://localhost:8080/instance/connect/$instanceName" -Headers @{"apikey"=$apiKey} -Method GET
+$qrResponse = Invoke-WebRequest -Uri "http://192.168.0.121:8080/instance/connect/$instanceName" -Headers @{"apikey"=$apiKey} -Method GET
 $qrData = $qrResponse.Content | ConvertFrom-Json
 
 # 2. O QR Code estará em $qrData.base64
@@ -186,7 +186,7 @@ Write-Host "Escaneie com seu WhatsApp para conectar!"
 
 ### **PASSO 5: Configurar Inbox no Chatwoot**
 
-1. **Acessar Chatwoot:** http://localhost:3000
+1. **Acessar Chatwoot:** http://192.168.0.121:3000
 2. **Login:** Use as credenciais configuradas
 3. **Ir para:** Configurações → Inboxes → Adicionar Inbox
 4. **Selecionar:** WhatsApp
@@ -199,7 +199,7 @@ Write-Host "Escaneie com seu WhatsApp para conectar!"
 
 ```powershell
 # Verificar status da instância
-Invoke-WebRequest -Uri "http://localhost:8080/instance/fetchInstances" -Headers @{"apikey"=$apiKey} -Method GET | ConvertFrom-Json
+Invoke-WebRequest -Uri "http://192.168.0.121:8080/instance/fetchInstances" -Headers @{"apikey"=$apiKey} -Method GET | ConvertFrom-Json
 
 # Verificar se aparece como "open" (conectado)
 ```
@@ -246,13 +246,13 @@ docker logs chatwoot-sidekiq --tail 20
 **Soluções:**
 ```powershell
 # 1. Reiniciar instância
-Invoke-WebRequest -Uri "http://localhost:8080/instance/restart/$instanceName" -Headers @{"apikey"=$apiKey} -Method PUT
+Invoke-WebRequest -Uri "http://192.168.0.121:8080/instance/restart/$instanceName" -Headers @{"apikey"=$apiKey} -Method PUT
 
 # 2. Verificar logs
 docker logs evolution_api --tail 50
 
 # 3. Recriar instância se necessário
-Invoke-WebRequest -Uri "http://localhost:8080/instance/delete/$instanceName" -Headers @{"apikey"=$apiKey} -Method DELETE
+Invoke-WebRequest -Uri "http://192.168.0.121:8080/instance/delete/$instanceName" -Headers @{"apikey"=$apiKey} -Method DELETE
 ```
 
 ### ❌ **Problema: Mensagens não chegam no Chatwoot**
@@ -277,7 +277,7 @@ docker exec postgres_chatwoot psql -U postgres -d chatwoot_production -c "SELECT
 docker logs minio_server --tail 20
 
 # 2. Testar acesso MinIO
-Invoke-WebRequest -Uri "http://localhost:9001" -Method GET
+Invoke-WebRequest -Uri "http://192.168.0.121:9001" -Method GET
 
 # 3. Verificar configurações S3 no Evolution
 # Arquivo: evolution/.env
@@ -297,7 +297,7 @@ Invoke-WebRequest -Uri "http://localhost:9001" -Method GET
 
 # Verificar instâncias WhatsApp
 $apiKey = "ies0F6xS9MTy8zxloNaJ5Ec3tyhuPA0f_super_segura_2024"
-Invoke-WebRequest -Uri "http://localhost:8080/instance/fetchInstances" -Headers @{"apikey"=$apiKey} -Method GET
+Invoke-WebRequest -Uri "http://192.168.0.121:8080/instance/fetchInstances" -Headers @{"apikey"=$apiKey} -Method GET
 ```
 
 ### 📈 Métricas Importantes
@@ -391,9 +391,9 @@ CHATWOOT_MESSAGE_READ=true
 ## 📞 Suporte
 
 ### 🔗 URLs Importantes
-- **Evolution API:** http://localhost:8080
-- **Chatwoot:** http://localhost:3000
-- **MinIO Console:** http://localhost:9001
+- **Evolution API:** http://192.168.0.121:8080
+- **Chatwoot:** http://192.168.0.121:3000
+- **MinIO Console:** http://192.168.0.121:9001
 - **Monitoramento:** `.\monitor-services.ps1`
 
 ### 🔑 Credenciais
