@@ -7,7 +7,7 @@
 #            infraestrutura com um único comando.
 # =========================================================
 
-version: '3.8'
+
 
 # =========================================================
 # IMPORTAÇÃO DOS ARQUIVOS DE CONFIGURAÇÃO INDIVIDUAIS
