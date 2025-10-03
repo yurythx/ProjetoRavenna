@@ -78,8 +78,8 @@ services:
     volumes:
       - chatwoot_data:/app/storage
     restart: ${RESTART_POLICY}
-    entrypoint: docker/entrypoints/rails.sh
-    command: ["bash", "-lc", "bundle exec rails db:prepare && bundle exec rails s -p 3000 -b 0.0.0.0"]
+    entrypoint: ["/bin/sh", "-lc"]
+    command: ["bundle exec rails db:prepare && bundle exec rails s -p 3000 -b 0.0.0.0"]
     deploy:
       resources:
         limits:
@@ -163,7 +163,7 @@ services:
       - chatwoot_data:/app/storage
     restart: ${RESTART_POLICY}
     container_name: ${CHATWOOT_SIDEKIQ_CONTAINER}
-    command: ["bash", "-lc", "bundle exec rails db:prepare && bundle exec sidekiq -C config/sidekiq.yml"]
+    command: ["/bin/sh", "-lc", "bundle exec rails db:prepare && bundle exec sidekiq -C config/sidekiq.yml"]
     deploy:
       resources:
         limits:
