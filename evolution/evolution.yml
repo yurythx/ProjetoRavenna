@@ -17,9 +17,12 @@ services:
     image: ${EVOLUTION_IMAGE}
     container_name: ${EVOLUTION_CONTAINER}
     depends_on:
-      - postgres_evolution
-      - redis_evolution
-      - minio
+      postgres_evolution:
+        condition: service_healthy
+      redis_evolution:
+        condition: service_healthy
+      minio:
+        condition: service_healthy
 
     environment:
       # General Server Configuration
@@ -211,8 +214,7 @@ services:
       - app_network
     restart: always
     container_name: postgres_evolution
-    ports:
-      - "5434:5432"
+    # Removido mapeamento de portas externas para maior segurança
     deploy:
       resources:
         limits:
@@ -242,8 +244,7 @@ services:
       - app_network
     restart: always
     container_name: redis_evolution
-    ports:
-      - "6380:6379"
+    # Removido mapeamento de portas externas para maior segurança
     deploy:
       resources:
         limits:
