@@ -63,6 +63,8 @@ CHATWOOT_IMPORT_PLACEHOLDER_MEDIA_MESSAGE=true
 
 # API Key para autenticação
 AUTHENTICATION_API_KEY=ies0F6xS9MTy8zxloNaJ5Ec3tyhuPA0f_super_segura_2024
+# API Key (Projeto Ravenna)
+AUTHENTICATION_API_KEY=evolution_ravenna_2024_api_key_secure_whatsapp_integration_unique_key_456
 ```
 
 ### 2️⃣ Configurações de Webhook (Importantes)
@@ -134,11 +136,11 @@ docker exec evolution_api ping -c 3 projetoravenna-chatwoot-rails-1
 
 ```powershell
 # 1. Criar nova instância
-$apiKey = "ies0F6xS9MTy8zxloNaJ5Ec3tyhuPA0f_super_segura_2024"
+$apiKey = "evolution_ravenna_2024_api_key_secure_whatsapp_integration_unique_key_456"
 $instanceName = "chatwoot_principal"
 
 # Criar instância
-Invoke-WebRequest -Uri "http://192.168.0.121:8080/instance/create" -Method POST -Headers @{"apikey"=$apiKey} -ContentType "application/json" -Body (@{
+Invoke-WebRequest -Uri "http://localhost:8080/instance/create" -Method POST -Headers @{"apikey"=$apiKey} -ContentType "application/json" -Body (@{
     instanceName = $instanceName
     integration = "WHATSAPP-BAILEYS"
 } | ConvertTo-Json)
@@ -152,15 +154,15 @@ Invoke-WebRequest -Uri "http://192.168.0.121:8080/instance/create" -Method POST 
 $chatwootConfig = @{
     enabled = $true
     accountId = "1"  # ID da conta no Chatwoot (obrigatório)
-    token = "chatwoot_token_exemplo"  # Token de acesso do Chatwoot (obrigatório)
-    url = "http://projetoravenna-chatwoot-rails-1:3000"  # URL do Chatwoot (obrigatório)
-    signMsg = $true  # Assinar mensagens (obrigatório)
+    token = "y2nYUCEgVpE1KL5VbAYcvrpE"  # Token de acesso do Chatwoot (obrigatório)
+    url = "http://chatwoot-rails:3000"  # URL do Chatwoot (acessível dentro do Docker)
+    signMsg = $false  # Assinar mensagens (opcional)
     reopenConversation = $true  # Reabrir conversas (obrigatório)
     conversationPending = $false  # Conversas pendentes (obrigatório)
 }
 
 # Aplicar configuração à instância
-Invoke-RestMethod -Uri "http://192.168.0.121:8080/chatwoot/set/$instanceName" -Method POST -Headers @{"apikey"=$apiKey; "Content-Type"="application/json"} -Body ($chatwootConfig | ConvertTo-Json)
+Invoke-RestMethod -Uri "http://localhost:8080/chatwoot/set/$instanceName" -Method POST -Headers @{"apikey"=$apiKey; "Content-Type"="application/json"} -Body ($chatwootConfig | ConvertTo-Json)
 ```
 
 > **⚠️ ATENÇÃO:** Para obter o `token` e `accountId` corretos:
@@ -173,7 +175,7 @@ Invoke-RestMethod -Uri "http://192.168.0.121:8080/chatwoot/set/$instanceName" -M
 
 ```powershell
 # 1. Obter QR Code
-$qrResponse = Invoke-WebRequest -Uri "http://192.168.0.121:8080/instance/connect/$instanceName" -Headers @{"apikey"=$apiKey} -Method GET
+$qrResponse = Invoke-WebRequest -Uri "http://localhost:8080/instance/connect/$instanceName" -Headers @{"apikey"=$apiKey} -Method GET
 $qrData = $qrResponse.Content | ConvertFrom-Json
 
 # 2. O QR Code estará em $qrData.base64
@@ -184,22 +186,19 @@ Write-Host "QR Code salvo em qrcode_$instanceName.txt"
 Write-Host "Escaneie com seu WhatsApp para conectar!"
 ```
 
-### **PASSO 5: Configurar Inbox no Chatwoot**
+### **PASSO 5: Inbox no Chatwoot (sem webhook)**
 
-1. **Acessar Chatwoot:** http://192.168.0.121:3000
+1. **Acessar Chatwoot:** http://localhost:3000
 2. **Login:** Use as credenciais configuradas
 3. **Ir para:** Configurações → Inboxes → Adicionar Inbox
-4. **Selecionar:** WhatsApp
-5. **Configurar:**
-   - **Nome:** WhatsApp Principal
-   - **Número:** (será preenchido automaticamente após conexão)
-   - **Webhook URL:** `http://evolution_api:8080/webhook/chatwoot`
+4. **Nome:** por exemplo, "Ravenna" ou "WhatsApp Principal"
+5. **Webhook:** não é necessário nesta build. O Evolution criará/atualizará conversas via API do Chatwoot.
 
 ### **PASSO 6: Verificar Conexão**
 
 ```powershell
 # Verificar status da instância
-Invoke-WebRequest -Uri "http://192.168.0.121:8080/instance/fetchInstances" -Headers @{"apikey"=$apiKey} -Method GET | ConvertFrom-Json
+Invoke-WebRequest -Uri "http://localhost:8080/instance/fetchInstances" -Headers @{"apikey"=$apiKey} -Method GET | ConvertFrom-Json
 
 # Verificar se aparece como "open" (conectado)
 ```
@@ -277,7 +276,7 @@ docker exec postgres_chatwoot psql -U postgres -d chatwoot_production -c "SELECT
 docker logs minio_server --tail 20
 
 # 2. Testar acesso MinIO
-Invoke-WebRequest -Uri "http://192.168.0.121:9001" -Method GET
+Invoke-WebRequest -Uri "http://localhost:9001" -Method GET
 
 # 3. Verificar configurações S3 no Evolution
 # Arquivo: evolution/.env
@@ -296,8 +295,8 @@ Invoke-WebRequest -Uri "http://192.168.0.121:9001" -Method GET
 .\monitor-services.ps1
 
 # Verificar instâncias WhatsApp
-$apiKey = "ies0F6xS9MTy8zxloNaJ5Ec3tyhuPA0f_super_segura_2024"
-Invoke-WebRequest -Uri "http://192.168.0.121:8080/instance/fetchInstances" -Headers @{"apikey"=$apiKey} -Method GET
+$apiKey = "evolution_ravenna_2024_api_key_secure_whatsapp_integration_unique_key_456"
+Invoke-WebRequest -Uri "http://localhost:8080/instance/fetchInstances" -Headers @{"apikey"=$apiKey} -Method GET
 ```
 
 ### 📈 Métricas Importantes
@@ -391,13 +390,17 @@ CHATWOOT_MESSAGE_READ=true
 ## 📞 Suporte
 
 ### 🔗 URLs Importantes
-- **Evolution API:** http://192.168.0.121:8080
-- **Chatwoot:** http://192.168.0.121:3000
-- **MinIO Console:** http://192.168.0.121:9001
+- **Evolution API:** http://localhost:8080
+- **Chatwoot:** http://localhost:3000
+- **MinIO Console:** http://localhost:9001
 - **Monitoramento:** `.\monitor-services.ps1`
 
 ### 🔑 Credenciais
-- **API Key Evolution:** `ies0F6xS9MTy8zxloNaJ5Ec3tyhuPA0f_super_segura_2024`
+- **API Key Evolution:** `evolution_ravenna_2024_api_key_secure_whatsapp_integration_unique_key_456`
+
+### ❌ **Problema: 404 no webhook**
+
+Se você tentar acessar `GET/POST /webhook/chatwoot` no Evolution e receber `404 Not Found`, isso é esperado nesta build. Não é necessário configurar webhook na Inbox do Chatwoot. Em vez disso, configure a instância via `POST /chatwoot/set/<instância>` com `accountId`, `token` e `url` (use `http://chatwoot-rails:3000` dentro do Docker) e siga o PASSO 4 para conectar via QR.
 - **PostgreSQL:** `postgres:minha_senha_super_segura_2024!`
 - **MinIO:** Ver arquivo `minio/.env`
 
