@@ -481,12 +481,12 @@ Referência do componente: https://radix-ui.com/primitives/docs/components/dialo
 
 Após criar:
 - Utilize o token `eKWgQ3ZRf15fkspq7Grf3hdN` com `accountId: 1` nas chamadas da Evolution → Chatwoot.
-- A integração funciona sem webhook, pois a Evolution envia eventos diretamente pela API do Chatwoot usando `url: http://chatwoot-rails:3000` dentro da rede Docker.
+ - Configure o webhook da Inbox API do Chatwoot apontando para a Evolution para respostas saírem do Chatwoot para o WhatsApp. Use `http://evolution_api:8080/chatwoot/webhook/Ravenna` (rede Docker) ou `http://<SEU_IP>:8080/chatwoot/webhook/Ravenna` (host).
 
 ### Passo a passo
 - Acesse `Configurações` → `Inboxes` → `Novo inbox` → `API`.
 - Preencha `Nome do Canal`: `WhatsApp - Principal (Ravenna)`.
-- Deixe `URL do Webhook` em branco neste fluxo.
+ - Defina `URL do Webhook`: `http://evolution_api:8080/chatwoot/webhook/Ravenna` (ou `http://<SEU_IP>:8080/chatwoot/webhook/Ravenna` se fora do Docker). Isso evita o erro "Timed out connecting to server" ao responder pelo Chatwoot.
 - Salve para criar o canal.
 - Em `Configurações` → `Conta`, confirme o `account_id` (ex.: `1`).
 - Em `Perfil` → `Tokens de acesso`, gere ou copie o token (utilizamos `eKWgQ3ZRf15fkspq7Grf3hdN`).
@@ -509,11 +509,15 @@ $payload = @{
 
 Invoke-RestMethod -Uri "$base/chatwoot/set/Ravenna" -Method POST -Headers @{ apikey = $apiKey } -ContentType "application/json" -Body $payload
 Invoke-RestMethod -Uri "$base/instance/fetchInstances" -Method GET -Headers @{ apikey = $apiKey }
+
+# Testar conectividade do webhook (deve responder rápido)
+Invoke-RestMethod -Uri "$base/chatwoot/webhook/Ravenna" -Method POST -ContentType "application/json" -Body '{}' | ConvertTo-Json -Depth 4
 ```
 
 ### Dicas
 - Se o Chatwoot estiver publicado no host, use `url: http://<SEU_IP>:3000/`.
 - Dentro da rede Docker, prefira `url: http://chatwoot-rails:3000`.
+ - Dentro da rede Docker, prefira `url: http://chatwoot-rails:3000` e `webhook: http://evolution_api:8080/chatwoot/webhook/Ravenna`.
 
 ## 📊 Monitoramento e Gerenciamento
 

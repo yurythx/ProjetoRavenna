@@ -392,7 +392,9 @@ CHATWOOT_MESSAGE_READ=true
 ### Chatwoot — Canal API
 - Acesse `Configurações` → `Inboxes` → `Novo inbox` → `API`.
 - Nome do Canal: `WhatsApp - Principal (Ravenna)`.
-- Deixe `URL do Webhook` em branco nesta integração.
+- Defina `URL do Webhook` apontando para a Evolution:
+  - Dentro da rede Docker: `http://evolution_api:8080/chatwoot/webhook/Ravenna`
+  - Fora do Docker/host: `http://<SEU_IP>:8080/chatwoot/webhook/Ravenna`
 - Salve o canal.
 - Em `Configurações` → `Conta`, confirme o `account_id` (ex.: `1`).
 - Em `Perfil` → `Tokens de acesso`, gere ou copie o token: `eKWgQ3ZRf15fkspq7Grf3hdN`.
@@ -487,9 +489,26 @@ Invoke-RestMethod -Uri "http://<SEU_IP>:3000/api/v1/accounts/1/conversations" -H
 ### 🔑 Credenciais
 - **API Key Evolution:** `evolution_ravenna_2024_api_key_secure_whatsapp_integration_unique_key_456`
 
-### ❌ **Problema: 404 no webhook**
+### ❌ **Problema: Timeout ao responder pelo Chatwoot**
 
-Se você tentar acessar `GET/POST /webhook/chatwoot` no Evolution e receber `404 Not Found`, isso é esperado nesta build. Não é necessário configurar webhook na Inbox do Chatwoot. Em vez disso, configure a instância via `POST /chatwoot/set/<instância>` com `accountId`, `token` e `url` (use `http://chatwoot-rails:3000` dentro do Docker) e siga o PASSO 4 para conectar via QR.
+**Sintoma:** "Timed out connecting to server" ao enviar mensagem pela Inbox API.
+
+**Causas prováveis:**
+- `URL do Webhook` não configurada ou apontando para um host inacessível a partir do container do Chatwoot.
+- Firewall/proxy bloqueando saída do Chatwoot para `http://<SEU_IP>:8080`.
+
+**Soluções:**
+```bash
+# 1) Verificar que o webhook responde rápido
+curl -X POST "http://<SEU_IP>:8080/chatwoot/webhook/Ravenna" -H "Content-Type: application/json" -d '{}' | jq
+
+# 2) Se estiver em Docker, use o serviço interno
+curl -X POST "http://evolution_api:8080/chatwoot/webhook/Ravenna" -H "Content-Type: application/json" -d '{}'
+
+# 3) Ajustar a Inbox no Chatwoot para usar a URL correta (Docker vs Host)
+```
+
+> Observação: esta stack expõe o endpoint `/chatwoot/webhook/<instância>`. Garanta que o `SERVER_URL` da Evolution aponte para um host alcançável pelo Chatwoot (ex.: `http://evolution_api:8080/`).
 - **PostgreSQL:** `postgres:minha_senha_super_segura_2024!`
 - **MinIO:** Ver arquivo `minio/.env`
 
