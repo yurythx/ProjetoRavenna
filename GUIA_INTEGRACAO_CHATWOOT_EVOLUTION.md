@@ -137,7 +137,7 @@ docker exec evolution_api ping -c 3 projetoravenna-chatwoot-rails-1
 ```powershell
 # 1. Criar nova instância
 $apiKey = "evolution_ravenna_2024_api_key_secure_whatsapp_integration_unique_key_456"
-$instanceName = "chatwoot_principal"
+$instanceName = "Ravenna"
 
 # Criar instância
 Invoke-WebRequest -Uri "http://localhost:8080/instance/create" -Method POST -Headers @{"apikey"=$apiKey} -ContentType "application/json" -Body (@{
@@ -161,8 +161,8 @@ $chatwootConfig = @{
     conversationPending = $false  # Conversas pendentes (obrigatório)
 }
 
-# Aplicar configuração à instância
-Invoke-RestMethod -Uri "http://localhost:8080/chatwoot/set/$instanceName" -Method POST -Headers @{"apikey"=$apiKey; "Content-Type"="application/json"} -Body ($chatwootConfig | ConvertTo-Json)
+# Aplicar configuração à instância (substitua localhost por <SEU_IP> se necessário)
+Invoke-RestMethod -Uri "http://<SEU_IP>:8080/chatwoot/set/$instanceName" -Method POST -Headers @{"apikey"=$apiKey; "Content-Type"="application/json"} -Body ($chatwootConfig | ConvertTo-Json)
 ```
 
 > **⚠️ ATENÇÃO:** Para obter o `token` e `accountId` corretos:
@@ -384,6 +384,95 @@ CHATWOOT_MESSAGE_READ=true
 - [ ] Logs sem erros
 - [ ] Métricas estáveis
 - [ ] Alertas configurados
+
+---
+
+## 🖼️ Checklist Visual (Chatwoot + Evolution)
+
+### Chatwoot — Canal API
+- Acesse `Configurações` → `Inboxes` → `Novo inbox` → `API`.
+- Nome do Canal: `WhatsApp - Principal (Ravenna)`.
+- Deixe `URL do Webhook` em branco nesta integração.
+- Salve o canal.
+- Em `Configurações` → `Conta`, confirme o `account_id` (ex.: `1`).
+- Em `Perfil` → `Tokens de acesso`, gere ou copie o token: `eKWgQ3ZRf15fkspq7Grf3hdN`.
+
+### Evolution — Aplicar Configuração da Instância
+- Use `POST /chatwoot/set/Ravenna` com cabeçalho `apikey`.
+- Se Chatwoot estiver na rede Docker: `url: http://chatwoot-rails:3000`.
+- Se publicado no host: `url: http://<SEU_IP>:3000/`.
+
+### Teste de Ponta a Ponta
+- Inbound: envie uma mensagem para o WhatsApp conectado e verifique a conversa na Inbox do Chatwoot.
+- Outbound: responda pelo Chatwoot e confirme a entrega no WhatsApp.
+- Flags esperadas: `signMsg=false`, `reopenConversation=true`.
+
+### Comandos rápidos (curl)
+```bash
+# Substitua <SEU_IP> pelo IP da sua máquina (ex.: 192.168.0.121)
+APIKEY='evolution_ravenna_2024_api_key_secure_whatsapp_integration_unique_key_456'
+
+# 1) Aplicar configuração (rede Docker interna)
+curl -X POST "http://<SEU_IP>:8080/chatwoot/set/Ravenna" \
+  -H "apikey: ${APIKEY}" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "enabled": true,
+    "conversationPending": false,
+    "accountId": "1",
+    "token": "eKWgQ3ZRf15fkspq7Grf3hdN",
+    "url": "http://chatwoot-rails:3000",
+    "signMsg": false,
+    "reopenConversation": true
+  }'
+
+# 2) Aplicar configuração (Chatwoot publicado no host)
+curl -X POST "http://<SEU_IP>:8080/chatwoot/set/Ravenna" \
+  -H "apikey: ${APIKEY}" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "enabled": true,
+    "conversationPending": false,
+    "accountId": "1",
+    "token": "eKWgQ3ZRf15fkspq7Grf3hdN",
+    "url": "http://<SEU_IP>:3000/",
+    "signMsg": false,
+    "reopenConversation": true
+  }'
+
+# 3) Verificar instâncias conectadas
+curl -s -H "apikey: ${APIKEY}" "http://<SEU_IP>:8080/instance/fetchInstances" | jq
+
+# 4) Listar conversas no Chatwoot
+curl -s "http://<SEU_IP>:3000/api/v1/accounts/1/conversations?api_access_token=eKWgQ3ZRf15fkspq7Grf3hdN" | jq
+```
+
+### Comandos rápidos (PowerShell)
+```powershell
+$apiKey = "evolution_ravenna_2024_api_key_secure_whatsapp_integration_unique_key_456"
+$base = "http://<SEU_IP>:8080"
+
+$payload = @{ 
+  enabled = $true
+  conversationPending = $false
+  accountId = "1"
+  token = "eKWgQ3ZRf15fkspq7Grf3hdN"
+  url = "http://chatwoot-rails:3000"  # use http://<SEU_IP>:3000/ se Chatwoot estiver no host
+  signMsg = $false
+  reopenConversation = $true
+} | ConvertTo-Json
+
+Invoke-RestMethod -Uri "$base/chatwoot/set/Ravenna" -Method POST -Headers @{ apikey = $apiKey } -ContentType "application/json" -Body $payload | ConvertTo-Json -Depth 6
+Invoke-RestMethod -Uri "$base/instance/fetchInstances" -Method GET -Headers @{ apikey = $apiKey } | ConvertTo-Json -Depth 6
+
+$cwHeaders = @{ api_access_token = "eKWgQ3ZRf15fkspq7Grf3hdN" }
+Invoke-RestMethod -Uri "http://<SEU_IP>:3000/api/v1/accounts/1/conversations" -Headers $cwHeaders -Method GET | ConvertTo-Json -Depth 6
+```
+
+### Dicas de conectividade
+- Em containers, prefira `http://chatwoot-rails:3000`.
+- Em hosts, use `http://<SEU_IP>:3000/`.
+- Se usar proxy/túnel, garanta passagem do cabeçalho `apikey`.
 
 ---
 

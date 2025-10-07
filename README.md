@@ -409,7 +409,7 @@ export const api = axios.create({
 });
 
 // Exemplo de chamada para configurar Chatwoot
-export async function applyChatwoot(instance = 'chatwoot_principal') {
+export async function applyChatwoot(instance = 'Ravenna') {
   const payload = {
     enabled: true,
     accountId: 1,
@@ -421,6 +421,25 @@ export async function applyChatwoot(instance = 'chatwoot_principal') {
   };
   return api.post(`/chatwoot/set/${instance}`, payload);
 }
+
+// Exemplo com curl (substitua <SEU_IP> pelo IP da sua máquina)
+// Necessário incluir o header apikey
+// Observação: se o Chatwoot estiver publicado no host, use url: http://<SEU_IP>:3000/
+// Dentro da rede Docker, use url: http://chatwoot-rails:3000
+/*
+curl -X POST "http://<SEU_IP>:8080/chatwoot/set/Ravenna" \
+  -H "apikey: evolution_ravenna_2024_api_key_secure_whatsapp_integration_unique_key_456" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "enabled": true,
+    "accountId": 1,
+    "token": "eKWgQ3ZRf15fkspq7Grf3hdN",
+    "url": "http://chatwoot-rails:3000",
+    "signMsg": false,
+    "reopenConversation": true,
+    "conversationPending": false
+  }'
+*/
 ```
 
 Correção de acessibilidade Radix Dialog:
@@ -453,6 +472,48 @@ export function MyDialog() {
 ```
 
 Referência do componente: https://radix-ui.com/primitives/docs/components/dialog
+
+## 🧪 Canal de API no Chatwoot (o que preencher)
+
+- Nome do Canal: use um nome claro, por exemplo `WhatsApp - Principal (Ravenna)`.
+- URL do Webhook: deixe em branco no fluxo atual (não utilizamos webhook). Somente configure se você tiver um endpoint público que receberá callbacks.
+- Clique em “Criar canal de API”.
+
+Após criar:
+- Utilize o token `eKWgQ3ZRf15fkspq7Grf3hdN` com `accountId: 1` nas chamadas da Evolution → Chatwoot.
+- A integração funciona sem webhook, pois a Evolution envia eventos diretamente pela API do Chatwoot usando `url: http://chatwoot-rails:3000` dentro da rede Docker.
+
+### Passo a passo
+- Acesse `Configurações` → `Inboxes` → `Novo inbox` → `API`.
+- Preencha `Nome do Canal`: `WhatsApp - Principal (Ravenna)`.
+- Deixe `URL do Webhook` em branco neste fluxo.
+- Salve para criar o canal.
+- Em `Configurações` → `Conta`, confirme o `account_id` (ex.: `1`).
+- Em `Perfil` → `Tokens de acesso`, gere ou copie o token (utilizamos `eKWgQ3ZRf15fkspq7Grf3hdN`).
+
+### Verificação rápida (Evolution)
+```powershell
+$ErrorActionPreference = "Stop"
+$apiKey = "evolution_ravenna_2024_api_key_secure_whatsapp_integration_unique_key_456"
+$base = "http://<SEU_IP>:8080"
+
+$payload = @{ 
+  enabled = $true
+  accountId = 1
+  token = "eKWgQ3ZRf15fkspq7Grf3hdN"
+  url = "http://chatwoot-rails:3000"
+  signMsg = $false
+  reopenConversation = $true
+  conversationPending = $false
+} | ConvertTo-Json
+
+Invoke-RestMethod -Uri "$base/chatwoot/set/Ravenna" -Method POST -Headers @{ apikey = $apiKey } -ContentType "application/json" -Body $payload
+Invoke-RestMethod -Uri "$base/instance/fetchInstances" -Method GET -Headers @{ apikey = $apiKey }
+```
+
+### Dicas
+- Se o Chatwoot estiver publicado no host, use `url: http://<SEU_IP>:3000/`.
+- Dentro da rede Docker, prefira `url: http://chatwoot-rails:3000`.
 
 ## 📊 Monitoramento e Gerenciamento
 
