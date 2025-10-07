@@ -387,6 +387,73 @@ Para configuração avançada e uso em produção, consulte:
 - **[🔗 Guia de Integração Chatwoot + Evolution](GUIA_INTEGRACAO_CHATWOOT_EVOLUTION.md)** - Integração completa entre os serviços
 - **[📖 Guia de Instalação](INSTALLATION_GUIDE.md)** - Instruções detalhadas de instalação e configuração
 
+## 🧩 Ajustes de Frontend (Axios e Radix Dialog)
+
+- Base URL da Evolution API no frontend: use `http://<SEU_IP>:8080` em vez de `http://localhost:8080` quando o frontend não estiver rodando dentro do mesmo container. Substitua `<SEU_IP>` pelo IP da sua máquina (ex.: `192.168.0.121`).
+- Cabeçalho de autenticação: inclua `apikey: evolution_ravenna_2024_api_key_secure_whatsapp_integration_unique_key_456` nas requisições.
+- Timeout: aumente para `60000ms` se operações demorarem (upload/mídia).
+- Conectividade interna (Evolution → Chatwoot): use `http://chatwoot-rails:3000` como `url` na configuração da instância, pois roda na mesma rede Docker.
+
+Exemplo de configuração Axios:
+
+```ts
+import axios from 'axios';
+
+export const api = axios.create({
+  baseURL: 'http://<SEU_IP>:8080',
+  timeout: 60000,
+  headers: {
+    apikey: 'evolution_ravenna_2024_api_key_secure_whatsapp_integration_unique_key_456',
+    'Content-Type': 'application/json',
+  },
+});
+
+// Exemplo de chamada para configurar Chatwoot
+export async function applyChatwoot(instance = 'chatwoot_principal') {
+  const payload = {
+    enabled: true,
+    accountId: 1,
+    token: 'eKWgQ3ZRf15fkspq7Grf3hdN',
+    url: 'http://chatwoot-rails:3000',
+    signMsg: false,
+    reopenConversation: true,
+    conversationPending: false,
+  };
+  return api.post(`/chatwoot/set/${instance}`, payload);
+}
+```
+
+Correção de acessibilidade Radix Dialog:
+
+```tsx
+import * as Dialog from '@radix-ui/react-dialog';
+
+export function MyDialog() {
+  return (
+    <Dialog.Root>
+      <Dialog.Trigger asChild>
+        <button>Configurar Chatwoot</button>
+      </Dialog.Trigger>
+      <Dialog.Portal>
+        <Dialog.Overlay className="DialogOverlay" />
+        <Dialog.Content className="DialogContent">
+          <Dialog.Title className="DialogTitle">Configuração do Chatwoot</Dialog.Title>
+          <Dialog.Description className="DialogDescription">
+            Informe os dados da conta para habilitar a integração.
+          </Dialog.Description>
+          {/* ... conteúdo e ações ... */}
+          <Dialog.Close asChild>
+            <button aria-label="Fechar">Fechar</button>
+          </Dialog.Close>
+        </Dialog.Content>
+      </Dialog.Portal>
+    </Dialog.Root>
+  );
+}
+```
+
+Referência do componente: https://radix-ui.com/primitives/docs/components/dialog
+
 ## 📊 Monitoramento e Gerenciamento
 
 ### Portainer - Interface de Gerenciamento

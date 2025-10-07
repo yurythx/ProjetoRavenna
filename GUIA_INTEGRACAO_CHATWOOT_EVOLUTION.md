@@ -154,7 +154,7 @@ Invoke-WebRequest -Uri "http://localhost:8080/instance/create" -Method POST -Hea
 $chatwootConfig = @{
     enabled = $true
     accountId = "1"  # ID da conta no Chatwoot (obrigatório)
-    token = "y2nYUCEgVpE1KL5VbAYcvrpE"  # Token de acesso do Chatwoot (obrigatório)
+    token = "eKWgQ3ZRf15fkspq7Grf3hdN"  # Token de acesso do Chatwoot (obrigatório)
     url = "http://chatwoot-rails:3000"  # URL do Chatwoot (acessível dentro do Docker)
     signMsg = $false  # Assinar mensagens (opcional)
     reopenConversation = $true  # Reabrir conversas (obrigatório)
