@@ -54,12 +54,12 @@ docker ps
 # Executar script de monitoramento
 .\monitor-services.ps1
 
-# Verificar URLs de acesso (servidor 192.168.0.121)
-# Chatwoot: http://192.168.0.121:3000
-# Evolution API: http://192.168.0.121:8080
-# N8N: http://192.168.0.121:5678
-# MinIO: http://192.168.0.121:9001
-# Portainer: http://192.168.0.121:9002
+# Verificar URLs de acesso (substitua <SEU_IP> pelo IP do servidor)
+# Chatwoot: http://<SEU_IP>:3000
+# Evolution API: http://<SEU_IP>:8080
+# N8N: http://<SEU_IP>:5678
+# MinIO: http://<SEU_IP>:9001
+# Portainer: http://<SEU_IP>:9002
 ```
 
 ## 🚀 Instalação Automática (Linux)
@@ -598,16 +598,16 @@ sudo ufw reload
 ### 4) Configurar Reverse Proxy (Nginx)
 Crie sites no aaPanel e configure proxy reverso para cada serviço (substitua pelo seu domínio interno/externo):
 
-- `chatwoot.seu-dominio` → `http://192.168.0.121:3000`
-- `n8n.seu-dominio` → `http://192.168.0.121:5678`
-- `api.seu-dominio` (Evolution) → `http://192.168.0.121:8080`
-- `minio.seu-dominio` → `http://192.168.0.121:9001`
-- `portainer.seu-dominio` → `http://192.168.0.121:9002`
+- `chatwoot.seu-dominio` → `http://<SEU_IP>:3000`
+- `n8n.seu-dominio` → `http://<SEU_IP>:5678`
+- `api.seu-dominio` (Evolution) → `http://<SEU_IP>:8080`
+- `minio.seu-dominio` → `http://<SEU_IP>:9001`
+- `portainer.seu-dominio` → `http://<SEU_IP>:9002`
 
 Em Nginx, use a diretiva padrão de proxy:
 ```nginx
 location / {
-  proxy_pass http://192.168.0.121:PORTA_ALVO;
+  proxy_pass http://<SEU_IP>:PORTA_ALVO;
   proxy_set_header Host $host;
   proxy_set_header X-Real-IP $remote_addr;
   proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
@@ -625,4 +625,4 @@ location / {
 
 ### 7) Testes pós-configuração
 - Acesse os domínios e confirme que cada serviço carrega via HTTPS.
-- Verifique `Portainer` em `http://192.168.0.121:9002` para gerenciar containers.
+- Verifique `Portainer` em `http://<SEU_IP>:9002` para gerenciar containers.

@@ -62,8 +62,6 @@ CHATWOOT_IMPORT_DATABASE_CONNECTION_URI=postgresql://postgres:minha_senha_super_
 CHATWOOT_IMPORT_PLACEHOLDER_MEDIA_MESSAGE=true
 
 # API Key para autenticação
-AUTHENTICATION_API_KEY=ies0F6xS9MTy8zxloNaJ5Ec3tyhuPA0f_super_segura_2024
-# API Key (Projeto Ravenna)
 AUTHENTICATION_API_KEY=evolution_ravenna_2024_api_key_secure_whatsapp_integration_unique_key_456
 ```
 
@@ -85,6 +83,17 @@ WEBHOOK_EVENTS_CONTACTS_UPSERT=true
 WEBHOOK_EVENTS_CONTACTS_UPDATE=true
 WEBHOOK_EVENTS_CONNECTION_UPDATE=true
 ```
+
+### 3️⃣ URL base da Evolution (SERVER_URL)
+
+Defina a URL base acessível da Evolution para que webhooks e integrações funcionem corretamente:
+
+```yaml
+# Arquivo: evolution/evolution.yml
+SERVER_URL: "http://<SEU_IP>:8080"
+```
+
+Substitua `<SEU_IP>` pelo IP ou domínio onde a Evolution está publicada. Se tudo estiver em rede Docker interna, use o host acessível ao Chatwoot (ex.: `http://evolution_api:8080`).
 
 ---
 

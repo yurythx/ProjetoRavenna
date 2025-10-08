@@ -187,12 +187,12 @@ Execute este script para testar as configurações:
 Write-Host "🔍 Testando conectividade dos serviços..."
 
 $services = @{
-    "PostgreSQL" = "192.168.0.121:5432"
-    "Redis" = "192.168.0.121:6379"
-    "MinIO" = "192.168.0.121:9001"
-    "Chatwoot" = "192.168.0.121:3000"
-    "N8N" = "192.168.0.121:5678"
-    "Evolution" = "192.168.0.121:8080"
+    "PostgreSQL" = "<SEU_IP>:5432"
+    "Redis" = "<SEU_IP>:6379"
+    "MinIO" = "<SEU_IP>:9001"
+    "Chatwoot" = "<SEU_IP>:3000"
+    "N8N" = "<SEU_IP>:5678"
+    "Evolution" = "<SEU_IP>:8080"
 }
 
 foreach ($service in $services.GetEnumerator()) {

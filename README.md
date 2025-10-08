@@ -345,7 +345,7 @@ docker logs --tail=100 n8n_editor
 #### 1. Alterar Senhas Padrão
 - [ ] PostgreSQL: `minha_senha`
 - [ ] MinIO: `admin/minha_senha`
-- [ ] Evolution API: `ies0F6xS9MTy8zxloNaJ5Ec3tyhuPA0f`
+ - [ ] Evolution API: defina uma `AUTHENTICATION_API_KEY` forte (não publique chaves reais)
 
 #### 2. Configurar Firewall
 ```bash
@@ -499,7 +499,7 @@ $base = "http://<SEU_IP>:8080"
 
 $payload = @{ 
   enabled = $true
-  accountId = 1
+  accountId = "1"
   token = "eKWgQ3ZRf15fkspq7Grf3hdN"
   url = "http://chatwoot-rails:3000"
   signMsg = $false
@@ -515,9 +515,8 @@ Invoke-RestMethod -Uri "$base/chatwoot/webhook/Ravenna" -Method POST -ContentTyp
 ```
 
 ### Dicas
+- Dentro da rede Docker, use `url: http://chatwoot-rails:3000` e `webhook: http://evolution_api:8080/chatwoot/webhook/Ravenna`.
 - Se o Chatwoot estiver publicado no host, use `url: http://<SEU_IP>:3000/`.
-- Dentro da rede Docker, prefira `url: http://chatwoot-rails:3000`.
- - Dentro da rede Docker, prefira `url: http://chatwoot-rails:3000` e `webhook: http://evolution_api:8080/chatwoot/webhook/Ravenna`.
 
 ## 📊 Monitoramento e Gerenciamento
 
