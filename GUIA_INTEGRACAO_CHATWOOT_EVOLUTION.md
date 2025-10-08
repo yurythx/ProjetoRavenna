@@ -480,6 +480,28 @@ $cwHeaders = @{ api_access_token = "eKWgQ3ZRf15fkspq7Grf3hdN" }
 Invoke-RestMethod -Uri "http://<SEU_IP>:3000/api/v1/accounts/1/conversations" -Headers $cwHeaders -Method GET | ConvertTo-Json -Depth 6
 ```
 
+### Notas importantes (copy & paste seguro)
+- Ao enviar JSON para a Evolution (ex.: `POST /chatwoot/set/<instância>`), não inclua crases, aspas extras ou espaços ao redor de URLs/valores. Use exatamente `"url": "http://chatwoot-rails:3000"` dentro da rede Docker, ou `"http://<SEU_IP>:3000/"` se o Chatwoot estiver publicado no host.
+- O endpoint `POST /chatwoot/set/<instância>` habilita e configura a integração (conta/token/URL do Chatwoot), mas não define a `URL do Webhook` do Chatwoot. Essa URL é configurada na UI do Chatwoot (Inboxes → API), apontando para `http://evolution_api:8080/chatwoot/webhook/<instância>` (Docker) ou `http://<SEU_IP>:8080/chatwoot/webhook/<instância>` (host).
+
+### BusyBox wget (em containers)
+Se estiver dentro de um container com BusyBox `wget`, use `--post-data` para requisições `POST`:
+
+```bash
+# Aplicar configuração da instância Ravenna
+docker exec -it projetoravenna-chatwoot-rails-1 wget -S -O- \
+  --header='Content-Type: application/json' \
+  --header='apikey: evolution_ravenna_2024_api_key_secure_whatsapp_integration_unique_key_456' \
+  --post-data='{"enabled":true,"conversationPending":false,"accountId":"1","token":"eKWgQ3ZRf15fkspq7Grf3hdN","url":"http://chatwoot-rails:3000","signMsg":false,"reopenConversation":true}' \
+  http://evolution_api:8080/chatwoot/set/Ravenna
+
+# Testar conectividade do webhook (resposta rápida confirma rota)
+docker exec -it projetoravenna-chatwoot-rails-1 wget -S -O- \
+  --header='Content-Type: application/json' \
+  --post-data='{}' \
+  http://evolution_api:8080/chatwoot/webhook/Ravenna
+```
+
 ### Dicas de conectividade
 - Em containers, prefira `http://chatwoot-rails:3000`.
 - Em hosts, use `http://<SEU_IP>:3000/`.

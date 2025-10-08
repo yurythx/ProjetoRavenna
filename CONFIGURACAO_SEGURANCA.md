@@ -205,6 +205,42 @@ foreach ($service in $services.GetEnumerator()) {
 }
 ```
 
+## 🔎 Testes Rápidos (Chatwoot ↔ Evolution)
+
+- Verificar `fetchInstances` na Evolution:
+```bash
+curl -s -H "apikey: <SUA_API_KEY>" http://<SEU_IP>:8080/instance/fetchInstances | jq .
+```
+- Aplicar configuração do Chatwoot na instância (JSON limpo, sem crases/aspas extras):
+```bash
+curl -X POST "http://<SEU_IP>:8080/chatwoot/set/Ravenna" \
+  -H "apikey: <SUA_API_KEY>" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "enabled": true,
+    "accountId": "1",
+    "token": "<SEU_TOKEN>",
+    "url": "http://chatwoot-rails:3000",
+    "signMsg": false,
+    "reopenConversation": true,
+    "conversationPending": false
+  }'
+```
+- Testar webhook via BusyBox `wget` (em container):
+```bash
+docker exec -it projetoravenna-chatwoot-rails-1 wget -S -O- \
+  --header='Content-Type: application/json' \
+  --post-data='{}' \
+  http://evolution_api:8080/chatwoot/webhook/Ravenna
+```
+
+## ⚠️ Armadilhas Comuns
+
+- Webhook do Chatwoot é configurado na UI (Inboxes → API) e NÃO via `POST /chatwoot/set/<instância>`.
+- JSON com crases (`` ` ``) ou aspas extras quebra o parser; use apenas aspas duplas válidas (`"..."`).
+- Em Docker, use hostnames internos (`http://evolution_api:8080`, `http://chatwoot-rails:3000`) para comunicação entre containers.
+- Firewalls/NAT podem bloquear `http://<SEU_IP>:8080` para containers; prefira URLs internas quando possível.
+
 ## 🚨 Nunca Faça
 
 - ❌ Não use as credenciais padrão em produção

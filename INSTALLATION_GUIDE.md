@@ -380,6 +380,10 @@ docker logs evolution_api
 1. Acesse: `http://seu-ip:3000`
 2. Crie conta de administrador
 3. Configure integração com WhatsApp via Evolution API
+   - Crie uma Inbox de API e defina a `URL do Webhook` apontando para a Evolution:
+     - Docker (rede interna): `http://evolution_api:8080/chatwoot/webhook/<instância>`
+     - Host/externo: `http://<SEU_IP>:8080/chatwoot/webhook/<instância>`
+   - Confirme `account_id` (ex.: `1`) e gere/copiei o `api_access_token`.
 
 ### 2. N8N
 
@@ -402,6 +406,40 @@ docker logs evolution_api
    - Usuário: `minioadmin`
    - Senha: `MinioAdmin123!`
 3. Crie buckets necessários
+
+## 🔗 Integração Chatwoot ↔ Evolution (Resumo prático)
+
+- Webhook é configurado na UI do Chatwoot (Inboxes → API) e deve apontar para a Evolution: `http://evolution_api:8080/chatwoot/webhook/<instância>` em Docker, ou `http://<SEU_IP>:8080/chatwoot/webhook/<instância>` no host.
+- Configure a instância na Evolution via `POST /chatwoot/set/<instância>` com JSON limpo (sem crases/aspas extras). Exemplo com `curl`:
+```bash
+curl -X POST "http://<SEU_IP>:8080/chatwoot/set/Ravenna" \
+  -H "apikey: <SUA_API_KEY>" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "enabled": true,
+    "accountId": "1",
+    "token": "<SEU_TOKEN>",
+    "url": "http://chatwoot-rails:3000",
+    "signMsg": false,
+    "reopenConversation": true,
+    "conversationPending": false
+  }'
+```
+- Em containers com BusyBox `wget`, use:
+```bash
+docker exec -it projetoravenna-chatwoot-rails-1 wget -S -O- \
+  --header='Content-Type: application/json' \
+  --header='apikey: <SUA_API_KEY>' \
+  --post-data='{"enabled":true,"accountId":"1","token":"<SEU_TOKEN>","url":"http://chatwoot-rails:3000","signMsg":false,"reopenConversation":true,"conversationPending":false}' \
+  http://evolution_api:8080/chatwoot/set/Ravenna
+```
+- Teste rápido do webhook (resposta 200 confirma rota):
+```bash
+docker exec -it projetoravenna-chatwoot-rails-1 wget -S -O- \
+  --header='Content-Type: application/json' \
+  --post-data='{}' \
+  http://evolution_api:8080/chatwoot/webhook/Ravenna
+```
 
 ## 🚨 Solução de Problemas
 
