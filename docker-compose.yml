@@ -22,6 +22,7 @@ include:
   - path: ./evolution/evolution.yml  # API WhatsApp Evolution
   - path: ./cloudflare/cloudflare.yml # Túnel Cloudflare
   - path: ./portainer/portainer.yml  # Gerenciamento e monitoramento Portainer
+  - path: ./backup/backup.yml        # Sistema de backup automatizado
 
 # =========================================================
 # VOLUMES E REDES

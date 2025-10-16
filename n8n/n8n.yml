@@ -158,13 +158,9 @@ services:
 # =========================================================
 volumes:
   n8n_data:                                # Volume para dados do N8N
-    driver: local                          # Driver local para armazenamento
   tmp_data:                                # Volume temporário para N8N
-    driver: local
   postgres_n8n_data:                       # Volume para dados do PostgreSQL N8N
-    driver: local
   redis_n8n_data:                          # Volume para dados do Redis N8N
-    driver: local                          # Driver local para armazenamento
 
 # =========================================================
 # NETWORKS
@@ -173,4 +169,4 @@ volumes:
 # =========================================================
 networks:
   app_network:                            # Rede compartilhada entre todos os serviços
-    external: true                         # Indica que a rede é criada externamente
+    driver: bridge

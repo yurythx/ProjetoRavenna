@@ -267,11 +267,8 @@ services:
 # =========================================================
 volumes:
   evolution_data:                          # Volume para dados do Evolution API
-    driver: local                          # Driver local para armazenamento
   postgres_evolution_data:                 # Volume para dados do PostgreSQL Evolution
-    driver: local
   redis_evolution_data:                    # Volume para dados do Redis Evolution
-    driver: local
 
 # =========================================================
 # NETWORKS
@@ -280,4 +277,4 @@ volumes:
 # =========================================================
 networks:
   app_network:                             # Rede compartilhada entre todos os serviços
-    external: true                         # Indica que a rede é criada externamente
+    driver: bridge

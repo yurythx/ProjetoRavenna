@@ -38,8 +38,7 @@ services:
 
 volumes:
   minio_data:
-    driver: local
 
 networks:
   app_network:
-    external: true
+    driver: bridge

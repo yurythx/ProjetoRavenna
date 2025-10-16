@@ -254,11 +254,8 @@ services:
 # =========================================================
 volumes:
   chatwoot_data:                           # Volume para dados do Chatwoot
-    driver: local                          # Driver local para armazenamento
   postgres_chatwoot_data:                  # Volume para dados do PostgreSQL Chatwoot
-    driver: local
   redis_chatwoot_data:                     # Volume para dados do Redis Chatwoot
-    driver: local
 
 # =========================================================
 # NETWORKS
@@ -267,4 +264,4 @@ volumes:
 # =========================================================
 networks:
   app_network:                             # Rede compartilhada entre todos os serviços
-    external: true                         # Indica que a rede é criada externamente
+    driver: bridge

@@ -1,0 +1,167 @@
+# =========================================================
+# SISTEMA DE BACKUP AUTOMATIZADO - PROJETO RAVENNA
+# =========================================================
+# Descrição: Sistema de backup diário automatizado para configurações
+#            e dados do Projeto Ravenna (Chatwoot, N8N, Evolution, MinIO)
+# Frequência: Diária (24h)
+# Retenção: 30 dias
+# Formato: .tar.gz compactado
+# Localização: /mnt/backup/ravenna/
+# Conteúdo: Volumes Docker dos serviços do Projeto Ravenna
+# =========================================================
+
+services:
+  backup-ravenna:
+    image: alpine:latest
+    container_name: backup-ravenna
+    restart: unless-stopped
+    
+    # Configurações de timezone
+    environment:
+      - TZ=America/Sao_Paulo
+      - BACKUP_INTERVAL=86400  # 24 horas em segundos
+      - BACKUP_RETENTION=30    # Manter backups por 30 dias
+      - PROJECT_NAME=ravenna
+    
+    # Mapeamento de volumes
+    volumes:
+      # Volumes dos bancos de dados (somente leitura para backup)
+      - postgres_chatwoot_data:/backup/source/postgres_chatwoot_data:ro
+      - postgres_n8n_data:/backup/source/postgres_n8n_data:ro
+      - postgres_evolution_data:/backup/source/postgres_evolution_data:ro
+      
+      # Volumes de dados dos serviços
+      - chatwoot_data:/backup/source/chatwoot_data:ro
+      - n8n_data:/backup/source/n8n_data:ro
+      - evolution_data:/backup/source/evolution_data:ro
+      - minio_data:/backup/source/minio_data:ro
+      - portainer_data:/backup/source/portainer_data:ro
+      
+      # Diretório de destino dos backups
+      - /mnt/backup/ravenna:/backup/destination
+      
+      # Script de backup
+      - ./backup_script.sh:/backup_script.sh:ro
+    
+    # Comando de inicialização
+    command: >
+      sh -c "
+        echo '=== SISTEMA DE BACKUP PROJETO RAVENNA INICIADO ===' &&
+        echo 'Projeto: Ravenna (Chatwoot + N8N + Evolution + MinIO)' &&
+        echo 'Frequência: Diária (24h)' &&
+        echo 'Retenção: 30 dias' &&
+        echo 'Destino: /mnt/backup/ravenna/' &&
+        echo '======================================================' &&
+        
+        # Instalar dependências
+        apk add --no-cache tar gzip coreutils findutils &&
+        
+        # Criar diretório de backup se não existir
+        mkdir -p /backup/destination &&
+        
+        # Loop infinito para backups periódicos
+        while true; do
+          echo '' &&
+          echo '[$(date)] === INICIANDO BACKUP RAVENNA ===' &&
+          
+          # Definir nome do arquivo de backup
+          BACKUP_DATE=$(date +%Y%m%d_%H%M%S) &&
+          BACKUP_FILE=\"ravenna_backup_$${BACKUP_DATE}.tar.gz\" &&
+          BACKUP_PATH=\"/backup/destination/$${BACKUP_FILE}\" &&
+          
+          echo '[$(date)] Criando backup: $${BACKUP_FILE}' &&
+          
+          # Criar backup compactado
+          cd /backup/source &&
+          if [ -d postgres_chatwoot_data ] && [ -d chatwoot_data ]; then
+            tar -czf \"$${BACKUP_PATH}\" \
+              postgres_chatwoot_data/ \
+              postgres_n8n_data/ \
+              postgres_evolution_data/ \
+              chatwoot_data/ \
+              n8n_data/ \
+              evolution_data/ \
+              minio_data/ \
+              portainer_data/ \
+              2>/dev/null
+          else
+            echo '[$(date)] ⚠️ AVISO: Alguns volumes não estão disponíveis. Criando backup dos volumes existentes...' &&
+            tar -czf \"$${BACKUP_PATH}\" \
+              $(find . -maxdepth 1 -type d -name '*data*' 2>/dev/null | head -10) \
+              2>/dev/null || echo '[$(date)] ℹ️ Backup vazio criado (volumes não populados)'
+          fi &&
+          
+          # Verificar se o backup foi criado com sucesso
+          if [ -f \"$${BACKUP_PATH}\" ]; then
+            BACKUP_SIZE=$(du -h \"$${BACKUP_PATH}\" | cut -f1) &&
+            echo '[$(date)] ✅ Backup criado com sucesso!' &&
+            echo '[$(date)] 📁 Arquivo: $${BACKUP_FILE}' &&
+            echo '[$(date)] 📊 Tamanho: $${BACKUP_SIZE}' &&
+            
+            # Verificar integridade do backup
+            echo '[$(date)] 🔍 Verificando integridade...' &&
+            if tar -tzf \"$${BACKUP_PATH}\" >/dev/null 2>&1; then
+              echo '[$(date)] ✅ Integridade verificada com sucesso!' &&
+              
+              # Remover backups antigos (manter apenas os últimos 30 dias)
+              echo '[$(date)] 🧹 Removendo backups antigos...' &&
+              find /backup/destination -name \"ravenna_backup_*.tar.gz\" -type f -mtime +$${BACKUP_RETENTION} -delete &&
+              
+              # Contar backups restantes
+              BACKUP_COUNT=$(find /backup/destination -name \"ravenna_backup_*.tar.gz\" -type f | wc -l) &&
+              echo '[$(date)] 📈 Total de backups mantidos: $${BACKUP_COUNT}' &&
+              echo '[$(date)] ✅ Backup concluído com sucesso!' &&
+              echo '[$(date)] ⏰ Próximo backup em: $${BACKUP_INTERVAL} segundos (24h)'
+            else
+              echo '[$(date)] ❌ ERRO: Backup corrompido detectado!' &&
+              rm -f \"$${BACKUP_PATH}\" &&
+              echo '[$(date)] 🗑️ Backup corrompido removido'
+            fi
+          else
+            echo '[$(date)] ❌ ERRO: Falha ao criar backup!'
+          fi &&
+          
+          echo '[$(date)] === BACKUP RAVENNA FINALIZADO ===' &&
+          echo '' &&
+          
+          # Aguardar próximo ciclo
+          sleep $${BACKUP_INTERVAL}
+        done
+      "
+    
+    # Health check
+    healthcheck:
+      test: ["CMD", "sh", "-c", "find /backup/destination -name 'ravenna_backup_*.tar.gz' -mtime -2 | grep -q ."]
+      interval: 1h
+      timeout: 30s
+      retries: 3
+      start_period: 5m
+    
+    # Rede compartilhada
+    networks:
+      - app_network
+    
+    # Labels para organização
+    labels:
+      - "com.projeto.ravenna.backup=true"
+      - "com.projeto.ravenna.service=backup"
+      - "com.projeto.ravenna.version=1.0"
+
+# Definir volumes locais
+volumes:
+  # Volumes dos bancos PostgreSQL
+  postgres_chatwoot_data:
+  postgres_n8n_data:
+  postgres_evolution_data:
+  
+  # Volumes dos serviços
+  chatwoot_data:
+  n8n_data:
+  evolution_data:
+  minio_data:
+  portainer_data:
+
+# Rede compartilhada
+networks:
+  app_network:
+    driver: bridge

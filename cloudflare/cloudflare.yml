@@ -30,4 +30,4 @@ services:
 # =========================================================
 networks:
   ${NETWORK_NAME}:                         # Rede compartilhada entre todos os serviços
-    external: true                         # Indica que a rede é criada externamente
+    driver: bridge
