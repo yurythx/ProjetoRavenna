@@ -1,4 +1,4 @@
-# 🚀 Stack ProjetoRavenna - Comunicação e Automação Empresarial
+# Stack ProjetoRavenna - Comunicação e Automação Empresarial
 
 Esta stack oferece uma solução completa de comunicação multicanal e automação de processos, integrando WhatsApp, atendimento ao cliente, automação de fluxos e armazenamento seguro.
 
