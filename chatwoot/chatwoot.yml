@@ -77,6 +77,8 @@ services:
       - "${CHATWOOT_PORT}:3000"
     volumes:
       - chatwoot_data:/app/storage
+      - ./storage.yml:/app/config/storage.yml:ro
+      - ./storage.yml:/app/config/storage.yml:ro
     restart: ${RESTART_POLICY:-unless-stopped}
     entrypoint: ["/bin/sh", "-lc"]
     command: ["bundle exec rails db:prepare && bundle exec rails s -p 3000 -b 0.0.0.0"]
