@@ -2,7 +2,7 @@
 # SISTEMA DE BACKUP AUTOMATIZADO - PROJETO RAVENNA
 # =========================================================
 # Descrição: Sistema de backup diário automatizado para configurações
-#            e dados do Projeto Ravenna (Chatwoot, N8N, Evolution, MinIO)
+#            e dados do Projeto Ravenna (Chatwoot, N8N, Evolution)
 # Frequência: Diária (24h)
 # Retenção: 30 dias
 # Formato: .tar.gz compactado
@@ -34,7 +34,6 @@ services:
       - chatwoot_data:/backup/source/chatwoot_data:ro
       - n8n_data:/backup/source/n8n_data:ro
       - evolution_data:/backup/source/evolution_data:ro
-      - minio_data:/backup/source/minio_data:ro
       - portainer_data:/backup/source/portainer_data:ro
       
       # Diretório de destino dos backups
@@ -47,7 +46,7 @@ services:
     command: >
       sh -c "
         echo '=== SISTEMA DE BACKUP PROJETO RAVENNA INICIADO ===' &&
-        echo 'Projeto: Ravenna (Chatwoot + N8N + Evolution + MinIO)' &&
+        echo 'Projeto: Ravenna (Chatwoot + N8N + Evolution)' &&
         echo 'Frequência: Diária (24h)' &&
         echo 'Retenção: 30 dias' &&
         echo 'Destino: /mnt/backup/ravenna/' &&
@@ -81,7 +80,6 @@ services:
               chatwoot_data/ \
               n8n_data/ \
               evolution_data/ \
-              minio_data/ \
               portainer_data/ \
               2>/dev/null
           else
@@ -158,7 +156,6 @@ volumes:
   chatwoot_data:
   n8n_data:
   evolution_data:
-  minio_data:
   portainer_data:
 
 # Rede compartilhada

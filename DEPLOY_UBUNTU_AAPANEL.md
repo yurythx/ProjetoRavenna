@@ -1,97 +1,267 @@
-# 🚀 DEPLOY UBUNTU 24.04 + aaPanel - PROJETO RAVENNA
+# 🚀 Deploy Ubuntu + aaPanel - Projeto Ravenna
 
-## 📋 Pré-requisitos
+Guia completo para deploy da stack Projeto Ravenna em servidor Ubuntu 24.04 LTS com aaPanel e túnel Cloudflare.
 
-### Sistema Operacional
-- **Ubuntu 24.04 LTS** (recomendado)
-- **IP do servidor**: `192.168.0.121`
-- **aaPanel** instalado e configurado
+## 📋 Informações do Servidor
 
-### Dependências Necessárias
+- **IP do Servidor**: `192.168.1.121`
+- **Sistema**: Ubuntu 24.04 LTS
+- **Painel**: aaPanel
+- **Túnel**: Cloudflare
+- **Deploy**: Via Git
+
+## 🔧 Pré-requisitos no Servidor
+
+### 1. Preparação do Sistema Ubuntu
 ```bash
 # Atualizar sistema
 sudo apt update && sudo apt upgrade -y
 
-# Instalar Docker
-curl -fsSL https://get.docker.com -o get-docker.sh
-sudo sh get-docker.sh
+# Instalar dependências básicas
+sudo apt install -y curl wget git nano htop
+```
+
+### 2. Instalação do aaPanel
+```bash
+# Instalar aaPanel
+wget -O install.sh http://www.aapanel.com/script/install-ubuntu_6.0_en.sh && sudo bash install.sh aapanel
+
+# Após instalação, anote:
+# - URL de acesso: http://192.168.1.121:7800
+# - Usuário e senha gerados
+```
+
+### 3. Configuração do aaPanel
+1. Acesse: `http://192.168.1.121:7800`
+2. Faça login com credenciais geradas
+3. Instale os seguintes softwares:
+   - **Docker** (via App Store do aaPanel)
+   - **Docker Compose** (via App Store do aaPanel)
+   - **Nginx** (para reverse proxy)
+
+### 4. Configuração do Docker
+```bash
+# Adicionar usuário ao grupo docker
 sudo usermod -aG docker $USER
+sudo usermod -aG docker www
 
-# Instalar Docker Compose
-sudo apt install docker-compose-plugin -y
-
-# Reiniciar para aplicar permissões
+# Reiniciar para aplicar mudanças
 sudo reboot
 ```
 
-## 🔧 Configurações Específicas para Ubuntu
+## 📁 Deploy via Git
 
-### 1. Ajustes de Firewall
+### 1. Clone do Repositório
 ```bash
-# Permitir portas necessárias
-sudo ufw allow 3000/tcp    # Chatwoot
-sudo ufw allow 8080/tcp    # Evolution API
-sudo ufw allow 9000/tcp    # MinIO API
-sudo ufw allow 9001/tcp    # MinIO Console
-sudo ufw allow 9002/tcp    # Portainer
-sudo ufw allow 5678/tcp    # n8n
+# Navegar para diretório web do aaPanel
+cd /www/wwwroot
+
+# Clonar repositório
+sudo git clone [URL_DO_SEU_REPOSITORIO] ProjetoRavenna
+cd ProjetoRavenna
+
+# Dar permissões adequadas
+sudo chown -R www:www /www/wwwroot/ProjetoRavenna
+sudo chmod -R 755 /www/wwwroot/ProjetoRavenna
+```
+
+### 2. Configuração de Ambiente
+```bash
+# Copiar arquivo de configuração para Ubuntu
+cp .env.ubuntu .env
+
+# Editar configurações específicas
+nano .env
+```
+
+### 3. Configurações Específicas do IP
+
+#### Arquivo `.env` Principal
+```env
+# IP do servidor
+HOST_IP=192.168.1.121
+
+# URLs dos serviços (temporárias - serão substituídas por domínios)
+CHATWOOT_URL=http://192.168.1.121:3000
+EVOLUTION_URL=http://192.168.1.121:8080
+N8N_URL=http://192.168.1.121:5678
+PORTAINER_URL=http://192.168.1.121:9002
+```
+
+## 🌐 Configuração do Túnel Cloudflare
+
+### 1. Criar Túnel no Cloudflare
+1. Acesse [Cloudflare Zero Trust](https://one.dash.cloudflare.com/)
+2. Vá em **Access** → **Tunnels**
+3. Clique em **Create a tunnel**
+4. Escolha **Cloudflared**
+5. Nomeie o túnel: `ravenna-production`
+6. Copie o token gerado
+
+### 2. Configurar Túnel Local
+```bash
+# Editar configuração do Cloudflare
+nano cloudflare/.env
+```
+
+```env
+# Token do túnel (substitua pelo seu token)
+CLOUDFLARE_TUNNEL_TOKEN=seu_token_aqui_copiado_do_cloudflare
+
+# Comando com o token
+CLOUDFLARE_COMMAND=tunnel --no-autoupdate run --token seu_token_aqui_copiado_do_cloudflare
+
+# IP do servidor
+HOST_IP=192.168.1.121
+```
+
+### 3. Configurar Roteamento no Cloudflare
+No painel do Cloudflare, configure os seguintes roteamentos:
+
+| Subdomínio | Serviço | URL Local |
+|------------|---------|-----------|
+| `chatwoot.seudominio.com` | HTTP | `192.168.1.121:3000` |
+| `evolution.seudominio.com` | HTTP | `192.168.1.121:8080` |
+| `n8n.seudominio.com` | HTTP | `192.168.1.121:5678` |
+| `portainer.seudominio.com` | HTTP | `192.168.1.121:9002` |
+
+## 🔒 Configuração de Segurança
+
+### 1. Firewall do Servidor
+```bash
+# Configurar UFW
 sudo ufw enable
+sudo ufw allow ssh
+sudo ufw allow 7800/tcp  # aaPanel
+sudo ufw allow 80/tcp    # HTTP
+sudo ufw allow 443/tcp   # HTTPS
+
+# Portas internas (apenas para rede local)
+sudo ufw allow from 192.168.1.0/24 to any port 3000  # Chatwoot
+sudo ufw allow from 192.168.1.0/24 to any port 8080  # Evolution
+sudo ufw allow from 192.168.1.0/24 to any port 5678  # N8N
+sudo ufw allow from 192.168.1.0/24 to any port 9002  # Portainer
 ```
 
-### 2. Configuração de Volumes Docker
+### 2. Configuração do aaPanel
+1. **Security** → **Firewall**:
+   - Liberar portas: 80, 443, 7800
+   - Bloquear acesso direto às portas dos serviços (3000, 8080, 5678, 9002)
+
+2. **Security** → **SSH Security**:
+   - Alterar porta SSH padrão
+   - Configurar chaves SSH
+
+### 3. Alterar Senhas Padrão
 ```bash
-# Criar diretórios para volumes (opcional, Docker cria automaticamente)
-sudo mkdir -p /var/lib/docker/volumes/ravenna_data
-sudo chown -R 1000:1000 /var/lib/docker/volumes/ravenna_data
+# Gerar novas senhas seguras
+openssl rand -base64 32  # Para PostgreSQL
+openssl rand -base64 32  # Para Redis
+openssl rand -hex 64     # Para Chatwoot SECRET_KEY_BASE
 ```
 
-### 3. Configuração de Rede Docker
+Edite os arquivos `.env` em cada pasta de serviço com as novas senhas.
+
+## 🚀 Inicialização da Stack
+
+### 1. Criar Rede Docker
 ```bash
-# Criar rede antes de iniciar os serviços
+cd /www/wwwroot/ProjetoRavenna
 docker network create app_network
 ```
 
-## 🌐 Integração com aaPanel
+### 2. Iniciar Serviços
+```bash
+# Iniciar todos os serviços
+docker compose up -d
 
-### 1. Configuração de Reverse Proxy no aaPanel
+# Verificar status
+docker compose ps
 
-#### Para Chatwoot (porta 3000)
+# Ver logs
+docker compose logs -f
+```
+
+### 3. Verificação dos Serviços
+```bash
+# Testar conectividade local
+curl http://192.168.1.121:3000  # Chatwoot
+curl http://192.168.1.121:8080  # Evolution API
+curl http://192.168.1.121:5678  # N8N
+curl http://192.168.1.121:9002  # Portainer
+```
+
+## 🌍 Configuração de Domínios no aaPanel
+
+### 1. Adicionar Sites
+No aaPanel, vá em **Website** → **Add site**:
+
+1. **chatwoot.seudominio.com**
+   - Document Root: `/www/wwwroot/ProjetoRavenna`
+   - PHP Version: Não aplicável
+
+2. **evolution.seudominio.com**
+   - Document Root: `/www/wwwroot/ProjetoRavenna`
+   - PHP Version: Não aplicável
+
+3. **n8n.seudominio.com**
+   - Document Root: `/www/wwwroot/ProjetoRavenna`
+   - PHP Version: Não aplicável
+
+4. **portainer.seudominio.com**
+   - Document Root: `/www/wwwroot/ProjetoRavenna`
+   - PHP Version: Não aplicável
+
+### 2. Configurar Reverse Proxy
+Para cada site criado, configure o reverse proxy:
+
+#### Chatwoot
 ```nginx
-# No aaPanel > Website > Reverse Proxy
-# Target URL: http://127.0.0.1:3000
-# Configuração adicional no nginx:
-
 location / {
     proxy_pass http://127.0.0.1:3000;
     proxy_set_header Host $host;
     proxy_set_header X-Real-IP $remote_addr;
     proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
     proxy_set_header X-Forwarded-Proto $scheme;
+    
+    # WebSocket support
+    proxy_http_version 1.1;
     proxy_set_header Upgrade $http_upgrade;
     proxy_set_header Connection "upgrade";
-    proxy_cache_bypass $http_upgrade;
 }
 ```
 
-#### Para Evolution API (porta 8080)
+#### Evolution API
 ```nginx
-# Target URL: http://127.0.0.1:8080
 location / {
     proxy_pass http://127.0.0.1:8080;
     proxy_set_header Host $host;
     proxy_set_header X-Real-IP $remote_addr;
     proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
     proxy_set_header X-Forwarded-Proto $scheme;
-    proxy_read_timeout 300s;
-    proxy_connect_timeout 75s;
 }
 ```
 
-#### Para MinIO Console (porta 9001)
+#### N8N
 ```nginx
-# Target URL: http://127.0.0.1:9001
 location / {
-    proxy_pass http://127.0.0.1:9001;
+    proxy_pass http://127.0.0.1:5678;
+    proxy_set_header Host $host;
+    proxy_set_header X-Real-IP $remote_addr;
+    proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+    proxy_set_header X-Forwarded-Proto $scheme;
+    
+    # WebSocket support
+    proxy_http_version 1.1;
+    proxy_set_header Upgrade $http_upgrade;
+    proxy_set_header Connection "upgrade";
+}
+```
+
+#### Portainer
+```nginx
+location / {
+    proxy_pass http://127.0.0.1:9002;
     proxy_set_header Host $host;
     proxy_set_header X-Real-IP $remote_addr;
     proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
@@ -99,183 +269,139 @@ location / {
 }
 ```
 
-### 2. Configuração SSL no aaPanel
-- Acesse **aaPanel > Website > SSL**
-- Configure certificados SSL para cada domínio
-- Ative **Force HTTPS** após configurar SSL
+## 📊 Monitoramento e Manutenção
 
-### 3. Configuração de Domínios
-No aaPanel, configure os seguintes subdomínios:
-- `chatwoot.seudominio.com` → `127.0.0.1:3000`
-- `evolution.seudominio.com` → `127.0.0.1:8080`
-- `minio.seudominio.com` → `127.0.0.1:9001`
-- `portainer.seudominio.com` → `127.0.0.1:9002`
-- `n8n.seudominio.com` → `127.0.0.1:5678`
-
-## 📝 Ajustes nos Arquivos de Configuração
-
-### 1. Atualizar .env Principal
+### 1. Scripts de Monitoramento
 ```bash
-# Editar arquivo .env
-nano .env
-
-# Alterar as seguintes variáveis:
-HOST_IP=192.168.0.121
-FRONTEND_URL=https://chatwoot.seudominio.com  # Se usar SSL
-SERVER_URL=https://evolution.seudominio.com   # Se usar SSL
-MINIO_BROWSER_REDIRECT_URL=https://minio.seudominio.com
-MINIO_SERVER_URL=https://minio.seudominio.com
+# Criar script de monitoramento
+nano /www/wwwroot/ProjetoRavenna/monitor.sh
 ```
 
-### 2. Configurar SMTP (Recomendado)
 ```bash
-# No arquivo .env, configure SMTP real:
-SMTP_DOMAIN=gmail.com
-SMTP_ADDRESS=smtp.gmail.com
-SMTP_PORT=587
-SMTP_USERNAME=seuemail@gmail.com
-SMTP_PASSWORD=sua_senha_de_app
-SMTP_AUTHENTICATION=plain
-SMTP_ENABLE_STARTTLS_AUTO=true
-```
-
-## 🚀 Processo de Deploy
-
-### 1. Preparação
-```bash
-# Clonar/copiar projeto para o servidor
-cd /opt
-sudo git clone seu_repositorio projeto-ravenna
-cd projeto-ravenna
-sudo chown -R $USER:$USER .
-```
-
-### 2. Configuração
-```bash
-# Copiar e editar arquivos .env
-cp .env.example .env
-nano .env  # Ajustar configurações
-
-# Criar rede Docker
-docker network create app_network
-```
-
-### 3. Inicialização
-```bash
-# Iniciar infraestrutura base primeiro
-docker compose up -d postgres_chatwoot postgres_n8n postgres_evolution redis_chatwoot redis_n8n redis_evolution minio
-
-# Aguardar 60 segundos para inicialização
-sleep 60
-
-# Iniciar serviços principais
-docker compose up -d chatwoot-rails chatwoot-sidekiq n8n evolution_api
-
-# Iniciar serviços auxiliares
-docker compose up -d portainer cloudflared
-```
-
-### 4. Verificação
-```bash
-# Verificar status dos containers
+#!/bin/bash
+echo "=== Status dos Containers ==="
 docker compose ps
 
-# Verificar logs se necessário
-docker compose logs -f chatwoot-rails
-docker compose logs -f evolution_api
+echo "=== Uso de Recursos ==="
+docker stats --no-stream
+
+echo "=== Espaço em Disco ==="
+df -h
+
+echo "=== Logs de Erro Recentes ==="
+docker compose logs --tail=10 | grep -i error
 ```
 
-## 🔍 Monitoramento e Troubleshooting
-
-### Comandos Úteis
 ```bash
-# Status dos serviços
-docker compose ps
+# Tornar executável
+chmod +x /www/wwwroot/ProjetoRavenna/monitor.sh
 
-# Logs em tempo real
-docker compose logs -f [nome_do_serviço]
-
-# Reiniciar serviço específico
-docker compose restart [nome_do_serviço]
-
-# Verificar uso de recursos
-docker stats
-
-# Verificar redes
-docker network ls
-
-# Verificar volumes
-docker volume ls
+# Executar
+./monitor.sh
 ```
 
-### Portas de Acesso Local
-- **Chatwoot**: http://192.168.0.121:3000
-- **Evolution API**: http://192.168.0.121:8080
-- **MinIO Console**: http://192.168.0.121:9001
-- **Portainer**: http://192.168.0.121:9002
-- **n8n**: http://192.168.0.121:5678
-
-### Logs Importantes
+### 2. Backup Automatizado
 ```bash
-# Chatwoot
-docker compose logs chatwoot-rails | tail -100
+# Configurar cron para backup diário
+crontab -e
 
-# Evolution API
-docker compose logs evolution_api | tail -100
-
-# PostgreSQL
-docker compose logs postgres_chatwoot | tail -100
+# Adicionar linha para backup às 2h da manhã
+0 2 * * * cd /www/wwwroot/ProjetoRavenna && docker compose exec postgres_chatwoot pg_dumpall -U postgres > /backup/ravenna_$(date +\%Y\%m\%d).sql
 ```
 
-## ⚠️ Considerações de Segurança
-
-### 1. Firewall
-- Mantenha apenas as portas necessárias abertas
-- Use aaPanel para gerenciar regras de firewall
-
-### 2. Senhas
-- Altere todas as senhas padrão nos arquivos .env
-- Use senhas fortes (mínimo 16 caracteres)
-
-### 3. SSL/TLS
-- Configure SSL para todos os domínios
-- Force redirecionamento HTTPS no aaPanel
-
-### 4. Backup
-- Configure backup automático dos volumes Docker
-- Faça backup regular dos arquivos .env
-
-## 🔄 Atualizações
-
-### Atualizar Imagens Docker
+### 3. Atualizações
 ```bash
-# Parar serviços
-docker compose down
+# Script de atualização
+nano /www/wwwroot/ProjetoRavenna/update.sh
+```
 
-# Atualizar imagens
+```bash
+#!/bin/bash
+echo "Atualizando Projeto Ravenna..."
+
+# Fazer backup antes da atualização
+./monitor.sh > /backup/status_pre_update_$(date +%Y%m%d_%H%M).log
+
+# Atualizar código
+git pull origin main
+
+# Atualizar imagens Docker
 docker compose pull
 
 # Reiniciar serviços
 docker compose up -d
+
+echo "Atualização concluída!"
 ```
 
-### Backup Antes de Atualizações
+## 🔍 Troubleshooting
+
+### Problemas Comuns
+
+#### 1. Containers não iniciam
 ```bash
-# Backup de volumes
-docker run --rm -v ravenna_chatwoot_data:/data -v $(pwd):/backup alpine tar czf /backup/chatwoot_backup.tar.gz /data
+# Ver logs detalhados
+docker compose logs [nome_do_servico]
 
-# Backup de configurações
-tar czf config_backup.tar.gz *.env */*.env
+# Verificar recursos
+free -h
+df -h
+
+# Verificar rede
+docker network ls
 ```
 
-## 📞 Suporte
+#### 2. Túnel Cloudflare não conecta
+```bash
+# Verificar token
+docker compose logs cloudflared
 
-Em caso de problemas:
-1. Verifique logs dos containers
-2. Confirme configurações de rede
-3. Valide configurações do aaPanel
-4. Teste conectividade entre serviços
+# Testar conectividade
+ping 1.1.1.1
+
+# Verificar configuração
+cat cloudflare/.env
+```
+
+#### 3. Reverse proxy não funciona
+- Verificar configuração do Nginx no aaPanel
+- Testar acesso direto às portas locais
+- Verificar logs do Nginx
+
+### Comandos Úteis
+```bash
+# Reiniciar stack completa
+docker compose down && docker compose up -d
+
+# Ver logs em tempo real
+docker compose logs -f
+
+# Limpar recursos não utilizados
+docker system prune -a
+
+# Backup manual
+docker compose exec postgres_chatwoot pg_dumpall -U postgres > backup_manual_$(date +%Y%m%d).sql
+```
+
+## ✅ Checklist de Deploy
+
+- [ ] Ubuntu 24.04 LTS instalado e atualizado
+- [ ] aaPanel instalado e configurado
+- [ ] Docker e Docker Compose instalados
+- [ ] Repositório clonado em `/www/wwwroot/ProjetoRavenna`
+- [ ] Arquivo `.env` configurado com IP 192.168.1.121
+- [ ] Túnel Cloudflare criado e configurado
+- [ ] Rede Docker `app_network` criada
+- [ ] Senhas padrão alteradas
+- [ ] Firewall configurado
+- [ ] Sites criados no aaPanel
+- [ ] Reverse proxy configurado
+- [ ] Serviços iniciados com `docker compose up -d`
+- [ ] Domínios apontando para o túnel Cloudflare
+- [ ] SSL configurado via Cloudflare
+- [ ] Backup automatizado configurado
+- [ ] Monitoramento funcionando
 
 ---
 
-**✅ Após seguir este guia, todos os serviços do Projeto Ravenna estarão funcionando corretamente no Ubuntu 24.04 com aaPanel!**
+**🎯 Resultado Final**: Stack Projeto Ravenna rodando em produção no servidor Ubuntu 192.168.1.121 com aaPanel, acessível via domínios seguros através do túnel Cloudflare.
