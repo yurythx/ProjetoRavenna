@@ -36,11 +36,10 @@ services:
       - evolution_data:/backup/source/evolution_data:ro
       - portainer_data:/backup/source/portainer_data:ro
       
-      # Diretório de destino dos backups
-      - /mnt/backup/ravenna:/backup/destination
+      # Diretório de destino dos backups (com permissões de escrita)
+      - ./backup_destination:/backup/destination
       
-      # Script de backup
-      - ./backup_script.sh:/backup_script.sh:ro
+      # Script de backup (removido - usando comando inline)
     
     # Comando de inicialização
     command: >
@@ -72,21 +71,25 @@ services:
           
           # Criar backup compactado
           cd /backup/source &&
-          if [ -d postgres_chatwoot_data ] && [ -d chatwoot_data ]; then
-            tar -czf \"$${BACKUP_PATH}\" \
-              postgres_chatwoot_data/ \
-              postgres_n8n_data/ \
-              postgres_evolution_data/ \
-              chatwoot_data/ \
-              n8n_data/ \
-              evolution_data/ \
-              portainer_data/ \
-              2>/dev/null
+          
+          # Verificar quais volumes existem
+          VOLUMES_TO_BACKUP=\"\" &&
+          for vol in postgres_chatwoot_data postgres_n8n_data postgres_evolution_data chatwoot_data n8n_data evolution_data portainer_data; do
+            if [ -d \"$${vol}\" ] && [ \"$(ls -A $${vol} 2>/dev/null)\" ]; then
+              VOLUMES_TO_BACKUP=\"$${VOLUMES_TO_BACKUP} $${vol}/\"
+            fi
+          done &&
+          
+          # Criar backup apenas se houver volumes
+          if [ -n \"$${VOLUMES_TO_BACKUP}\" ]; then
+            echo '[$(date)] 📦 Volumes encontrados: $${VOLUMES_TO_BACKUP}' &&
+            tar -czf \"$${BACKUP_PATH}\" $${VOLUMES_TO_BACKUP} 2>/dev/null
           else
-            echo '[$(date)] ⚠️ AVISO: Alguns volumes não estão disponíveis. Criando backup dos volumes existentes...' &&
-            tar -czf \"$${BACKUP_PATH}\" \
-              $(find . -maxdepth 1 -type d -name '*data*' 2>/dev/null | head -10) \
-              2>/dev/null || echo '[$(date)] ℹ️ Backup vazio criado (volumes não populados)'
+            echo '[$(date)] ⚠️ AVISO: Nenhum volume com dados encontrado. Criando backup de estrutura...' &&
+            # Criar backup da estrutura mesmo que vazia
+            find . -maxdepth 1 -type d -name '*data*' -exec tar -czf \"$${BACKUP_PATH}\" {} + 2>/dev/null || 
+            echo \"Estrutura de backup\" > /tmp/backup_placeholder.txt &&
+            tar -czf \"$${BACKUP_PATH}\" -C /tmp backup_placeholder.txt 2>/dev/null
           fi &&
           
           # Verificar se o backup foi criado com sucesso

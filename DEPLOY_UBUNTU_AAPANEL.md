@@ -112,7 +112,7 @@ CLOUDFLARE_TUNNEL_TOKEN=seu_token_aqui_copiado_do_cloudflare
 CLOUDFLARE_COMMAND=tunnel --no-autoupdate run --token seu_token_aqui_copiado_do_cloudflare
 
 # IP do servidor
-HOST_IP=192.168.1.121
+HOST_IP=192.168.0.121
 ```
 
 ### 3. Configurar Roteamento no Cloudflare
@@ -405,3 +405,7 @@ docker compose exec postgres_chatwoot pg_dumpall -U postgres > backup_manual_$(d
 ---
 
 **🎯 Resultado Final**: Stack Projeto Ravenna rodando em produção no servidor Ubuntu 192.168.1.121 com aaPanel, acessível via domínios seguros através do túnel Cloudflare.
+curl http://192.168.0.121:3000
+curl http://192.168.0.121:8080
+curl http://192.168.0.121:5678
+curl http://192.168.0.121:9000
