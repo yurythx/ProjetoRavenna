@@ -16,8 +16,10 @@ services:
   chatwoot-rails:
     image: ${CHATWOOT_IMAGE}
     depends_on:
-      - postgres_chatwoot
-      - redis_chatwoot
+      postgres_chatwoot:
+        condition: service_healthy
+      redis_chatwoot:
+        condition: service_healthy
 
     env_file:
       - ../.env
@@ -94,8 +96,10 @@ services:
   chatwoot-sidekiq:
     image: ${CHATWOOT_IMAGE}
     depends_on:
-      - postgres_chatwoot
-      - redis_chatwoot
+      postgres_chatwoot:
+        condition: service_healthy
+      redis_chatwoot:
+        condition: service_healthy
     env_file:
       - ../.env
 
