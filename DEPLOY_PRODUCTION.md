@@ -21,35 +21,42 @@ Este guia consolidado cobre todo o processo de deploy em produção do Projeto R
 ### 🚨 Credenciais Obrigatórias para Alterar
 
 #### 1. 🗄️ Banco de Dados PostgreSQL
-```yaml
+```env
 POSTGRES_PASSWORD: minha_senha  # ❌ ALTERAR OBRIGATÓRIO
 ```
-**Arquivos que referenciam**: `chatwoot/.env`, `n8n/.env`, `evolution/.env`
 
 #### 2. 🔑 Chatwoot
-```yaml
+```env
 SECRET_KEY_BASE: "chave_unica"   # ❌ ALTERAR OBRIGATÓRIO
 SMTP_PASSWORD: sua_senha         # ❌ CONFIGURAR OBRIGATÓRIO
 ```
 **Gerar SECRET_KEY_BASE**: `openssl rand -hex 64`
 
 #### 3. ⚙️ N8N
-```yaml
+```env
 N8N_ENCRYPTION_KEY: Y8Dmy5FhuRIDGIrs  # ❌ ALTERAR OBRIGATÓRIO
 ```
 **Gerar chave**: `openssl rand -base64 32`
 
 #### 4. 📱 Evolution API
-```yaml
+```env
 AUTHENTICATION_API_KEY: ies0F6xS9MTy8zxloNaJ5Ec3tyhuPA0f  # ❌ ALTERAR OBRIGATÓRIO
 ```
 
 #### 5. 📧 Configuração SMTP
-```yaml
+```env
 SMTP_DOMAIN: smtp.gmail.com
 SMTP_PORT: 587
 SMTP_USERNAME: seu-email@gmail.com  # ❌ CONFIGURAR OBRIGATÓRIO
 SMTP_PASSWORD: sua_senha           # ❌ CONFIGURAR OBRIGATÓRIO
+```
+
+#### 6. 🪣 MinIO (S3)
+```env
+MINIO_ROOT_USER: minio             # ❌ ALTERAR OBRIGATÓRIO
+MINIO_ROOT_PASSWORD: sua_senha     # ❌ ALTERAR OBRIGATÓRIO
+S3_ACCESS_KEY: minio               # ❌ ALTERAR OBRIGATÓRIO
+S3_SECRET_KEY: sua_senha           # ❌ ALTERAR OBRIGATÓRIO
 ```
 
 ---
@@ -84,8 +91,9 @@ sudo reboot
 # Permitir portas necessárias
 sudo ufw allow 3000/tcp    # Chatwoot
 sudo ufw allow 8080/tcp    # Evolution API
-sudo ufw allow 9002/tcp    # Portainer
 sudo ufw allow 5678/tcp    # n8n
+sudo ufw allow 9004/tcp    # MinIO API
+sudo ufw allow 9005/tcp    # MinIO Console
 sudo ufw enable
 ```
 
@@ -109,7 +117,7 @@ sudo ufw enable
 - [ ] Sistema reiniciado
 
 #### Firewall
-- [ ] Portas liberadas no firewall (3000, 8080, 9002, 5678)
+- [ ] Portas liberadas no firewall (3000, 8080, 5678)
 - [ ] UFW ativado
 
 ### 🌐 Configuração aaPanel
@@ -117,13 +125,11 @@ sudo ufw enable
 #### Domínios (Opcional - para SSL)
 - [ ] `chatwoot.seudominio.com` criado
 - [ ] `evolution.seudominio.com` criado
-- [ ] `portainer.seudominio.com` criado
 - [ ] `n8n.seudominio.com` criado
 
 #### Reverse Proxy
 - [ ] Chatwoot: `127.0.0.1:3000`
 - [ ] Evolution: `127.0.0.1:8080`
-- [ ] Portainer: `127.0.0.1:9002`
 - [ ] n8n: `127.0.0.1:5678`
 
 #### SSL (Se usando domínios)
@@ -145,10 +151,10 @@ sudo chown -R $USER:$USER .
 
 #### Configuração .env
 ```bash
-cp .env.ubuntu .env
+cp .env.example .env
 nano .env
 ```
-- [ ] Arquivo `.env.ubuntu` copiado para `.env`
+- [ ] Arquivo `.env.example` copiado para `.env`
 - [ ] `HOST_IP` configurado com IP do servidor
 - [ ] URLs atualizadas (domínios ou IPs)
 - [ ] SMTP configurado com provedor real
@@ -177,28 +183,11 @@ docker network create app_network
 
 ### 3. Infraestrutura Base
 ```bash
-docker compose up -d postgres_chatwoot postgres_n8n postgres_evolution redis_chatwoot redis_n8n redis_evolution
+docker compose up -d
 ```
 - [ ] Bancos PostgreSQL iniciados
 - [ ] Redis iniciados
-- [ ] Aguardado 60 segundos para inicialização
-
-### 4. Serviços Principais
-```bash
-docker compose up -d chatwoot-rails chatwoot-sidekiq n8n evolution_api
-```
-- [ ] Chatwoot iniciado
-- [ ] n8n iniciado
-- [ ] Evolution API iniciado
-
-### 5. Serviços Auxiliares
-```bash
-docker compose up -d portainer
-# Se usar Cloudflare:
-# docker compose up -d cloudflared
-```
-- [ ] Portainer iniciado
-- [ ] Cloudflare iniciado (se aplicável)
+- [ ] Serviços principais iniciados
 
 ---
 
@@ -256,7 +245,6 @@ docker compose ps
 ### Testes de Conectividade
 - [ ] Chatwoot: `http://SEU_IP:3000` ou `https://chatwoot.seudominio.com`
 - [ ] Evolution: `http://SEU_IP:8080` ou `https://evolution.seudominio.com`
-- [ ] Portainer: `http://SEU_IP:9002` ou `https://portainer.seudominio.com`
 - [ ] n8n: `http://SEU_IP:5678` ou `https://n8n.seudominio.com`
 
 ### Logs (Se houver problemas)
@@ -282,11 +270,6 @@ docker compose logs -f postgres_chatwoot
 - [ ] Documentação acessível em `/manager`
 - [ ] Primeira instância WhatsApp criada (teste)
 
-#### Portainer
-- [ ] Interface acessível
-- [ ] Usuário admin criado
-- [ ] Containers visíveis no dashboard
-
 ---
 
 ## 🔒 VERIFICAÇÃO FINAL DE SEGURANÇA
@@ -296,7 +279,6 @@ docker compose logs -f postgres_chatwoot
 - [ ] **Chatwoot**: SECRET_KEY_BASE gerado + SMTP configurado
 - [ ] **N8N**: Chave de criptografia gerada
 - [ ] **Evolution API**: Chave de API gerada
-- [ ] **Cloudflare**: Token configurado (se usar)
 
 ### 🌐 Verificação de Rede
 - [ ] **IPs**: Atualizados para seu servidor em todos os arquivos
@@ -310,7 +292,6 @@ docker compose logs -f postgres_chatwoot
 - [ ] **Teste**: E-mail de teste enviado com sucesso
 
 ### 🔒 Verificação de Segurança
-- [ ] **Backup**: Sistema de backup configurado
 - [ ] **Logs**: Monitoramento ativo
 - [ ] **Firewall**: Regras aplicadas
 - [ ] **Updates**: Sistema atualizado
@@ -354,21 +335,11 @@ df -h
 ### Portas de Acesso Local
 - **Chatwoot**: http://SEU_IP:3000
 - **Evolution API**: http://SEU_IP:8080
-- **Portainer**: http://SEU_IP:9002
 - **n8n**: http://SEU_IP:5678
 
 ---
 
-## 🔄 BACKUP E ATUALIZAÇÕES
-
-### Backup Antes de Atualizações
-```bash
-# Backup de volumes
-docker run --rm -v ravenna_chatwoot_data:/data -v $(pwd):/backup alpine tar czf /backup/chatwoot_backup.tar.gz /data
-
-# Backup de configurações
-tar czf config_backup.tar.gz *.env */*.env
-```
+## 🔄 ATUALIZAÇÕES
 
 ### Atualizar Imagens Docker
 ```bash
@@ -406,14 +377,12 @@ Quando todos os itens estiverem marcados:
 ### URLs de Acesso:
 - **Chatwoot**: https://chatwoot.seudominio.com (ou http://SEU_IP:3000)
 - **Evolution API**: https://evolution.seudominio.com (ou http://SEU_IP:8080)
-- **Portainer**: https://portainer.seudominio.com (ou http://SEU_IP:9002)
 - **n8n**: https://n8n.seudominio.com (ou http://SEU_IP:5678)
 
 ### Próximos Passos:
 1. Configurar integrações entre Chatwoot e Evolution
 2. Configurar automações no n8n
-3. Configurar backup automático
-4. Monitorar performance e logs
+3. Monitorar performance e logs
 
 ---
 

@@ -1,0 +1,177 @@
+services:
+  chatwoot-rails:
+    image: ${CHATWOOT_IMAGE}
+    depends_on:
+      postgres_chatwoot:
+        condition: service_healthy
+      redis_chatwoot:
+        condition: service_healthy
+    env_file:
+      - ../.env
+    environment:
+      - MAILER_SENDER_EMAIL=${MAILER_SENDER_EMAIL}
+      - SMTP_DOMAIN=${SMTP_DOMAIN}
+      - SMTP_ADDRESS=${SMTP_ADDRESS}
+      - SMTP_PORT=${SMTP_PORT}
+      - SMTP_USERNAME=${SMTP_USERNAME}
+      - SMTP_PASSWORD=${SMTP_PASSWORD}
+      - SMTP_AUTHENTICATION=${SMTP_AUTHENTICATION}
+      - SMTP_ENABLE_STARTTLS_AUTO=${SMTP_ENABLE_STARTTLS_AUTO}
+      - SMTP_OPENSSL_VERIFY_MODE=${SMTP_OPENSSL_VERIFY_MODE}
+      - MAILER_INBOUND_EMAIL_DOMAIN=${MAILER_INBOUND_EMAIL_DOMAIN}
+      - RAILS_ENV=${RAILS_ENV}
+      - NODE_ENV=${NODE_ENV}
+      - INSTALLATION_ENV=${INSTALLATION_ENV}
+      - SECRET_KEY_BASE=${SECRET_KEY_BASE}
+      - FRONTEND_URL=${FRONTEND_URL}
+      - FORCE_SSL=${FORCE_SSL}
+      - ENABLE_ACCOUNT_SIGNUP=${ENABLE_ACCOUNT_SIGNUP}
+      - USE_INBOX_AVATAR_FOR_BOT=${USE_INBOX_AVATAR_FOR_BOT}
+      - POSTGRES_HOST=${POSTGRES_HOST}
+      - POSTGRES_USERNAME=${POSTGRES_USERNAME}
+      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD}
+      - POSTGRES_DATABASE=${POSTGRES_DATABASE}
+      - REDIS_URL=${REDIS_URL}
+      - REDIS_PASSWORD=${REDIS_PASSWORD}
+      - OPENAI_API_KEY=${OPENAI_API_KEY}
+      - RAILS_LOG_TO_STDOUT=${RAILS_LOG_TO_STDOUT}
+      - LOG_LEVEL=${LOG_LEVEL}
+    networks:
+      - app_network
+    ports:
+      - "${CHATWOOT_PORT}:3000"
+    volumes:
+      - chatwoot_data:/app/storage
+    restart: ${RESTART_POLICY:-unless-stopped}
+    entrypoint: ["/bin/sh", "-lc"]
+    command: ["bundle exec rails db:prepare && bundle exec rails s -p 3000 -b 0.0.0.0"]
+    deploy:
+      resources:
+        limits:
+          cpus: '2.0'
+          memory: 2G
+        reservations:
+          cpus: '0.5'
+          memory: 512M
+    healthcheck:
+      test: ["CMD-SHELL", "wget --no-verbose --tries=1 --spider http://127.0.0.1:3000/ || exit 1"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 120s
+
+  chatwoot-sidekiq:
+    image: ${CHATWOOT_IMAGE}
+    depends_on:
+      postgres_chatwoot:
+        condition: service_healthy
+      redis_chatwoot:
+        condition: service_healthy
+    env_file:
+      - ../.env
+    environment:
+      - MAILER_SENDER_EMAIL=${MAILER_SENDER_EMAIL}
+      - SMTP_DOMAIN=${SMTP_DOMAIN}
+      - SMTP_ADDRESS=${SMTP_ADDRESS}
+      - SMTP_PORT=${SMTP_PORT}
+      - SMTP_USERNAME=${SMTP_USERNAME}
+      - SMTP_PASSWORD=${SMTP_PASSWORD}
+      - SMTP_AUTHENTICATION=${SMTP_AUTHENTICATION}
+      - SMTP_ENABLE_STARTTLS_AUTO=${SMTP_ENABLE_STARTTLS_AUTO}
+      - SMTP_OPENSSL_VERIFY_MODE=${SMTP_OPENSSL_VERIFY_MODE}
+      - MAILER_INBOUND_EMAIL_DOMAIN=${MAILER_INBOUND_EMAIL_DOMAIN}
+      - RAILS_ENV=${RAILS_ENV}
+      - NODE_ENV=${NODE_ENV}
+      - INSTALLATION_ENV=${INSTALLATION_ENV}
+      - SECRET_KEY_BASE=${SECRET_KEY_BASE}
+      - FRONTEND_URL=${FRONTEND_URL}
+      - FORCE_SSL=${FORCE_SSL}
+      - ENABLE_ACCOUNT_SIGNUP=${ENABLE_ACCOUNT_SIGNUP}
+      - USE_INBOX_AVATAR_FOR_BOT=${USE_INBOX_AVATAR_FOR_BOT}
+      - POSTGRES_HOST=${POSTGRES_HOST}
+      - POSTGRES_USERNAME=${POSTGRES_USERNAME}
+      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD}
+      - POSTGRES_DATABASE=${POSTGRES_DATABASE}
+      - REDIS_URL=${REDIS_URL}
+      - REDIS_PASSWORD=${REDIS_PASSWORD}
+      - OPENAI_API_KEY=${OPENAI_API_KEY}
+      - RAILS_LOG_TO_STDOUT=${RAILS_LOG_TO_STDOUT}
+      - LOG_LEVEL=${LOG_LEVEL}
+    networks:
+      - app_network
+    volumes:
+      - chatwoot_data:/app/storage
+    restart: ${RESTART_POLICY:-unless-stopped}
+    container_name: ${CHATWOOT_SIDEKIQ_CONTAINER}
+    command: ["/bin/sh", "-lc", "bundle exec rails db:prepare && bundle exec sidekiq -C config/sidekiq.yml"]
+    deploy:
+      resources:
+        limits:
+          cpus: '1.5'
+          memory: 1G
+        reservations:
+          cpus: '0.25'
+          memory: 256M
+    healthcheck:
+      test: ["CMD-SHELL", "pgrep -f sidekiq || exit 1"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 60s
+
+  postgres_chatwoot:
+    image: pgvector/pgvector:pg16
+    environment:
+      POSTGRES_DB: chatwoot_production
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      POSTGRES_INITDB_ARGS: "--encoding=UTF-8 --lc-collate=C --lc-ctype=C"
+    volumes:
+      - postgres_chatwoot_data:/var/lib/postgresql/data
+    networks:
+      - app_network
+    restart: always
+    container_name: postgres_chatwoot
+    deploy:
+      resources:
+        limits:
+          cpus: '1.0'
+          memory: 1G
+        reservations:
+          cpus: '0.25'
+          memory: 256M
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres -d chatwoot_production"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 60s
+
+  redis_chatwoot:
+    image: redis:7-alpine
+    command: ["redis-server", "--requirepass", "${REDIS_PASSWORD}", "--appendonly", "yes"]
+    volumes:
+      - redis_chatwoot_data:/data
+    networks:
+      - app_network
+    restart: always
+    container_name: redis_chatwoot
+    deploy:
+      resources:
+        limits:
+          cpus: '0.5'
+          memory: 512M
+        reservations:
+          cpus: '0.1'
+          memory: 128M
+    healthcheck:
+      test: ["CMD-SHELL", "redis-cli -a ${REDIS_PASSWORD} ping | grep PONG"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 30s
+
+volumes:
+  chatwoot_data:
+  postgres_chatwoot_data:
+  redis_chatwoot_data:

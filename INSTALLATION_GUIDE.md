@@ -25,7 +25,8 @@ cd ProjetoRavenna
 ```
 
 2. **Configure as variáveis de ambiente**
-   - Revise e ajuste os arquivos `.env` em cada pasta de serviço
+   - Copie `.env.ubuntu` para `.env` na raiz: `cp .env.ubuntu .env`
+   - Edite o arquivo `.env` com suas configurações
    - Certifique-se de que as portas não estão em uso
 
 3. **Inicie os serviços**
@@ -76,55 +77,49 @@ docker ps
 
 ## 🔧 Configuração das Variáveis de Ambiente
 
-### PostgreSQL (`postgres/.env`)
+O projeto utiliza um arquivo único `.env` na raiz para facilitar a configuração.
+
+### Estrutura do Arquivo `.env`
+
+#### Configurações Gerais
 ```env
-POSTGRES_PASSWORD=SuaSenhaSegura123!
-POSTGRES_PORT=5432
-POSTGRES_CONTAINER=postgres_chatwoot
+HOST_IP=192.168.0.121          # IP do seu servidor
+NETWORK_NAME=app_network       # Nome da rede Docker
 ```
 
-### Redis (`redis/.env`)
+#### Banco de Dados e Redis (Compartilhados)
 ```env
-REDIS_PASSWORD=SuaSenhaRedis123!
-REDIS_PORT=6379
+POSTGRES_PASSWORD=...          # Senha do PostgreSQL (todos os serviços)
+REDIS_PASSWORD=...             # Senha do Redis (todos os serviços)
 ```
 
-### Chatwoot (`chatwoot/.env`)
+#### MinIO (Armazenamento S3)
 ```env
-# SMTP (Gmail exemplo)
-SMTP_USERNAME=seu-email@gmail.com
-SMTP_PASSWORD=sua-senha-de-app
-
-# Segurança
-SECRET_KEY_BASE=$(openssl rand -hex 64)
-FRONTEND_URL=http://192.168.1.100:3000
-
-# Banco de dados
-POSTGRES_PASSWORD=SuaSenhaSegura123!
-
-# Redis
-REDIS_PASSWORD=SuaSenhaRedis123!
-
-# Armazenamento local
-ACTIVE_STORAGE_SERVICE=local
+MINIO_ROOT_USER=...            # Usuário admin do MinIO
+MINIO_ROOT_PASSWORD=...        # Senha admin do MinIO
+S3_BUCKET=...                  # Nome do bucket (ex: chatwoot)
 ```
 
-### N8N (`n8n/.env`)
+#### Chatwoot
 ```env
-N8N_BASIC_AUTH_ACTIVE=true
-N8N_BASIC_AUTH_USER=admin
-N8N_BASIC_AUTH_PASSWORD=N8nAdmin123!
-
-# Banco de dados
-DB_POSTGRESDB_PASSWORD=SuaSenhaSegura123!
+CHATWOOT_URL=...               # URL pública
+SECRET_KEY_BASE=...            # Chave de segurança (CRÍTICO)
+SMTP_...                       # Configurações de E-mail
 ```
 
-### Evolution API (`evolution/.env`)
+#### Evolution API
 ```env
-SERVER_URL=http://192.168.1.100:8080
-DATABASE_CONNECTION_URI=postgresql://postgres:SuaSenhaSegura123!@postgres:5432/evolution
-AUTHENTICATION_API_KEY=SuaChaveEvolution123!
+EVOLUTION_URL=...              # URL pública
+AUTHENTICATION_API_KEY=...     # Chave de API (CRÍTICO)
 ```
+
+#### N8N
+```env
+N8N_URL=...                    # URL pública
+N8N_BASIC_AUTH_...             # Credenciais de acesso
+```
+
+> **Nota**: Consulte o arquivo `.env` (ou `.env.ubuntu`) para ver todas as variáveis disponíveis e seus comentários explicativos.
 
 ## 🔍 Verificação da Instalação
 
@@ -133,7 +128,7 @@ Substitua `<SEU_IP>` pelo IP do servidor:
 - **Chatwoot**: http://`<SEU_IP>`:3000
 - **Evolution API**: http://`<SEU_IP>`:8080
 - **N8N**: http://`<SEU_IP>`:5678
-- **Portainer**: http://`<SEU_IP>`:9002
+- **MinIO Console**: http://`<SEU_IP>`:9005
 
 ### Comandos de Verificação
 ```bash
@@ -231,7 +226,6 @@ sudo ufw allow ssh
 sudo ufw allow 3000/tcp  # Chatwoot
 sudo ufw allow 5678/tcp  # N8N
 sudo ufw allow 8080/tcp  # Evolution API
-sudo ufw allow 9002/tcp  # Portainer
 
 # Verificar status
 sudo ufw status
@@ -249,22 +243,13 @@ sudo ufw status
 ### Scripts de Monitoramento
 ```bash
 # Status geral (Linux)
-./scripts/monitor-services.sh status
+./scripts/monitor-services.sh
 
 # Status geral (Windows)
 .\monitor-services.ps1
 
 # Logs de todos os serviços
 docker compose logs -f
-```
-
-### Backup Manual
-```bash
-# Backup dos dados
-docker exec postgres_chatwoot pg_dumpall -U postgres > backup_$(date +%Y%m%d).sql
-
-# Backup dos volumes
-docker run --rm -v projetoravenna_postgres_data:/data -v $(pwd):/backup alpine tar czf /backup/volumes_backup_$(date +%Y%m%d).tar.gz /data
 ```
 
 ## ✅ Checklist de Instalação

@@ -13,8 +13,9 @@ Este guia detalha como integrar o **Chatwoot** (plataforma de atendimento) com a
 ## 🔧 Pré-requisitos
 
 ### Serviços Necessários
-- PostgreSQL (banco compartilhado)
-- Redis (cache compartilhado)
+- PostgreSQL (bancos dedicados: `postgres_chatwoot`, `postgres_evolution`)
+- Redis (instâncias dedicadas: `redis_chatwoot`, `redis_evolution`)
+- MinIO (S3 Compatible Storage)
 - Evolution API (funcionando)
 - Chatwoot (funcionando)
 
@@ -24,23 +25,25 @@ Este guia detalha como integrar o **Chatwoot** (plataforma de atendimento) com a
 docker ps
 
 # Verificar conectividade entre serviços
-docker exec evolution_api ping -c 3 postgres
-docker exec evolution_api ping -c 3 redis
+docker exec evolution_api ping -c 3 postgres_chatwoot
+docker exec evolution_api ping -c 3 redis_evolution
+docker exec chatwoot-rails nc -zv minio 9000
 ```
 
-## 🚀 Configuração do Evolution API
+## 🚀 Configuração
 
-### Arquivo `evolution/.env`
+Todas as configurações são feitas no arquivo `.env` na raiz do projeto.
+
+### Variáveis Importantes para Integração
+
+#### Evolution API
 ```env
 # Integração com Chatwoot
 CHATWOOT_ENABLED=true
 CHATWOOT_MESSAGE_READ=true
 
-# Banco de dados compartilhado
-CHATWOOT_IMPORT_DATABASE_CONNECTION_URI=postgresql://postgres:SuaSenhaSegura123!@postgres:5432/chatwoot?sslmode=disable
-
-# API Key para autenticação
-AUTHENTICATION_API_KEY=SuaChaveEvolution123!
+# Conexão com banco do Chatwoot (para importação)
+CHATWOOT_IMPORT_DATABASE_CONNECTION_URI=postgresql://postgres:SuaSenhaSegura123!@postgres_chatwoot:5432/chatwoot_production?sslmode=disable
 
 # Eventos de webhook ativados
 WEBHOOK_EVENTS_QRCODE_UPDATED=true
@@ -49,31 +52,6 @@ WEBHOOK_EVENTS_MESSAGES_UPDATE=true
 WEBHOOK_EVENTS_SEND_MESSAGE=true
 WEBHOOK_EVENTS_CONTACTS_UPSERT=true
 WEBHOOK_EVENTS_CONNECTION_UPDATE=true
-```
-
-### URL Base da Evolution
-```env
-SERVER_URL=http://192.168.1.100:8080
-```
-
-## 🎨 Configuração do Chatwoot
-
-### Arquivo `chatwoot/.env`
-```env
-# Banco PostgreSQL compartilhado
-POSTGRES_HOST=postgres
-POSTGRES_USERNAME=postgres
-POSTGRES_PASSWORD=SuaSenhaSegura123!
-POSTGRES_DATABASE=chatwoot
-
-# Redis compartilhado
-REDIS_URL=redis://redis:6379
-
-# URL base do Chatwoot
-FRONTEND_URL=http://192.168.1.100:3000
-
-# Armazenamento local
-ACTIVE_STORAGE_SERVICE=local
 ```
 
 ## 🔗 Integração Passo a Passo
@@ -179,7 +157,7 @@ curl -H "apikey: SuaChaveEvolution123!" \
 docker exec evolution_api ping -c 3 chatwoot-rails
 
 # Verificar banco de dados
-docker exec postgres_chatwoot psql -U postgres -d chatwoot -c "SELECT * FROM inboxes;"
+docker exec postgres_chatwoot psql -U postgres -d chatwoot_production -c "SELECT * FROM inboxes;"
 ```
 
 ### Problemas de Mídia
@@ -221,14 +199,6 @@ curl -X POST "http://localhost:8080/chatwoot/set/Vendas" \
   }'
 ```
 
-### Personalização de Mensagens
-```env
-# Arquivo: evolution/.env
-CONFIG_SESSION_PHONE_CLIENT=Projeto Ravenna
-CONFIG_SESSION_PHONE_NAME=Atendimento
-CHATWOOT_MESSAGE_READ=true
-```
-
 ## 📊 Monitoramento
 
 ### Comandos de Verificação
@@ -245,13 +215,6 @@ docker ps
 docker stats
 ```
 
-### Métricas Importantes
-- **Conexão WhatsApp**: Status deve ser `open`
-- **Mensagens**: Logs sem erros
-- **Inbox Chatwoot**: Ativo e recebendo mensagens
-- **Banco de dados**: Conexões estáveis
-- **Cache Redis**: Funcionando
-
 ## ✅ Checklist de Integração
 
 ### Pré-Integração
@@ -263,7 +226,7 @@ docker stats
 ### Configuração Evolution API
 - [ ] `CHATWOOT_ENABLED=true`
 - [ ] API Key configurada
-- [ ] Banco Chatwoot configurado
+- [ ] Banco Chatwoot configurado (`CHATWOOT_IMPORT_DATABASE_CONNECTION_URI`)
 - [ ] Webhooks ativados
 
 ### Configuração Chatwoot
@@ -300,9 +263,6 @@ docker compose restart chatwoot-rails
 # Verificar logs
 docker logs evolution_api --follow
 docker logs chatwoot-rails --follow
-
-# Backup do banco
-docker exec postgres_chatwoot pg_dump -U postgres chatwoot > backup_chatwoot.sql
 ```
 
 ### Problemas Comuns

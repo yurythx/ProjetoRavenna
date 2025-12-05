@@ -8,9 +8,9 @@ Uma solução completa de comunicação multicanal e automação de processos, i
 - **💬 Chatwoot**: Plataforma de atendimento ao cliente multicanal
 - **📱 Evolution API**: Integração robusta com WhatsApp Business
 - **🔄 N8N**: Automação de fluxos de trabalho e integrações
-- **🗄️ PostgreSQL**: Banco de dados relacional principal
-- **⚡ Redis**: Cache e filas de processamento
-- **🌐 Portainer**: Interface de gerenciamento Docker
+- **🪣 MinIO**: Armazenamento de objetos compatível com S3
+- **🗄️ PostgreSQL**: Banco de dados relacional principal (gerenciado internamente)
+- **⚡ Redis**: Cache e filas de processamento (gerenciado internamente)
 
 ### Arquitetura
 - **Rede**: Todos os serviços compartilham a rede `app_network`
@@ -18,13 +18,14 @@ Uma solução completa de comunicação multicanal e automação de processos, i
 - **Bancos de Dados**: PostgreSQL 16 para todos os serviços
 - **Cache**: Redis para sessões e filas
 - **Armazenamento**: Sistema de arquivos local para mídias
+- **Configuração**: Arquivo `.env` centralizado na raiz
 
 ## 🚀 Início Rápido
 
 ### Pré-requisitos
 - Docker Desktop (Windows) ou Docker Engine (Linux)
 - Docker Compose v2+
-- Portas disponíveis: 3000, 5678, 8080, 9002
+- Portas disponíveis: 3000, 5678, 8080
 - Mínimo 4GB RAM disponível
 
 ### Instalação
@@ -34,13 +35,14 @@ git clone [url-do-repositorio]
 cd ProjetoRavenna
 
 # 2. Configure as variáveis de ambiente
-# Edite os arquivos .env em cada pasta de serviço
+# Copie o modelo para .env e ajuste conforme necessário
+cp .env.ubuntu .env
 
 # 3. Inicie a stack
 docker compose up -d
 
 # 4. Verifique o status
-docker ps
+docker compose ps
 ```
 
 ## 🌐 Acesso aos Serviços
@@ -50,7 +52,7 @@ docker ps
 | **Chatwoot** | http://localhost:3000 | 3000 | Plataforma de atendimento |
 | **Evolution API** | http://localhost:8080 | 8080 | API WhatsApp |
 | **N8N** | http://localhost:5678 | 5678 | Automação de workflows |
-| **Portainer** | http://localhost:9002 | 9002 | Gerenciamento Docker |
+| **MinIO Console** | http://localhost:9005 | 9005 | Gerenciamento de arquivos |
 
 ## ⚙️ Configuração
 
@@ -78,8 +80,15 @@ SMTP_PASSWORD=sua-senha-de-app
 SECRET_KEY_BASE=$(openssl rand -hex 64)
 FRONTEND_URL=http://192.168.1.100:3000
 
-# Armazenamento
-ACTIVE_STORAGE_SERVICE=local
+# Armazenamento (MinIO)
+ACTIVE_STORAGE_SERVICE=amazon
+```
+
+#### MinIO
+```env
+MINIO_ROOT_USER=minio
+MINIO_ROOT_PASSWORD=SuaSenhaMinio123!
+S3_BUCKET=chatwoot
 ```
 
 #### Evolution API
@@ -152,17 +161,6 @@ docker stats
 docker compose logs -f
 ```
 
-## 💾 Backup
-
-### Backup dos Bancos
-```bash
-# PostgreSQL
-docker exec postgres_chatwoot pg_dumpall -U postgres > backup_$(date +%Y%m%d).sql
-
-# Volumes
-docker run --rm -v projetoravenna_postgres_data:/data -v $(pwd):/backup alpine tar czf /backup/volumes_backup_$(date +%Y%m%d).tar.gz /data
-```
-
 ## 🚨 Solução de Problemas
 
 ### Problemas Comuns
@@ -208,7 +206,7 @@ docker exec chatwoot-rails ping postgres
 sudo ufw allow 3000/tcp  # Chatwoot
 sudo ufw allow 5678/tcp  # N8N
 sudo ufw allow 8080/tcp  # Evolution API
-sudo ufw allow 9002/tcp  # Portainer
+sudo ufw allow 9005/tcp  # MinIO Console
 ```
 
 ## 📊 Estrutura do Projeto
@@ -216,25 +214,17 @@ sudo ufw allow 9002/tcp  # Portainer
 ```
 ProjetoRavenna/
 ├── docker-compose.yml          # Orquestração principal
+├── .env                        # Configuração centralizada
 ├── README.md                   # Documentação principal
 ├── INSTALLATION_GUIDE.md       # Guia de instalação detalhado
 ├── INTEGRATION_GUIDE.md        # Guia de integração Chatwoot + Evolution
 ├── DEPLOY_PRODUCTION.md        # Guia de deploy em produção
 ├── chatwoot/
-│   ├── .env                   # Configurações Chatwoot
-│   └── docker-compose.yml    # Compose específico
+│   └── compose.yaml            # Serviços Chatwoot + Redis + Postgres
 ├── evolution/
-│   ├── .env                  # Configurações Evolution API
-│   └── docker-compose.yml   # Compose específico
-├── n8n/
-│   ├── .env                 # Configurações N8N
-│   └── docker-compose.yml  # Compose específico
-├── postgres/
-│   └── docker-compose.yml  # Bancos PostgreSQL
-├── redis/
-│   └── docker-compose.yml  # Serviços Redis
-└── portainer/
-    └── docker-compose.yml  # Interface de gerenciamento
+│   └── compose.yaml            # Serviços Evolution API
+└── n8n/
+    └── compose.yaml            # Serviços N8N
 ```
 
 ## 📚 Documentação
