@@ -1,0 +1,482 @@
+@import url('https://fonts.googleapis.com/css2?family=Roboto:wght@300;400;500;700;900&display=swap');
+@import "tailwindcss";
+
+@theme {
+  --color-django-green-primary: #44B78B;
+  --color-django-green-dark: #0C4B33;
+  --color-django-green-link: #20AA76;
+
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-muted: var(--muted);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-border: var(--border);
+  --color-accent: var(--accent);
+  --color-accent-hover: var(--accent-hover);
+  --color-card-bg: var(--card-bg);
+  --color-header-bg: var(--header-bg);
+  --color-header-text: var(--header-text);
+}
+
+:root {
+  /* Django Brand Colors */
+  --django-green-primary: #44B78B;
+  --django-green-dark: #0C4B33;
+  --django-green-link: #20AA76;
+
+  /* Light Mode Colors (Django Style) */
+  --background: #F8F8F8;
+  --foreground: #0C3C26;
+  --muted: #E8E8E8;
+  --muted-foreground: #5A6C57;
+  --border: #D4D4D4;
+  --accent: #44B78B;
+  --accent-hover: #20AA76;
+  --card-bg: #FFFFFF;
+  --header-bg: #0C4B33;
+  --header-text: #FFFFFF;
+
+  /* Typography */
+  --font-sans: 'Roboto', Corbel, Avenir, "Lucida Grande", "Lucida Sans", sans-serif;
+
+  /* Spacing */
+  --container-max: 1280px;
+  --container-padding: 1.5rem;
+}
+
+/* Dark Mode (Django Style) */
+[data-theme="dark"] {
+  --background: #181D27;
+  --foreground: #C1CAD2;
+  --muted: #252B37;
+  --muted-foreground: #8B95A1;
+  --border: #3A4453;
+  --accent: #44B78B;
+  --accent-hover: #20AA76;
+  --card-bg: #1E2430;
+  --header-bg: #0C4B33;
+  --header-text: #FFFFFF;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html {
+  scroll-behavior: smooth;
+}
+
+body {
+  background: var(--background);
+  color: var(--foreground);
+  font-family: var(--font-sans);
+  line-height: 1.6;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+/* ===================================
+   ACCESSIBILITY ENHANCEMENTS
+   =================================== */
+
+/* Skip to main content link */
+.skip-link {
+  position: absolute;
+  top: -40px;
+  left: 0;
+  background: var(--django-green-primary);
+  color: white;
+  padding: 0.75rem 1.5rem;
+  text-decoration: none;
+  border-radius: 0 0 0.375rem 0;
+  font-weight: 600;
+  z-index: 100;
+  transition: top 0.3s;
+}
+
+.skip-link:focus {
+  top: 0;
+  outline: 3px solid var(--django-green-link);
+  outline-offset: 2px;
+}
+
+/* Enhanced focus indicators for keyboard navigation */
+*:focus {
+  outline: 2px solid var(--django-green-primary);
+  outline-offset: 2px;
+}
+
+*:focus:not(:focus-visible) {
+  outline: none;
+}
+
+*:focus-visible {
+  outline: 2px solid var(--django-green-primary);
+  outline-offset: 2px;
+  border-radius: 0.25rem;
+}
+
+/* Button focus states */
+button:focus-visible,
+a.btn:focus-visible {
+  outline: 3px solid var(--django-green-link);
+  outline-offset: 3px;
+}
+
+/* Link focus within prose */
+.prose a:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 3px;
+  border-radius: 0.125rem;
+}
+
+/* Improved contrast for reduced motion users */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+ *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}
+
+/* Screen reader only content */
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border-width: 0;
+}
+
+.sr-only-focusable:focus {
+  position: static;
+  width: auto;
+  height: auto;
+  overflow: visible;
+  clip: auto;
+  white-space: normal;
+}
+
+/* ====================================
+   END ACCESSIBILITY ENHANCEMENTS
+   ==================================== */
+
+/* Utilities */
+.container-custom {
+  width: 100%;
+  max-width: var(--container-max);
+  margin-left: auto;
+  margin-right: auto;
+  padding-left: var(--container-padding);
+  padding-right: var(--container-padding);
+}
+
+.btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0.5rem 1rem;
+  border-radius: 0.375rem;
+  font-weight: 500;
+  transition: all 0.2s;
+  cursor: pointer;
+}
+
+.btn-primary {
+  background-color: var(--django-green-primary);
+  color: white;
+}
+
+.btn-primary:hover {
+  background-color: var(--django-green-link);
+}
+
+.btn-outline {
+  border: 1px solid var(--border);
+  background-color: transparent;
+  color: var(--foreground);
+}
+
+.btn-outline:hover {
+  background-color: var(--muted);
+}
+
+.prose {
+  max-width: 65ch;
+  color: var(--foreground);
+  font-size: 1.125rem;
+  line-height: 1.8;
+}
+
+.prose h1,
+.prose h2,
+.prose h3,
+.prose h4 {
+  margin-top: 2em;
+  margin-bottom: 0.8em;
+  font-weight: 800;
+  line-height: 1.25;
+  color: var(--foreground);
+  letter-spacing: -0.02em;
+}
+
+.prose h1 {
+  font-size: 2.25rem;
+}
+
+.prose h2 {
+  font-size: 1.875rem;
+  padding-bottom: 0.5rem;
+  border-bottom: 1px solid var(--border);
+}
+
+.prose h3 {
+  font-size: 1.5rem;
+}
+
+.prose h4 {
+  font-size: 1.25rem;
+}
+
+.prose h1[id],
+.prose h2[id],
+.prose h3[id],
+.prose h4[id] {
+  scroll-margin-top: 100px;
+  cursor: pointer;
+  position: relative;
+}
+
+.prose h1[id]:hover::before,
+.prose h2[id]:hover::before,
+.prose h3[id]:hover::before {
+  content: '#';
+  position: absolute;
+  left: -1em;
+  color: var(--accent);
+  opacity: 0.5;
+}
+
+.prose p {
+  margin: 1.25em 0;
+  color: var(--foreground);
+  opacity: 0.9;
+}
+
+.prose ul,
+.prose ol {
+  margin: 1.25em 0;
+  padding-left: 1.5rem;
+}
+
+.prose li {
+  margin: 0.5em 0;
+  padding-left: 0.5em;
+}
+
+.prose ul>li::marker {
+  color: var(--accent);
+}
+
+.prose ol>li::marker {
+  color: var(--foreground);
+  font-weight: 600;
+}
+
+.prose a {
+  color: var(--accent);
+  text-decoration: none;
+  border-bottom: 1px solid transparent;
+  transition: all 0.2s;
+  font-weight: 500;
+}
+
+.prose a:hover {
+  border-bottom-color: var(--accent);
+}
+
+.prose blockquote {
+  margin: 2em 0;
+  padding: 1rem 1.5rem;
+  border-left: 4px solid var(--accent);
+  background: color-mix(in srgb, var(--accent) 10%, transparent);
+  border-radius: 0 0.5rem 0.5rem 0;
+  font-style: italic;
+  font-size: 1.1em;
+  color: var(--foreground);
+}
+
+.prose img {
+  border-radius: 0.75rem;
+  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+  margin: 2em auto;
+  display: block;
+  max-width: 100%;
+}
+
+.prose hr {
+  border: none;
+  border-top: 1px solid var(--border);
+  margin: 3em 0;
+}
+
+.prose pre {
+  background: #1e1e1e;
+  /* Consistent dark bg for code */
+  color: #d4d4d4;
+  padding: 1.25rem;
+  border-radius: 0.5rem;
+  overflow-x: auto;
+  font-size: 0.9em;
+  margin: 2em 0;
+  border: 1px solid var(--border);
+}
+
+.prose :not(pre)>code {
+  background: color-mix(in srgb, var(--foreground) 10%, transparent);
+  color: var(--accent);
+  padding: 0.2em 0.4em;
+  border-radius: 0.25rem;
+  font-size: 0.9em;
+  font-weight: 500;
+  font-family: 'Menlo', 'Monaco', 'Courier New', monospace;
+}
+
+/* ========================================
+   LOGOS CAROUSEL - HYBRID (Infinite Scroll + Drag)
+   ======================================== */
+
+.logos-slider-hybrid {
+  width: 100%;
+  overflow: hidden;
+  position: relative;
+  cursor: grab;
+
+  /* Efeito de fade nas laterais */
+  mask-image: linear-gradient(to right,
+      transparent,
+      black 5%,
+      black 95%,
+      transparent);
+  -webkit-mask-image: linear-gradient(to right,
+      transparent,
+      black 5%,
+      black 95%,
+      transparent);
+}
+
+.logos-slide-hybrid {
+  display: flex;
+  flex-direction: row;
+  gap: 2rem;
+  padding: 1rem 0;
+
+  /* Animação infinita */
+  animation: scroll-logos-infinite 40s linear infinite;
+  will-change: transform;
+}
+
+/* Pausa animação ao arrastar */
+.logos-slide-hybrid.dragging {
+  animation-play-state: paused;
+  cursor: grabbing;
+}
+
+/* Pausa animação ao hover para permitir clique preciso */
+.logos-slider-hybrid:hover .logos-slide-hybrid {
+  animation-play-state: paused;
+}
+
+.logo-item {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  min-width: 100px;
+  max-width: 100px;
+  flex-shrink: 0;
+  padding: 1rem;
+  border-radius: 0.75rem;
+  background: var(--card-bg);
+  border: 1px solid var(--border);
+  transition: all 0.3s ease;
+  cursor: pointer;
+  text-decoration: none;
+  user-select: none;
+}
+
+.logo-item:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 8px 16px rgba(0, 0, 0, 0.1);
+  border-color: currentColor;
+}
+
+.logo-icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 48px;
+  height: 48px;
+  transition: transform 0.3s ease;
+  pointer-events: none;
+}
+
+.logo-item:hover .logo-icon {
+  transform: scale(1.1);
+}
+
+.logo-name {
+  font-size: 0.75rem;
+  font-weight: 600;
+  text-align: center;
+  color: var(--foreground);
+  transition: color 0.3s ease;
+  pointer-events: none;
+}
+
+.logo-item:hover .logo-name {
+  color: currentColor;
+}
+
+/* Animação de scroll infinito */
+@keyframes scroll-logos-infinite {
+  0% {
+    transform: translateX(0);
+  }
+
+  100% {
+    transform: translateX(-50%);
+  }
+}
+
+/* Responsividade */
+@media (max-width: 768px) {
+  .logos-slide-hybrid {
+    gap: 1.5rem;
+    animation-duration: 30s;
+    /* Mais rápido em mobile */
+  }
+
+  .logo-item {
+    min-width: 80px;
+    max-width: 80px;
+    padding: 0.75rem;
+  }
+
+  .logo-icon {
+    width: 36px;
+    height: 36px;
+  }
+
+  .logo-name {
+    font-size: 0.65rem;
+  }
+}

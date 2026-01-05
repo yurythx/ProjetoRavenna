@@ -1,0 +1,86 @@
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { api } from '@/lib/api';
+import { useToast } from '@/contexts/ToastContext';
+
+interface Comment {
+    id: string;
+    article: string;
+    author: {
+        id: string;
+        email: string;
+        username: string | null;
+        first_name: string;
+        last_name: string;
+        avatar: string | null;
+    };
+    parent: string | null;
+    content: string;
+    created_at: string;
+    is_reply: boolean;
+    replies_count: number;
+    can_delete: boolean;
+    replies?: Comment[];
+}
+
+interface CreateCommentData {
+    article: string;
+    content: string;
+    parent?: string | null;
+}
+
+export function useComments(articleId?: string) {
+    const queryClient = useQueryClient();
+    const toast = useToast();
+
+    // Get comments for article
+    const { data: comments, isLoading, error } = useQuery<Comment[]>({
+        queryKey: ['comments', articleId],
+        queryFn: async () => {
+            if (!articleId) return [];
+            const { data } = await api.get(`/articles/comments/?article=${articleId}&parent_only=true`);
+            return data;
+        },
+        enabled: !!articleId,
+    });
+
+    // Create comment
+    const createCommentMutation = useMutation({
+        mutationFn: async (commentData: CreateCommentData) => {
+            const { data } = await api.post('/articles/comments/', commentData);
+            return data;
+        },
+        onSuccess: () => {
+            queryClient.invalidateQueries({ queryKey: ['comments', articleId] });
+            toast.success('Comentário enviado!');
+        },
+        onError: (error: any) => {
+            const message = error.response?.data?.detail || 'Erro ao enviar comentário';
+            toast.error(message);
+        },
+    });
+
+    // Delete comment
+    const deleteCommentMutation = useMutation({
+        mutationFn: async (commentId: string) => {
+            await api.delete(`/articles/comments/${commentId}/`);
+        },
+        onSuccess: () => {
+            queryClient.invalidateQueries({ queryKey: ['comments', articleId] });
+            toast.success('Comentário deletado');
+        },
+        onError: (error: any) => {
+            const message = error.response?.data?.detail || 'Erro ao deletar comentário';
+            toast.error(message);
+        },
+    });
+
+    return {
+        comments: comments || [],
+        isLoading,
+        error,
+        createComment: createCommentMutation.mutate,
+        isCreating: createCommentMutation.isPending,
+        deleteComment: deleteCommentMutation.mutate,
+        isDeleting: deleteCommentMutation.isPending,
+    };
+}

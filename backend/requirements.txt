@@ -1,0 +1,14 @@
+django>=5.0
+djangorestframework
+django-cors-headers
+django-filter
+drf-spectacular
+djangorestframework-simplejwt
+psycopg2-binary
+python-decouple
+django-storages
+boto3
+django-cleanup
+django-resized
+Pillow
+dj-database-url

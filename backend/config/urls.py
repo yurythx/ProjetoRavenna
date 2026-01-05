@@ -1,0 +1,46 @@
+from django.contrib import admin
+from django.urls import path, include
+from drf_spectacular.views import SpectacularAPIView, SpectacularSwaggerView
+from rest_framework_simplejwt.views import (
+    TokenObtainPairView,
+    TokenRefreshView,
+)
+from django.conf import settings
+from django.conf.urls.static import static
+from apps.accounts.profile_views import UserProfileView, AvatarUploadView
+from apps.accounts.password_views import ChangePasswordView
+from apps.core.stats_views import DashboardStatsView
+from apps.core.notification_views import NotificationViewSet
+from rest_framework.routers import DefaultRouter
+
+# Create router for viewsets
+router = DefaultRouter()
+router.register(r'notifications', NotificationViewSet, basename='notifications')
+
+urlpatterns = [
+    path("admin/", admin.site.urls),
+
+    # Authentication
+    path('api/v1/auth/token/', TokenObtainPairView.as_view(), name='token_obtain_pair'),
+    path('api/v1/auth/token/refresh/', TokenRefreshView.as_view(), name='token_refresh'),
+    path('api/v1/auth/profile/', UserProfileView.as_view(), name='user_profile'),
+    path('api/v1/auth/profile/avatar/', AvatarUploadView.as_view(), name='avatar_upload'),
+    path('api/v1/auth/change-password/', ChangePasswordView.as_view(), name='change_password'),
+
+    # Stats
+    path('api/v1/stats/dashboard/', DashboardStatsView.as_view(), name='dashboard_stats'),
+    
+    # Router (notifications, etc)
+    path('api/v1/', include(router.urls)),
+
+    # Modules
+    # The middleware will check if these modules are active.
+    path('api/v1/articles/', include('apps.articles.urls')),
+    
+    # Documentation
+    path('api/schema/', SpectacularAPIView.as_view(), name='schema'),
+    path('api/docs/', SpectacularSwaggerView.as_view(url_name='schema'), name='swagger-ui'),
+]
+
+if settings.DEBUG:
+    urlpatterns += static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)
