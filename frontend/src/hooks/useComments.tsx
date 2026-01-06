@@ -19,6 +19,7 @@ interface Comment {
     is_reply: boolean;
     replies_count: number;
     can_delete: boolean;
+    is_approved?: boolean;
     replies?: Comment[];
 }
 
@@ -26,6 +27,10 @@ interface CreateCommentData {
     article: string;
     content: string;
     parent?: string | null;
+    guest_name?: string;
+    guest_email?: string;
+    guest_phone?: string;
+    captcha?: string;
 }
 
 export function useComments(articleId?: string) {
@@ -49,9 +54,10 @@ export function useComments(articleId?: string) {
             const { data } = await api.post('/articles/comments/', commentData);
             return data;
         },
-        onSuccess: () => {
+        onSuccess: (data: any) => {
             queryClient.invalidateQueries({ queryKey: ['comments', articleId] });
-            toast.success('Comentário enviado!');
+            const approved = !!data?.is_approved;
+            toast.success(approved ? 'Comentário enviado!' : 'Comentário enviado e aguardando aprovação');
         },
         onError: (error: any) => {
             const message = error.response?.data?.detail || 'Erro ao enviar comentário';

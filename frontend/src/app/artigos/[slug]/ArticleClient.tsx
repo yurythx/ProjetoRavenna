@@ -18,8 +18,24 @@ import { ArticleCard } from '@/components/ArticleCard';
 import slugify from '@sindresorhus/slugify';
 import { components } from '@/types/api';
 import { CommentSection } from '@/components/CommentSection';
+import { LikeButton } from '@/components/LikeButton';
+import { FavoriteButton } from '@/components/FavoriteButton';
+import ViewCounter from '@/components/ViewCounter';
+import ReadingTime from '@/components/ReadingTime';
+import ArticleStats from '@/components/ArticleStats';
+import { useTrackView } from '@/hooks/useAnalytics';
+import { useReadingProgress } from '@/hooks/useReadingProgress';
 
-type Article = components['schemas']['Article'] & { author_name?: string };
+type Article = components['schemas']['Article'] & {
+    author_name?: string;
+    is_liked?: boolean;
+    like_count?: number;
+    is_favorited?: boolean;
+    view_count?: number;
+    unique_views?: number;
+    reading_time?: number;
+    engagement_rate?: number;
+};
 
 const sanitize = (html: string) => {
     if (typeof window === 'undefined') return html;
@@ -40,8 +56,36 @@ export default function ArticleClient({ slug, initialData }: { slug: string, ini
     const { data: related } = useArticles(catSlug ? { category: catSlug, is_published: true, ordering: '-created_at' } : undefined);
     const sortedRelated = (related || []).slice().sort((a, b) => new Date(a.created_at as any).getTime() - new Date(b.created_at as any).getTime());
 
+    // Analytics: Track view on mount
+    const { mutate: trackView } = useTrackView(data?.id || '');
+
+    // Analytics: Track reading progress
+    const { progress: readingProgress } = useReadingProgress(
+        data?.id || '',
+        {
+            onProgress: (progress, timeSpent) => {
+                if (data?.id) {
+                    trackView({ reading_progress: progress, time_spent: timeSpent });
+                }
+            },
+            enabled: !!data?.id,
+        }
+    );
+
     // Sticky Header State
     const [scrolled, setScrolled] = useState(false);
+    // Local like/favorite state to reflect immediate changes
+    const [liked, setLiked] = useState<boolean>(!!data?.is_liked);
+    const [likeCount, setLikeCount] = useState<number>(data?.like_count || 0);
+    const [favorited, setFavorited] = useState<boolean>(!!data?.is_favorited);
+    useEffect(() => {
+        // Sync when data changes (e.g., refetch)
+        if (data) {
+            setLiked(!!data.is_liked);
+            setLikeCount(data.like_count || 0);
+            setFavorited(!!data.is_favorited);
+        }
+    }, [data?.id, data?.is_liked, data?.like_count, data?.is_favorited]);
 
     function extractTOC(content: string) {
         const toc: { id: string; text: string; level: number }[] = [];
@@ -139,6 +183,13 @@ export default function ArticleClient({ slug, initialData }: { slug: string, ini
         };
     }, [data?.content, show]);
 
+    // Track initial view
+    useEffect(() => {
+        if (data?.id) {
+            trackView();
+        }
+    }, [data?.content, show]);
+
     useEffect(() => {
         const onScroll = () => {
             const el = articleRef.current;
@@ -217,6 +268,40 @@ export default function ArticleClient({ slug, initialData }: { slug: string, ini
                                 {data.title}
                             </h1>
 
+                            {/* Like and Favorite Buttons */}
+                            <div className="flex items-center gap-3 mb-6 pb-6 border-b border-border">
+                                <LikeButton
+                                    articleId={data.id}
+                                    initialLiked={liked}
+                                    initialCount={likeCount}
+                                    onChanged={(l, c) => { setLiked(l); setLikeCount(c); }}
+                                    size="md"
+                                    showCount={true}
+                                />
+                                <FavoriteButton
+                                    articleId={data.id}
+                                    initialFavorited={favorited}
+                                    onChanged={(f) => setFavorited(f)}
+                                    size="md"
+                                />
+                            </div>
+
+                            {/* Article Stats */}
+                            {data.view_count !== undefined && (
+                                <div className="mb-6">
+                                    <ArticleStats
+                                        viewCount={data.view_count}
+                                        uniqueViews={data.unique_views || 0}
+                                        readingTime={data.reading_time || 5}
+                                        engagementRate={data.engagement_rate || 0}
+                                        likeCount={likeCount}
+                                        commentCount={0}
+                                        layout="horizontal"
+                                        variant="compact"
+                                    />
+                                </div>
+                            )}
+
                             <div className="flex flex-wrap items-center gap-6 text-sm text-muted-foreground border-b border-border pb-8">
                                 <div className="flex items-center gap-3">
                                     <div className="w-10 h-10 rounded-full bg-accent/20 flex items-center justify-center text-accent font-bold text-lg">
@@ -227,9 +312,13 @@ export default function ArticleClient({ slug, initialData }: { slug: string, ini
                                         <p className="text-xs">{new Date(data.created_at).toLocaleDateString('pt-BR', { day: 'numeric', month: 'long', year: 'numeric' })}</p>
                                     </div>
                                 </div>
-                                <div className="flex items-center gap-1.5 ml-auto md:ml-0">
-                                    <span role="img" aria-label="tempo de leitura">⏱️</span>
-                                    {readingTime(data.content)} de leitura
+                                <div className="flex items-center gap-4 ml-auto md:ml-0">
+                                    {data.reading_time && (
+                                        <ReadingTime minutes={data.reading_time} size="sm" />
+                                    )}
+                                    {data.view_count !== undefined && (
+                                        <ViewCounter count={data.view_count} size="sm" />
+                                    )}
                                 </div>
                             </div>
                         </div>

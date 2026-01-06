@@ -11,6 +11,9 @@ export function useTags(params?: Record<string, unknown>) {
       const { data } = await api.get('/articles/tags/', { params });
       return data;
     },
+    refetchOnWindowFocus: false,
+    refetchOnReconnect: false,
+    retry: false,
   });
 }
 

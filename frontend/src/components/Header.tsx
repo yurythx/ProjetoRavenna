@@ -2,7 +2,7 @@
 import Link from 'next/link';
 import { useAuth } from '@/contexts/AuthContext';
 import { useEffect, useState } from 'react';
-import { Menu, X, BookOpen, LogOut, LogIn, PenSquare, User } from 'lucide-react';
+import { Menu, X, BookOpen, LogOut, LogIn, PenSquare, User, Bookmark, Bell } from 'lucide-react';
 import { ThemeToggle } from '@/components/ThemeToggle';
 import { useModules } from '@/contexts/ModuleContext';
 import { ConfirmDialog } from '@/components/ConfirmDialog';
@@ -10,6 +10,7 @@ import { usePathname } from 'next/navigation';
 import { SuccessDialog } from '@/components/SuccessDialog';
 import { NotificationBell } from '@/components/NotificationBell';
 import { useRouter } from 'next/navigation';
+import { SearchBar } from '@/components/SearchBar';
 
 export function Header() {
   const { token, logout } = useAuth();
@@ -19,6 +20,7 @@ export function Header() {
   const pathname = usePathname();
   const router = useRouter();
   const [logoutSuccessOpen, setLogoutSuccessOpen] = useState(false);
+  const unreadCount = 0; // TODO: Implement real notification count
   useEffect(() => {
     if (logoutSuccessOpen) {
       const t = setTimeout(() => {
@@ -35,7 +37,7 @@ export function Header() {
       style={{ backgroundColor: 'color-mix(in srgb, var(--header-bg) 95%, transparent)' }}
     >
       <div className="container-custom">
-        <div className="flex h-16 items-center justify-between">
+        <div className="flex h-16 items-center justify-between gap-3">
           {/* Logo */}
           <Link href="/" className="flex items-center gap-2 group">
             <div className="p-1.5 rounded-lg bg-white/10 group-hover:bg-white/20 transition-colors">
@@ -52,13 +54,20 @@ export function Header() {
           </Link>
 
           {/* Desktop Navigation */}
-          <nav className="hidden md:flex items-center gap-8">
+          <nav className="hidden md:flex items-center gap-6">
             <Link
               href="/artigos"
               className="text-sm font-medium transition-colors hover:text-[var(--django-green-primary)]"
               style={{ color: 'var(--header-text)' }}
             >
               Artigos
+            </Link>
+            <Link
+              href="/tags"
+              className="text-sm font-medium transition-colors hover:text-[var(--django-green-primary)]"
+              style={{ color: 'var(--header-text)' }}
+            >
+              Tags
             </Link>
             {token && (
               <Link
@@ -79,19 +88,29 @@ export function Header() {
                 Dashboard
               </Link>
             )}
-            {token && !disabled['articles'] && (
-              <Link
-                href="/artigos/new"
-                className="btn btn-primary flex items-center gap-2 shadow-sm hover:shadow-md transition-all"
-              >
-                <PenSquare className="h-4 w-4" />
-                Novo Artigo
-              </Link>
-            )}
           </nav>
 
+          {/* Search Bar - Desktop */}
+          <div className="hidden md:block flex-1 max-w-md mx-4">
+            <SearchBar placeholder="Buscar..." />
+          </div>
+
+          {/* Action Buttons - Desktop */}
+          <div className="hidden md:flex items-center gap-2">
+            {token && !disabled['articles'] && pathname === '/artigos' && (
+              <Link
+                href="/artigos/new"
+                className="p-2 rounded-lg hover:bg-white/10"
+                aria-label="Novo Artigo"
+                title="Novo Artigo"
+              >
+                <PenSquare className="h-5 w-5" />
+              </Link>
+            )}
+          </div>
+
           {/* Auth Section - Desktop */}
-          <div className="hidden md:flex items-center gap-4 pl-4 border-l border-white/10">
+          <div className="hidden md:flex items-center gap-3 pl-4 border-l border-white/10">
             <ThemeToggle />
             {token && <NotificationBell />}
             {token && (
@@ -102,19 +121,21 @@ export function Header() {
             {token ? (
               <button
                 onClick={() => setLogoutOpen(true)}
-                className="btn btn-outline flex items-center gap-2 border-white/20 hover:bg-white/10 text-[var(--header-text)]"
+                className="p-2 rounded-lg hover:bg-white/10 text-[var(--header-text)]"
+                aria-label="Sair"
+                title="Sair"
               >
-                <LogOut className="h-4 w-4" />
-                Sair
+                <LogOut className="h-5 w-5" />
               </button>
             ) : (
               !pathname?.startsWith('/auth/login') && (
                 <Link
                   href="/auth/login"
-                  className="btn btn-primary flex items-center gap-2"
+                  className="p-2 rounded-lg hover:bg-white/10"
+                  aria-label="Entrar"
+                  title="Entrar"
                 >
-                  <LogIn className="h-4 w-4" />
-                  Entrar
+                  <LogIn className="h-5 w-5" />
                 </Link>
               )
             )}
@@ -155,24 +176,56 @@ export function Header() {
               >
                 Artigos
               </Link>
+              <Link
+                href="/tags"
+                className="px-4 py-3 rounded-lg font-medium transition-colors hover:bg-white/10"
+                style={{ color: 'var(--header-text)' }}
+                onClick={() => setMobileMenuOpen(false)}
+              >
+                Tags
+              </Link>
               {token && (
                 <div className="px-4 py-2">
                   <NotificationBell />
                 </div>
               )}
-              {token && (
+              {token && pathname === '/artigos' && (
                 <Link
-                  href="/perfil"
+                  href="/artigos/new"
                   className="px-4 py-3 rounded-lg font-medium transition-colors hover:bg-white/10 flex items-center gap-2"
                   style={{ color: 'var(--header-text)' }}
                   onClick={() => setMobileMenuOpen(false)}
                 >
-                  <User className="h-4 w-4" />
-                  Perfil
+                  <PenSquare className="h-4 w-4" />
+                  Novo Artigo
                 </Link>
               )}
               {token ? (
                 <>
+                  <Link
+                    href="/notificacoes"
+                    className="flex gap-3 items-center px-4 py-2.5 hover:bg-white/10 rounded-lg transition-colors relative"
+                    style={{ color: 'var(--header-text)' }}
+                    onClick={() => setMobileMenuOpen(false)}
+                  >
+                    <Bell className="h-5 w-5" />
+                    <span className="font-medium">Notificações</span>
+                    {unreadCount > 0 && (
+                      <span className="ml-auto bg-red-500 text-white text-xs px-2 py-0.5 rounded-full">
+                        {unreadCount}
+                      </span>
+                    )}
+                  </Link>
+
+                  <Link
+                    href="/favoritos"
+                    className="flex gap-3 items-center px-4 py-2.5 hover:bg-white/10 rounded-lg transition-colors"
+                    style={{ color: 'var(--header-text)' }}
+                    onClick={() => setMobileMenuOpen(false)}
+                  >
+                    <Bookmark className="h-5 w-5" />
+                    <span className="font-medium">Favoritos</span>
+                  </Link>
                   <Link
                     href="/artigos/new"
                     className="px-4 py-3 rounded-lg font-medium transition-colors hover:bg-white/10 flex items-center gap-2"

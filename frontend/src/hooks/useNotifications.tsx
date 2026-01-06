@@ -1,6 +1,7 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { api } from '@/lib/api';
 import { useToast } from '@/contexts/ToastContext';
+import { useAuth } from '@/contexts/AuthContext';
 
 interface Notification {
     id: string;
@@ -26,9 +27,10 @@ interface UnreadCount {
     count: number;
 }
 
-export function useNotifications() {
+export function useNotifications(enabled: boolean = false) {
     const queryClient = useQueryClient();
     const toast = useToast();
+    const { token } = useAuth();
 
     // Get notifications
     const { data: notifications, isLoading } = useQuery<Notification[]>({
@@ -38,6 +40,10 @@ export function useNotifications() {
             return data;
         },
         refetchInterval: 60000, // Refresh every minute
+        enabled: !!token && enabled,
+        retry: false,
+        refetchOnWindowFocus: false,
+        refetchOnReconnect: false,
     });
 
     // Get unread count
@@ -48,6 +54,10 @@ export function useNotifications() {
             return data;
         },
         refetchInterval: 30000, // Refresh every 30s
+        enabled: !!token && enabled,
+        retry: false,
+        refetchOnWindowFocus: false,
+        refetchOnReconnect: false,
     });
 
     // Mark as read

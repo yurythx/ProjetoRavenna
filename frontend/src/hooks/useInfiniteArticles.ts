@@ -36,6 +36,9 @@ export function useInfiniteArticles(params?: Record<string, unknown>) {
       const all = data.pages.flatMap((p) => normalize(p).items);
       return { items: all, pageParams: data.pageParams, pages: data.pages };
     },
+    refetchOnWindowFocus: false,
+    refetchOnReconnect: false,
+    retry: false,
   });
 }
 

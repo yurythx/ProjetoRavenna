@@ -48,15 +48,15 @@ class TagAdmin(admin.ModelAdmin):
     """
     Admin configuration for Tag model.
     """
-    list_display = ('name', 'slug', 'article_count', 'created_at', 'updated_at')
+    list_display = ('name', 'color_preview', 'slug', 'article_count', 'created_at', 'updated_at')
     list_filter = ('created_at', 'updated_at')
-    search_fields = ('name', 'slug')
+    search_fields = ('name', 'slug', 'description')
     readonly_fields = ('id', 'slug', 'created_at', 'updated_at')
     ordering = ('name',)
     
     fieldsets = (
         ('Tag Information', {
-            'fields': ('name', 'slug')
+            'fields': ('name', 'slug', 'description', 'color')
         }),
         ('Metadata', {
             'fields': ('id', 'created_at', 'updated_at'),
@@ -80,6 +80,15 @@ class TagAdmin(admin.ModelAdmin):
         return obj._article_count
     article_count.short_description = 'Articles'
     article_count.admin_order_field = '_article_count'
+    
+    def color_preview(self, obj):
+        """Display color preview badge"""
+        return format_html(
+            '<span style="background-color: {}; padding: 4px 12px; border-radius: 4px; color: white; font-weight: bold;">{}</span>',
+            obj.color,
+            obj.color
+        )
+    color_preview.short_description = 'Color'
 
 
 @admin.register(Article)
@@ -160,9 +169,9 @@ class CommentAdmin(admin.ModelAdmin):
     """
     Admin configuration for Comment model.
     """
-    list_display = ('short_content', 'author', 'article', 'parent', 'is_approved', 'created_at')
+    list_display = ('short_content', 'author_or_guest', 'article', 'parent', 'is_approved', 'created_at')
     list_filter = ('is_approved', 'created_at')
-    search_fields = ('content', 'author__email', 'author__username', 'article__title')
+    search_fields = ('content', 'author__email', 'author__username', 'article__title', 'guest_email', 'guest_name', 'guest_phone')
     readonly_fields = ('id', 'created_at', 'updated_at')
     autocomplete_fields = ['author', 'article', 'parent']
     
@@ -189,6 +198,22 @@ class CommentAdmin(admin.ModelAdmin):
         """Display truncated comment content"""
         return obj.content[:50] + '...' if len(obj.content) > 50 else obj.content
     short_content.short_description = 'Content'
+    
+    def author_or_guest(self, obj):
+        if obj.author:
+            return obj.author.email
+        return obj.guest_email or obj.guest_name or obj.guest_phone or 'Visitante'
+    author_or_guest.short_description = 'Autor/Visitante'
+    
+    def approve_comments(self, request, queryset):
+        updated = queryset.update(is_approved=True)
+        self.message_user(request, f'{updated} comentário(s) aprovados.')
+    approve_comments.short_description = 'Aprovar comentários selecionados'
+    
+    def unapprove_comments(self, request, queryset):
+        updated = queryset.update(is_approved=False)
+        self.message_user(request, f'{updated} comentário(s) desaprovados.')
+    unapprove_comments.short_description = 'Desaprovar comentários selecionados'
     
     def approve_comments(self, request, queryset):
         """Approve selected comments"""

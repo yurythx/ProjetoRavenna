@@ -1,6 +1,6 @@
 from django.contrib import admin
 from django.utils.html import format_html
-from .models import AppModule
+from .models import AppModule, Notification
 
 
 @admin.register(AppModule)
@@ -96,3 +96,63 @@ class AppModuleAdmin(admin.ModelAdmin):
         if obj and obj.is_system_module:
             readonly.extend(['name', 'is_system_module'])
         return readonly
+
+
+@admin.register(Notification)
+class NotificationAdmin(admin.ModelAdmin):
+    """
+    Admin configuration for Notification model.
+    Manages user notifications for various system events.
+    """
+    list_display = ('title', 'recipient', 'sender', 'notification_type', 'is_read', 'read_status_indicator', 'created_at')
+    list_filter = ('notification_type', 'is_read', 'created_at')
+    search_fields = ('title', 'message', 'recipient__username', 'recipient__email', 'sender__username', 'sender__email')
+    readonly_fields = ('id', 'created_at', 'updated_at')
+    ordering = ('-created_at',)
+    
+    fieldsets = (
+        ('Notification Information', {
+            'fields': ('recipient', 'sender', 'notification_type', 'title', 'message')
+        }),
+        ('Link', {
+            'fields': ('link',),
+        }),
+        ('Status', {
+            'fields': ('is_read',)
+        }),
+        ('Metadata', {
+            'fields': ('id', 'created_at', 'updated_at'),
+            'classes': ('collapse',)
+        }),
+    )
+    
+    list_per_page = 50
+    actions = ['mark_as_read', 'mark_as_unread']
+    
+    def read_status_indicator(self, obj):
+        """Display colored read status indicator"""
+        if obj.is_read:
+            color = 'gray'
+            status = '● Lida'
+        else:
+            color = 'green'
+            status = '● Não lida'
+        
+        return format_html(
+            '<span style="color: {}; font-weight: bold;">{}</span>',
+            color,
+            status
+        )
+    read_status_indicator.short_description = 'Status de Leitura'
+    
+    def mark_as_read(self, request, queryset):
+        """Mark selected notifications as read"""
+        updated = queryset.update(is_read=True)
+        self.message_user(request, f'{updated} notificação(ões) marcada(s) como lida(s).')
+    mark_as_read.short_description = "Marcar como lida"
+    
+    def mark_as_unread(self, request, queryset):
+        """Mark selected notifications as unread"""
+        updated = queryset.update(is_read=False)
+        self.message_user(request, f'{updated} notificação(ões) marcada(s) como não lida(s).')
+    mark_as_unread.short_description = "Marcar como não lida"

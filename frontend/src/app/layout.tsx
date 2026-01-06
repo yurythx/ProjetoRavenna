@@ -14,6 +14,7 @@ export const metadata: Metadata = {
   description: "Projeto Ravenna - Ecossistema completo de gestão e serviços digitais integrados em projetoravenna.cloud.",
   keywords: ["ravenna", "projeto ravenna", "gestão", "módulos", "serviços", "cloud"],
   authors: [{ name: "Projeto Ravenna" }],
+  formatDetection: { telephone: false },
   openGraph: {
     type: "website",
     locale: "pt_BR",

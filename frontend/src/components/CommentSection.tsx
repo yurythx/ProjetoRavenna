@@ -12,11 +12,14 @@ interface CommentSectionProps {
 export function CommentSection({ articleId }: CommentSectionProps) {
     const { comments, isLoading, createComment, isCreating, deleteComment } = useComments(articleId);
 
-    const handleCreateComment = (content: string) => {
+    const handleCreateComment = (content: string, guest?: { name?: string; email?: string; phone?: string }) => {
         createComment({
             article: articleId,
             content,
             parent: null,
+            guest_name: guest?.name,
+            guest_email: guest?.email,
+            guest_phone: guest?.phone,
         });
     };
 

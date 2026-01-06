@@ -8,7 +8,7 @@ import { NotificationDropdown } from './NotificationDropdown';
 export function NotificationBell() {
     const [isOpen, setIsOpen] = useState(false);
     const dropdownRef = useRef<HTMLDivElement>(null);
-    const { unreadCount } = useNotifications();
+    const { unreadCount } = useNotifications(isOpen);
 
     // Close dropdown when clicking outside
     useEffect(() => {

@@ -29,6 +29,31 @@ To learn more about Next.js, take a look at the following resources:
 
 You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
 
+## Comments (Users and Guests)
+
+The UI supports comments from authenticated users and guests.
+
+- Authenticated users: submit directly
+- Guests: must provide Name, Email, Phone and complete CAPTCHA
+- Honeypot hidden field is included to deter bots
+- After submission:
+  - Users: "Comentário enviado!"
+  - Guests: "Comentário enviado e aguardando aprovação"
+
+### Environment Variables
+
+Create `.env.local` in `frontend/`:
+```
+NEXT_PUBLIC_API_URL=http://localhost:8000/api/v1
+NEXT_PUBLIC_CAPTCHA_PROVIDER=hcaptcha   # or 'recaptcha'
+NEXT_PUBLIC_CAPTCHA_SITEKEY=your-site-key
+```
+
+### CAPTCHA
+- hCaptcha: renders `<div class="h-captcha" data-sitekey="...">`
+- reCAPTCHA v2: renders `<div class="g-recaptcha" data-sitekey="..." data-callback="...">`
+- The token is sent to the backend with the comment payload as `captcha`
+
 ## Deploy on Vercel
 
 The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.

@@ -17,7 +17,10 @@ def notify_comment_reply(comment):
     """Notify when someone replies to a comment"""
     parent_comment = comment.parent
     if parent_comment and parent_comment.author != comment.author:
-        author_name = comment.author.first_name or comment.author.username or comment.author.email
+        if comment.author:
+            author_name = comment.author.first_name or comment.author.username or comment.author.email
+        else:
+            author_name = comment.guest_name or comment.guest_email or 'Visitante'
         create_notification(
             recipient=parent_comment.author,
             sender=comment.author,
@@ -32,7 +35,10 @@ def notify_article_comment(comment):
     """Notify article author when someone comments"""
     article = comment.article
     if article.author and article.author != comment.author:
-        author_name = comment.author.first_name or comment.author.username or comment.author.email
+        if comment.author:
+            author_name = comment.author.first_name or comment.author.username or comment.author.email
+        else:
+            author_name = comment.guest_name or comment.guest_email or 'Visitante'
         create_notification(
             recipient=article.author,
             sender=comment.author,

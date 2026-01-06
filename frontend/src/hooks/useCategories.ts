@@ -11,6 +11,9 @@ export function useCategories(params?: Record<string, unknown>) {
       const { data } = await api.get('/articles/categories/', { params });
       return data;
     },
+    refetchOnWindowFocus: false,
+    refetchOnReconnect: false,
+    retry: false,
   });
 }
 

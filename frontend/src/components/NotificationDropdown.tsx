@@ -4,6 +4,7 @@ import { useNotifications } from '@/hooks/useNotifications';
 import { useRouter } from 'next/navigation';
 import { Inbox } from 'lucide-react';
 import Image from 'next/image';
+import Link from 'next/link';
 
 interface NotificationDropdownProps {
     onClose: () => void;
@@ -11,16 +12,14 @@ interface NotificationDropdownProps {
 
 export function NotificationDropdown({ onClose }: NotificationDropdownProps) {
     const router = useRouter();
-    const { notifications, isLoading, markAsRead, markAllAsRead } = useNotifications();
+    const { notifications, isLoading, markAsRead, markAllAsRead } = useNotifications(true);
 
-    const handleNotificationClick = (notification: any) => {
+    const handleMarkRead = (notification: any) => {
         if (!notification.is_read) {
             markAsRead(notification.id);
         }
-        if (notification.link) {
-            router.push(notification.link);
-        }
-        onClose();
+        // close dropdown slightly after to avoid interrupting navigation
+        setTimeout(() => onClose(), 0);
     };
 
     return (
@@ -65,63 +64,64 @@ export function NotificationDropdown({ onClose }: NotificationDropdownProps) {
                         </p>
                     </div>
                 ) : (
-                    notifications.map((notification) => (
-                        <button
-                            key={notification.id}
-                            onClick={() => handleNotificationClick(notification)}
-                            className="w-full p-4 border-b hover:bg-muted/50 text-left transition-colors"
-                            style={{
-                                borderColor: 'var(--border)',
-                                background: notification.is_read ? 'transparent' : 'var(--muted)'
-                            }}
-                        >
-                            <div className="flex items-start gap-3">
-                                {/* Avatar */}
-                                {notification.sender?.avatar ? (
-                                    <Image
-                                        src={notification.sender.avatar}
-                                        alt=""
-                                        width={40}
-                                        height={40}
-                                        className="rounded-full object-cover"
-                                    />
-                                ) : (
-                                    <div
-                                        className="w-10 h-10 rounded-full flex items-center justify-center"
-                                        style={{ background: 'var(--accent)' + '33' }}
-                                    >
-                                        <span className="font-bold text-sm" style={{ color: 'var(--accent)' }}>
-                                            {notification.sender?.first_name?.[0] ||
-                                                notification.sender?.username?.[0] ||
-                                                notification.sender?.email[0] ||
-                                                'S'}
-                                        </span>
+                    notifications.map((notification) => {
+                        const href = notification.link || '#';
+                        return (
+                            <Link
+                                key={notification.id}
+                                href={href}
+                                className="w-full p-4 border-b hover:bg-muted/50 text-left transition-colors block"
+                                style={{
+                                    borderColor: 'var(--border)',
+                                    background: notification.is_read ? 'transparent' : 'var(--muted)'
+                                }}
+                                onClick={() => handleMarkRead(notification)}
+                            >
+                                <div className="flex items-start gap-3">
+                                    {notification.sender?.avatar ? (
+                                        <Image
+                                            src={notification.sender.avatar}
+                                            alt=""
+                                            width={40}
+                                            height={40}
+                                            className="rounded-full object-cover"
+                                        />
+                                    ) : (
+                                        <div
+                                            className="w-10 h-10 rounded-full flex items-center justify-center"
+                                            style={{ background: 'var(--accent)' + '33' }}
+                                        >
+                                            <span className="font-bold text-sm" style={{ color: 'var(--accent)' }}>
+                                                {notification.sender?.first_name?.[0] ||
+                                                    notification.sender?.username?.[0] ||
+                                                    notification.sender?.email?.[0] ||
+                                                    'S'}
+                                            </span>
+                                        </div>
+                                    )}
+ 
+                                    <div className="flex-1 min-w-0">
+                                        <p className="font-medium text-sm" style={{ color: 'var(--foreground)' }}>
+                                            {notification.title}
+                                        </p>
+                                        <p className="text-xs mt-1" style={{ color: 'var(--muted-foreground)' }}>
+                                            {notification.message}
+                                        </p>
+                                        <p className="text-xs mt-1" style={{ color: 'var(--muted-foreground)' }}>
+                                            {notification.time_ago}
+                                        </p>
                                     </div>
-                                )}
-
-                                {/* Content */}
-                                <div className="flex-1 min-w-0">
-                                    <p className="font-medium text-sm" style={{ color: 'var(--foreground)' }}>
-                                        {notification.title}
-                                    </p>
-                                    <p className="text-xs mt-1" style={{ color: 'var(--muted-foreground)' }}>
-                                        {notification.message}
-                                    </p>
-                                    <p className="text-xs mt-1" style={{ color: 'var(--muted-foreground)' }}>
-                                        {notification.time_ago}
-                                    </p>
+ 
+                                    {!notification.is_read && (
+                                        <div
+                                            className="w-2 h-2 rounded-full flex-shrink-0 mt-2"
+                                            style={{ background: 'var(--accent)' }}
+                                        ></div>
+                                    )}
                                 </div>
-
-                                {/* Unread indicator */}
-                                {!notification.is_read && (
-                                    <div
-                                        className="w-2 h-2 rounded-full flex-shrink-0 mt-2"
-                                        style={{ background: 'var(--accent)' }}
-                                    ></div>
-                                )}
-                            </div>
-                        </button>
-                    ))
+                            </Link>
+                        );
+                    })
                 )}
             </div>
         </div>

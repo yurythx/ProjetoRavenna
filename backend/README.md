@@ -76,3 +76,58 @@ Logic for enabling/disabling modules is handled by `ModuleMiddleware`.
 2. Navigate to **Core > App Modules**.
 3. Create an entry, e.g., `Name: Articles`, `Slug: articles`, `Active: Checked`.
    - If `Active` is unchecked, requests to `/api/v1/articles/` will return `403 Forbidden`.
+
+## 🗨️ Comments (Users and Guests)
+
+The Articles module supports comments from authenticated users and guests.
+
+### Guest Comments
+- Guests must provide `guest_name`, `guest_email`, `guest_phone`.
+- Content is sanitized (HTML removed) server-side.
+- Honeypot (`hp`) write-only field is used to deter bots.
+- Rate limit for guests: one comment per IP every 30 seconds.
+- Guest comments are created as `is_approved = false` and require moderation.
+
+### Moderation
+- Admin can approve/unapprove comments via Django Admin list actions.
+- API endpoint to approve a single comment:
+  - `POST /api/v1/articles/comments/{id}/approve/` (admin only)
+  - Returns `{ status: "approved" }`
+- Notifications are sent:
+  - For approved comments only
+  - Reply notifications go to parent comment author
+  - New comment notifications go to article author
+
+### API Endpoints
+- List comments: `GET /api/v1/articles/comments/?article={article_id}&parent_only=true`
+- Create comment (user or guest): `POST /api/v1/articles/comments/`
+  - Body (user): `{ "article": "<uuid>", "content": "..." }`
+  - Body (guest): `{ "article": "<uuid>", "content": "...", "guest_name": "...", "guest_email": "...", "guest_phone": "...", "hp": "", "captcha": "<token>" }`
+- Delete comment (author or staff): `DELETE /api/v1/articles/comments/{id}/`
+
+## 🔐 CAPTCHA Validation (Guests)
+
+To block automated submissions, guest comments require a valid CAPTCHA token.
+
+### Backend Configuration
+Set environment variables in `backend/.env`:
+```
+CAPTCHA_PROVIDER=hcaptcha    # or 'recaptcha'
+CAPTCHA_SECRET=your-secret
+```
+
+Supported providers:
+- `hcaptcha`: Verifies via `https://hcaptcha.com/siteverify`
+- `recaptcha`: Verifies via `https://www.google.com/recaptcha/api/siteverify`
+
+The backend validates `captcha` token from the request and rejects invalid submissions.
+
+## 🔔 Notifications
+
+System notifications are generated for:
+- New comment on article (to article author)
+- Reply to a comment (to parent comment author)
+
+Notes:
+- Guest comments trigger notifications only after approval.
+- Notifications are created after the database transaction commits to ensure consistency.

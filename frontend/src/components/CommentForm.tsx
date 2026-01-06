@@ -3,11 +3,13 @@
 import { useState } from 'react';
 import { Send } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
+import { api } from '@/lib/api';
+import { CaptchaWidget } from './CaptchaWidget';
 
 interface CommentFormProps {
     articleId: string;
     parentId?: string | null;
-    onSubmit: (content: string) => void;
+    onSubmit: (content: string, guest?: { name?: string; email?: string; phone?: string; hp?: string; captcha?: string }) => void;
     isSubmitting: boolean;
     placeholder?: string;
     autoFocus?: boolean;
@@ -25,30 +27,78 @@ export function CommentForm({
 }: CommentFormProps) {
     const [content, setContent] = useState('');
     const { token } = useAuth();
+    const [guestName, setGuestName] = useState('');
+    const [guestEmail, setGuestEmail] = useState('');
+    const [guestPhone, setGuestPhone] = useState('');
+    const [hp, setHp] = useState('');
+    const [captchaToken, setCaptchaToken] = useState('');
 
     const handleSubmit = (e: React.FormEvent) => {
         e.preventDefault();
-        if (!content.trim() || !token) return;
+        if (!content.trim()) return;
 
-        onSubmit(content.trim());
+        if (token) {
+            onSubmit(content.trim());
+        } else {
+            if (!guestName.trim() || !guestEmail.trim() || !guestPhone.trim()) return;
+            if (!captchaToken) return;
+            onSubmit(content.trim(), { name: guestName.trim(), email: guestEmail.trim(), phone: guestPhone.trim(), hp, captcha: captchaToken });
+        }
         setContent('');
+        setGuestName('');
+        setGuestEmail('');
+        setGuestPhone('');
+        setHp('');
+        setCaptchaToken('');
     };
-
-    if (!token) {
-        return (
-            <div
-                className="p-4 rounded-lg border text-center"
-                style={{ background: 'var(--muted)', borderColor: 'var(--border)' }}
-            >
-                <p style={{ color: 'var(--muted-foreground)' }}>
-                    Faça login para comentar
-                </p>
-            </div>
-        );
-    }
 
     return (
         <form onSubmit={handleSubmit} className="space-y-3">
+            {!token && (
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+                    <input
+                        type="text"
+                        placeholder="Seu nome"
+                        value={guestName}
+                        onChange={(e) => setGuestName(e.target.value)}
+                        className="px-4 py-2 rounded-lg border focus:outline-none focus:ring-2 focus:ring-accent"
+                        style={{ background: 'var(--background)', borderColor: 'var(--border)', color: 'var(--foreground)' }}
+                        maxLength={120}
+                        required
+                    />
+                    <input
+                        type="email"
+                        placeholder="Seu e-mail"
+                        value={guestEmail}
+                        onChange={(e) => setGuestEmail(e.target.value)}
+                        className="px-4 py-2 rounded-lg border focus:outline-none focus:ring-2 focus:ring-accent"
+                        style={{ background: 'var(--background)', borderColor: 'var(--border)', color: 'var(--foreground)' }}
+                        required
+                    />
+                    <input
+                        type="tel"
+                        placeholder="Seu telefone (DDD + número)"
+                        value={guestPhone}
+                        onChange={(e) => setGuestPhone(e.target.value)}
+                        className="px-4 py-2 rounded-lg border focus:outline-none focus:ring-2 focus:ring-accent"
+                        style={{ background: 'var(--background)', borderColor: 'var(--border)', color: 'var(--foreground)' }}
+                        required
+                    />
+                </div>
+            )}
+            {/* Honeypot hidden input to deter bots */}
+            <input
+                type="text"
+                name="website"
+                aria-hidden="true"
+                tabIndex={-1}
+                style={{ position: 'absolute', left: '-10000px', top: 'auto', width: '1px', height: '1px', overflow: 'hidden' }}
+                value={hp}
+                onChange={(e) => setHp(e.target.value)}
+            />
+            {!token && (
+                <CaptchaWidget onToken={(t) => setCaptchaToken(t)} />
+            )}
             <textarea
                 value={content}
                 onChange={(e) => setContent(e.target.value)}
@@ -83,7 +133,7 @@ export function CommentForm({
                     )}
                     <button
                         type="submit"
-                        disabled={!content.trim() || isSubmitting}
+                        disabled={!content.trim() || (!token && (!guestName.trim() || !guestEmail.trim() || !guestPhone.trim())) || isSubmitting}
                         className="btn btn-primary px-6 py-2 flex items-center gap-2"
                     >
                         {isSubmitting ? (

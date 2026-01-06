@@ -107,7 +107,7 @@ function ArticlesContent() {
     );
   }
 
-  const articles = data?.pages.flatMap((page: any) => page.items) || [];
+  const articles = data?.items || [];
   const featuredArticle = null;
   const gridArticles = articles;
 

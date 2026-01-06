@@ -18,11 +18,6 @@ class CategoryViewSet(viewsets.ModelViewSet):
     lookup_field = 'slug'
     permission_classes = [IsAdminOrReadOnly]
 
-class TagViewSet(viewsets.ModelViewSet):
-    queryset = Tag.objects.all()
-    serializer_class = TagSerializer
-    lookup_field = 'slug'
-    permission_classes = [IsAdminOrReadOnly]
 
 class ArticleViewSet(viewsets.ModelViewSet):
     # Standard queryset for metadata

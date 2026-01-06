@@ -1,15 +1,28 @@
 import Link from 'next/link';
 import Image from 'next/image';
 import { components } from '@/types/api';
-import { Badge } from './Badge';
+import { Calendar, Clock } from 'lucide-react';
+import TagBadge from '@/components/TagBadge';
+import { Tag } from '@/hooks/useTags';
+import { LikeButton } from '@/components/LikeButton';
+import { FavoriteButton } from '@/components/FavoriteButton';
 import { readingTime } from '@/lib/readingTime';
-import { Clock, Calendar, ArrowRight } from 'lucide-react';
+import ViewCounter from '@/components/ViewCounter';
+import ReadingTime from '@/components/ReadingTime';
+import { useState } from 'react';
 
 type Article = components['schemas']['Article'];
-type FrontArticle = Article & { banner?: string };
+type FrontArticle = Article & {
+  banner?: string;
+  is_liked?: boolean;
+  like_count?: number;
+  is_favorited?: boolean;
+  view_count?: number;
+  reading_time?: number;
+};
 
 type Category = components['schemas']['Category'];
-type Tag = components['schemas']['Tag'];
+type TagType = components['schemas']['Tag'];
 
 export function ArticleCard({
   article,
@@ -20,11 +33,17 @@ export function ArticleCard({
   categories?: Category[];
   tagsList?: Tag[];
 }) {
+  const [liked, setLiked] = useState<boolean>(!!article.is_liked);
+  const [likeCount, setLikeCount] = useState<number>(article.like_count || 0);
+  const [favorited, setFavorited] = useState<boolean>(!!article.is_favorited);
   const rawBanner = article.banner || '';
   const banner = rawBanner && /^https?:\/\//.test(rawBanner) ? `/api/img?url=${encodeURIComponent(rawBanner)}` : rawBanner;
   const catName = categories?.find((c) => c.id === article.category)?.name;
-  const tagNames =
-    article.tags?.map((tid) => tagsList?.find((t) => t.id === tid)?.name).filter(Boolean) || [];
+
+  // Get full tag objects instead of just names
+  const articleTags = article.tags
+    ?.map((tagId) => tagsList?.find((t) => t.id === tagId))
+    .filter(Boolean) as Tag[] || [];
 
   // Create excerpt from content (first 150 chars)
   const excerpt = article.content?.substring(0, 150).replace(/<[^>]*>/g, '') + '...' || '';
@@ -106,27 +125,67 @@ export function ArticleCard({
         >
           {excerpt}
         </p>
+        {/* Footer */}
+        <div className="space-y-3">
+          {/* Tags */}
+          {article.tags && article.tags.length > 0 && (
+            <div className="flex flex-wrap gap-1.5">
+              {article.tags.slice(0, 3).map((tag: any) => {
+                const tagData = tagsList?.find((t: Tag) => t.id === tag.id);
+                return tagData ? (
+                  <TagBadge key={tag.id} tag={tagData} size="sm" />
+                ) : (
+                  <span key={tag.id} className="badge badge-outline text-xs">
+                    {tag.name}
+                  </span>
+                );
+              })}
+              {article.tags.length > 3 && (
+                <span className="badge badge-outline text-xs">
+                  +{article.tags.length - 3}
+                </span>
+              )}
+            </div>
+          )}
 
-        {/* Tags */}
-        <div className="flex flex-wrap gap-2 pt-2">
-          {tagNames.slice(0, 3).map((n, i) => (
-            <Badge key={i}>{n as string}</Badge>
-          ))}
-        </div>
+          {/* Metadata and Actions */}
+          <div className="flex items-center justify-between text-sm text-muted-foreground">
+            <div className="flex items-center gap-4">
+              <div className="flex items-center gap-4">
+                {/* View Counter */}
+                {article.view_count !== undefined && (
+                  <ViewCounter count={article.view_count} size="sm" />
+                )}
+                {/* Reading Time */}
+                {article.reading_time && (
+                  <ReadingTime minutes={article.reading_time} size="sm" />
+                )}
+              </div>
+            </div>
 
-        {/* Read More Link */}
-        <div className="pt-2">
-          <span
-            className="inline-flex items-center gap-1 text-sm font-medium group-hover:gap-2 transition-all"
-            style={{ color: 'var(--accent)' }}
-          >
-            Ler mais
-            <ArrowRight className="h-4 w-4" />
-          </span>
+            {/* Like and Favorite Buttons */}
+            <div className="flex items-center gap-2">
+              <LikeButton
+                articleId={article.id}
+                initialLiked={liked}
+                initialCount={likeCount}
+                onChanged={(l, c) => {
+                  setLiked(l);
+                  setLikeCount(c);
+                }}
+                size="sm"
+                showCount={true}
+              />
+              <FavoriteButton
+                articleId={article.id}
+                initialFavorited={favorited}
+                onChanged={(f) => setFavorited(f)}
+                size="sm"
+              />
+            </div>
+          </div>
         </div>
       </div>
     </Link>
   );
 }
-
-
