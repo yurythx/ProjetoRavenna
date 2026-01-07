@@ -28,6 +28,14 @@ echo "PostgreSQL is up - continuing..."
 echo "Applying database migrations..."
 python manage.py migrate --noinput
 
+# Collect static files (for WhiteNoise)
+echo "Collecting static files..."
+python manage.py collectstatic --noinput
+
+# Seed initial data
+echo "Seeding initial data..."
+python manage.py seed_initial_data
+
 # Configure Gunicorn workers (default: 3)
 WORKERS=${GUNICORN_WORKERS:-3}
 TIMEOUT=${GUNICORN_TIMEOUT:-120}

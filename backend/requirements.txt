@@ -13,3 +13,4 @@ django-resized
 Pillow
 dj-database-url
 gunicorn
+whitenoise
