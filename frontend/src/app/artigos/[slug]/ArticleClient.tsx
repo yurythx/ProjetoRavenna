@@ -78,25 +78,27 @@ export default function ArticleClient({ slug, initialData }: { slug: string, ini
         }
     }, [data?.id, data?.is_liked, data?.like_count, data?.is_favorited]);
 
-    function extractTOC(content: string) {
-        const toc: { id: string; text: string; level: number }[] = [];
-        const isHtml = /<[^>]+>/.test(content || '');
-        if (isHtml && typeof document !== 'undefined') {
+    const [toc, setToc] = useState<{ id: string; text: string; level: number }[]>([]);
+
+    useEffect(() => {
+        if (!data?.content) return;
+        const generatedToc: { id: string; text: string; level: number }[] = [];
+        const isHtml = /<[^>]+>/.test(data.content);
+        if (isHtml) {
             const div = document.createElement('div');
-            div.innerHTML = content || '';
+            div.innerHTML = data.content;
             const heads = div.querySelectorAll('h1,h2,h3,h4,h5,h6');
             heads.forEach((h) => {
                 const level = parseInt(h.tagName.substring(1), 10);
                 const text = h.textContent?.trim() || '';
                 const existing = (h as HTMLElement).id;
                 const id = existing || (text ? slugify(text) : '');
-                toc.push({ id, text, level });
+                generatedToc.push({ id, text, level });
             });
-            return toc;
         }
-        return toc;
-    }
-    const toc = extractTOC(data?.content || '');
+        setToc(generatedToc);
+    }, [data?.content]);
+
     const articleRef = useRef<HTMLDivElement | null>(null);
     const [activeId, setActiveId] = useState<string>('');
     const [progress, setProgress] = useState<number>(0);
@@ -319,6 +321,7 @@ export default function ArticleClient({ slug, initialData }: { slug: string, ini
                     <div className="max-w-3xl mx-auto">
                         <article
                             ref={articleRef}
+                            suppressHydrationWarning
                             className="prose prose-lg prose-slate dark:prose-invert max-w-none"
                             dangerouslySetInnerHTML={{
                                 __html: sanitize(data.content || ''),
