@@ -153,8 +153,12 @@ if USE_MINIO:
     # AWS_S3_SIGNATURE_VERSION = 's3v4'
     
     # Public URL for browser access (important for images to load)
-    # The domain should point to the public port (now 9002) via Proxy/Tunnel
-    AWS_S3_CUSTOM_DOMAIN = config('MINIO_PUBLIC_DOMAIN', default=None)
+    # For Minio with custom domain, we usually need the bucket name in the path
+    _custom_domain = config('MINIO_PUBLIC_DOMAIN', default=None)
+    if _custom_domain:
+        AWS_S3_CUSTOM_DOMAIN = f"{_custom_domain}/{AWS_STORAGE_BUCKET_NAME}"
+    else:
+        AWS_S3_CUSTOM_DOMAIN = None
     AWS_S3_URL_PROTOCOL = 'https:' if AWS_S3_CUSTOM_DOMAIN else 'http:'
 else:
     DEFAULT_FILE_STORAGE = 'django.core.files.storage.FileSystemStorage'

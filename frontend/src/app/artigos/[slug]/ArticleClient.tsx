@@ -201,6 +201,8 @@ export default function ArticleClient({ slug, initialData }: { slug: string, ini
     if (error || !data) return <p>Artigo não encontrado</p>;
 
     const authorName = data.author_name || 'Autor';
+    const rawBanner = data.banner as unknown as string || '';
+    const banner = rawBanner && /^https?:\/\//.test(rawBanner) ? `/api/img?url=${encodeURIComponent(rawBanner)}` : rawBanner;
 
     return (
         <div className="container-custom pb-16">
@@ -234,7 +236,7 @@ export default function ArticleClient({ slug, initialData }: { slug: string, ini
                             <div className="relative rounded-2xl overflow-hidden shadow-xl mb-8 group">
                                 <div className="relative aspect-[21/9]">
                                     <Image
-                                        src={data.banner as unknown as string}
+                                        src={banner}
                                         alt={data.title}
                                         fill
                                         className="object-cover transition-transform duration-700 group-hover:scale-105"
