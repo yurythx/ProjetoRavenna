@@ -20,6 +20,17 @@ Copie e cole o conteúdo abaixo no `.env.local`, substituindo pelos seus domíni
 # MICROSERVICES URLs
 # ======================================
 
+# Infraestrutura
+NEXT_PUBLIC_URL_MINIO=https://minio.seudominio.com
+NEXT_PUBLIC_URL_AAPANEL=https://aapanel.seudominio.com
+NEXT_PUBLIC_URL_PORTAINER=https://portainer.seudominio.com
+NEXT_PUBLIC_URL_NEXTCLOUD=https://nextcloud.seudominio.com
+NEXT_PUBLIC_URL_ZABBIX=https://zabbix.seudominio.com
+
+# Gestão
+NEXT_PUBLIC_URL_GLPI=https://glpi.seudominio.com
+NEXT_PUBLIC_URL_PDV=https://pdv.seudominio.com
+
 # Streaming de Mídia
 NEXT_PUBLIC_URL_JELLYFIN=https://jellyfin.seudominio.com
 

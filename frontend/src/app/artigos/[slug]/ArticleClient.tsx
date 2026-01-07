@@ -1,5 +1,5 @@
 'use client';
-import { useArticle } from '@/hooks/useArticle';
+import { useArticle, Article } from '@/hooks/useArticle';
 import Image from 'next/image';
 import Link from 'next/link';
 import { useToast } from '@/contexts/ToastContext';
@@ -26,16 +26,7 @@ import ArticleStats from '@/components/ArticleStats';
 import { useTrackView } from '@/hooks/useAnalytics';
 import { useReadingProgress } from '@/hooks/useReadingProgress';
 
-type Article = components['schemas']['Article'] & {
-    author_name?: string;
-    is_liked?: boolean;
-    like_count?: number;
-    is_favorited?: boolean;
-    view_count?: number;
-    unique_views?: number;
-    reading_time?: number;
-    engagement_rate?: number;
-};
+
 
 const sanitize = (html: string) => {
     if (typeof window === 'undefined') return html;
@@ -186,7 +177,7 @@ export default function ArticleClient({ slug, initialData }: { slug: string, ini
     // Track initial view
     useEffect(() => {
         if (data?.id) {
-            trackView();
+            trackView({});
         }
     }, [data?.content, show]);
 
