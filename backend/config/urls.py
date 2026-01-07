@@ -11,6 +11,7 @@ from apps.accounts.profile_views import UserProfileView, AvatarUploadView
 from apps.accounts.password_views import ChangePasswordView
 from apps.core.stats_views import DashboardStatsView
 from apps.core.notification_views import NotificationViewSet
+from apps.core.views import health_check
 from rest_framework.routers import DefaultRouter
 
 # Create router for viewsets
@@ -19,6 +20,9 @@ router.register(r'notifications', NotificationViewSet, basename='notifications')
 
 urlpatterns = [
     path("admin/", admin.site.urls),
+    
+    # Health check endpoint (for Docker health checks and monitoring)
+    path("health/", health_check, name='health_check'),
 
     # Authentication
     path('api/v1/auth/token/', TokenObtainPairView.as_view(), name='token_obtain_pair'),

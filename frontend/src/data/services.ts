@@ -571,6 +571,48 @@ export const servicesData: Service[] = [
             'Multi-unidade e multi-caixa'
         ],
         whyUse: 'Sistema completo desenvolvido especificamente para restaurantes. Elimina planilhas, integra vendas-estoque-financeiro e fornece visão 360º do negócio através de dashboard em tempo real. Perfeito para profissionalizar gestão e aumentar lucratividade.'
+    },
+    {
+        id: '14',
+        slug: 'minio',
+        title: 'MinIO - Object Storage',
+        shortDescription: 'Armazenamento de objetos de alta performance compatível com S3 para gestão segura de arquivos, backups e mídia.',
+        fullDescription: 'MinIO é uma solução de armazenamento de objetos de alta performance compatível com Amazon S3. Projetado para infraestruturas de nuvem privada, oferece escalabilidade ilimitada, criptografia de ponta a ponta, controle granular de acesso, versionamento de objetos, proteção contra bitrot e replicação multi-site. É a espinha dorsal de armazenamento para todas as aplicações do ecossistema, garantindo que seus dados, backups e arquivos de mídia estejam seguros, disponíveis e sob seu controle total.',
+        features: [
+            'Compatível com Amazon S3 API',
+            'Alta performance',
+            'Escalabilidade ilimitada',
+            'Criptografia e segurança',
+            'Versionamento de objetos',
+            'Proteção contra bitrot',
+            'Console de gerenciamento web',
+            'Gestão de identidade',
+            'Replicação de dados',
+            'Cloud-native design'
+        ],
+        technologies: ['Go', 'S3 API', 'Erasure Coding', 'TLS', 'OIDC'],
+        url: process.env.NEXT_PUBLIC_URL_MINIO || 'https://minio.projetoravenna.cloud',
+        icon: 'HardDrive',
+        color: '#C7243F',
+        internal: false,
+        category: 'infrastructure',
+        useCases: [
+            'Armazenamento de backups',
+            'Servidor de arquivos de mídia',
+            'Data Lake para analytics',
+            'Repositório de artefatos CI/CD',
+            'Backend para apps cloud-native',
+            'Arquivamento de longo prazo'
+        ],
+        benefits: [
+            'Compatibilidade total com S3',
+            'Performance líder de mercado',
+            'Segurança enterprise-grade',
+            'Interface de gestão intuitiva',
+            'Resiliência e durabilidade',
+            'Sem lock-in de fornecedor'
+        ],
+        whyUse: 'Fundamental para libertar seus dados. O MinIO oferece a mesma API do Amazon S3 mas rodando no seu próprio servidor, garantindo performance extrema, custo zero de transferência e privacidade total para seus arquivos mais importantes.'
     }
 ];
 

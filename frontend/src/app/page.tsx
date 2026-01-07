@@ -2,7 +2,7 @@
 
 import { useRef, useEffect } from 'react';
 import Link from 'next/link';
-import { BookOpen, Film, Library, MessageCircle, Zap, Cpu, ArrowRight, Sparkles, ExternalLink, Cloud, Activity, TicketCheck, Server, Container, ShoppingCart } from 'lucide-react';
+import { BookOpen, Film, Library, MessageCircle, Zap, Cpu, ArrowRight, Sparkles, ExternalLink, Cloud, Activity, TicketCheck, Server, Container, ShoppingCart, HardDrive } from 'lucide-react';
 import { servicesData } from '@/data/services';
 
 export default function Home() {
@@ -10,7 +10,7 @@ export default function Home() {
   function getIconComponent(iconName: string) {
     const icons: any = {
       BookOpen, Film, Library, MessageCircle, Zap, Cpu,
-      Cloud, Activity, TicketCheck, Server, Container, ShoppingCart
+      Cloud, Activity, TicketCheck, Server, Container, ShoppingCart, HardDrive
     };
     const Icon = icons[iconName];
     return Icon ? <Icon className="w-8 h-8" /> : null;

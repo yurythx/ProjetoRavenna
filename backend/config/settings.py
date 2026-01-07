@@ -126,7 +126,7 @@ USE_TZ = True
 # https://docs.djangoproject.com/en/5.2/howto/static-files/
 
 STATIC_URL = "/static/"
-STATIC_ROOT = os.path.join(BASE_DIR, 'static')
+STATIC_ROOT = os.path.join(BASE_DIR, 'staticfiles')
 
 # CSRF
 CSRF_TRUSTED_ORIGINS = config('CSRF_TRUSTED_ORIGINS', default="http://localhost:3000", cast=Csv())
@@ -149,6 +149,10 @@ if USE_MINIO:
     
     # For MinIO Localhost, sometimes we need signature_version
     # AWS_S3_SIGNATURE_VERSION = 's3v4'
+    
+    # Public URL for browser access (important for images to load)
+    AWS_S3_CUSTOM_DOMAIN = config('MINIO_PUBLIC_DOMAIN', default=None)
+    AWS_S3_URL_PROTOCOL = 'https:' if AWS_S3_CUSTOM_DOMAIN else 'http:'
 else:
     DEFAULT_FILE_STORAGE = 'django.core.files.storage.FileSystemStorage'
     MEDIA_URL = '/media/'
@@ -206,3 +210,8 @@ SIMPLE_JWT = {
     "USER_ID_FIELD": "id",
     "USER_ID_CLAIM": "user_id",
 }
+
+# Proxy Configuration (Cloudflare)
+# Important for correct HTTPS handling when behind a proxy
+SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')
+

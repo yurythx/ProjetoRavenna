@@ -12,3 +12,4 @@ django-cleanup
 django-resized
 Pillow
 dj-database-url
+gunicorn
