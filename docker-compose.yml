@@ -30,8 +30,8 @@ services:
     volumes:
       - minio_data:/data
     ports:
-      - "127.0.0.1:9000:9000"  # MinIO API - apenas localhost
-      - "127.0.0.1:9001:9001"  # MinIO Console - apenas localhost
+      - "9000:9000"  # MinIO API - Acesso via Host IP para Cloudflare
+      - "9001:9001"  # MinIO Console - Acesso via Host IP para Cloudflare
     networks:
       - projetoravenna_network
     healthcheck:
@@ -76,8 +76,8 @@ services:
       - ./backend/staticfiles:/app/staticfiles
     # Portas comentadas - acesso via Cloudflare Tunnel
     # Descomente apenas se precisar acessar diretamente via IP
-    # ports:
-    #   - "8000:8000"
+    ports:
+      - "8000:8000"
     depends_on:
       db:
         condition: service_healthy
@@ -105,8 +105,8 @@ services:
       NEXT_PUBLIC_API_URL: https://api.projetoravenna.cloud/api/v1
       NODE_ENV: production
     # Portas comentadas - acesso via Cloudflare Tunnel
-    # ports:
-    #   - "3001:3001"
+    ports:
+      - "3001:3001"
     depends_on:
       - backend
     networks:
