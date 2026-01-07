@@ -66,6 +66,7 @@ services:
       MINIO_SECRET_KEY: ${MINIO_ROOT_PASSWORD:-minioadmin_secure_password_123}
       MINIO_BUCKET_NAME: ${MINIO_BUCKET_NAME:-projetoravenna}
       MINIO_ENDPOINT: http://minio:9000
+      MINIO_PUBLIC_DOMAIN: minio.projetoravenna.cloud
       MINIO_USE_SSL: "False"
       
       # Gunicorn Configuration
