@@ -250,3 +250,20 @@ export function useUserFavorites() {
         staleTime: 1000 * 60 * 5, // Cache for 5 minutes
     });
 }
+
+/**
+ * Hook to fetch user's liked articles
+ */
+export function useUserLikes() {
+    const { token } = useAuth();
+
+    return useQuery({
+        queryKey: ['likes'],
+        queryFn: async () => {
+            const { data } = await api.get('/articles/likes/');
+            return data;
+        },
+        enabled: !!token,
+        staleTime: 1000 * 60 * 5, // Cache for 5 minutes
+    });
+}

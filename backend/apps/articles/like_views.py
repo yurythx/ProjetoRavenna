@@ -69,6 +69,32 @@ class LikeViewSet(viewsets.ViewSet):
             'like_count': like_count,
             'article_id': str(article.id)
         })
+    
+    def list(self, request):
+        """
+        List user's liked articles
+        
+        Returns: List of articles that the user has liked
+        """
+        # Get all likes for the current user
+        likes = ArticleLike.objects.filter(
+            user=request.user
+        ).select_related('article')
+        
+        # Extract articles from likes
+        articles = [like.article for like in likes if like.article.is_published]
+        
+        # Serialize articles
+        serializer = ArticleSerializer(
+            articles,
+            many=True,
+            context={'request': request}
+        )
+        
+        return Response({
+            'count': len(articles),
+            'results': serializer.data
+        })
 
 
 class FavoriteViewSet(viewsets.ViewSet):

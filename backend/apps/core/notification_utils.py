@@ -47,3 +47,22 @@ def notify_article_comment(comment):
             message=f'{author_name} comentou em "{article.title}"',
             link=f'/artigos/{article.slug}#comment-{comment.id}'
         )
+
+
+def notify_article_published(article):
+    """Notify all users (except author) when an article is published"""
+    from apps.accounts.models import CustomUser
+    
+    # In a larger app, we would use a subscription model or background task.
+    # For now, we notify other active users.
+    recipients = CustomUser.objects.filter(is_active=True).exclude(id=article.author_id)[:100]  # Limit to 100 for safety
+    
+    for recipient in recipients:
+        create_notification(
+            recipient=recipient,
+            sender=article.author,
+            notification_type='ARTICLE_PUBLISHED',
+            title='Novo artigo publicado!',
+            message=f'"{article.title}" já está disponível para leitura.',
+            link=f'/artigos/{article.slug}'
+        )

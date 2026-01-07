@@ -12,6 +12,7 @@ import slugify from '@sindresorhus/slugify';
 import { TinyEditor } from '@/components/TinyEditor';
 import DOMPurify from 'dompurify';
 import { X, Upload, Image as ImageIcon, Check } from 'lucide-react';
+import { SuccessDialog } from './SuccessDialog';
 
 type Article = components['schemas']['Article'];
 type ArticleRequest = components['schemas']['ArticleRequest'];
@@ -32,6 +33,7 @@ export function ArticleForm({ initial }: { initial?: Article }) {
   const [titleError, setTitleError] = useState<string | null>(null);
   const [contentError, setContentError] = useState<string | null>(null);
   const [bannerError, setBannerError] = useState<string | null>(null);
+  const [successData, setSuccessData] = useState<{ open: boolean; slug: string; title: string } | null>(null);
 
   // Tag Search State
   const [tagSearch, setTagSearch] = useState('');
@@ -142,15 +144,13 @@ export function ArticleForm({ initial }: { initial?: Article }) {
       if (!initial) {
         const { data } = await api.post('/articles/posts/', form);
         queryClient.invalidateQueries({ queryKey: ['articles'] });
-        show({ type: 'success', message: 'Artigo publicado com sucesso' });
         try { localStorage.removeItem('articleDraft'); } catch { }
-        router.push(`/artigos/${data.slug}`);
+        setSuccessData({ open: true, slug: data.slug, title: 'Artigo Publicado!' });
       } else {
         const { data } = await api.put(`/articles/posts/${initial.slug}/`, form);
         queryClient.invalidateQueries({ queryKey: ['articles'] });
         queryClient.invalidateQueries({ queryKey: ['article', initial.slug] });
-        show({ type: 'success', message: 'Artigo atualizado com sucesso' });
-        router.push(`/artigos/${data.slug}`);
+        setSuccessData({ open: true, slug: data.slug, title: 'Artigo Atualizado!' });
       }
     } catch (err: any) {
       setError('Falha ao salvar');
@@ -365,6 +365,17 @@ export function ArticleForm({ initial }: { initial?: Article }) {
           </div>
         </div>
       </div>
+
+      <SuccessDialog
+        open={!!successData?.open}
+        title={successData?.title || ''}
+        slug={successData?.slug}
+        description={isPublished ? "Seu artigo já está disponível para todos os leitores." : "Seu rascunho foi salvo com sucesso."}
+        onClose={() => {
+          setSuccessData(null);
+          if (successData?.slug) router.push(`/artigos/${successData.slug}`);
+        }}
+      />
     </form>
   );
 }

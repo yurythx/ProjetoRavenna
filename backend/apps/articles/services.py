@@ -27,9 +27,14 @@ def article_create(*, title: str, content: str, category, author, tags=None, ban
         if tags:
             article.tags.set(tags)
         
+        if is_published:
+            from apps.core.notification_utils import notify_article_published
+            transaction.on_commit(lambda: notify_article_published(article))
+        
     return article
 
 def article_update(article: Article, **data) -> Article:
+    was_published = article.is_published
     with transaction.atomic():
         tags = data.pop('tags', None)
         
@@ -39,5 +44,10 @@ def article_update(article: Article, **data) -> Article:
         
         if tags is not None:
              article.tags.set(tags)
+        
+        # Notify if changed from draft to published
+        if article.is_published and not was_published:
+            from apps.core.notification_utils import notify_article_published
+            transaction.on_commit(lambda: notify_article_published(article))
              
     return article
