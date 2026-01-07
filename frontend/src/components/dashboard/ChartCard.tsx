@@ -17,7 +17,7 @@ export function ChartCard({ title, children }: ChartCardProps) {
             <h3 className="text-lg font-semibold mb-4" style={{ color: 'var(--foreground)' }}>
                 {title}
             </h3>
-            <div className="h-80">
+            <div className="h-80 w-full min-w-0">
                 {children}
             </div>
         </div>
