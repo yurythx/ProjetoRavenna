@@ -11,15 +11,7 @@ import ViewCounter from '@/components/ViewCounter';
 import ReadingTime from '@/components/ReadingTime';
 import { useState } from 'react';
 
-type Article = components['schemas']['Article'];
-type FrontArticle = Article & {
-  banner?: string;
-  is_liked?: boolean;
-  like_count?: number;
-  is_favorited?: boolean;
-  view_count?: number;
-  reading_time?: number;
-};
+import { Article } from '@/hooks/useArticle';
 
 type Category = components['schemas']['Category'];
 type TagType = components['schemas']['Tag'];
@@ -29,7 +21,7 @@ export function ArticleCard({
   categories,
   tagsList,
 }: {
-  article: FrontArticle;
+  article: Article;
   categories?: Category[];
   tagsList?: Tag[];
 }) {
