@@ -23,15 +23,15 @@ services:
     image: minio/minio:latest
     container_name: projetoravenna_minio
     restart: unless-stopped
-    command: server /data --console-address ":9001"
+    command: server /data --console-address ":9003"
     environment:
       MINIO_ROOT_USER: ${MINIO_ROOT_USER:-minioadmin}
       MINIO_ROOT_PASSWORD: ${MINIO_ROOT_PASSWORD:-minioadmin_secure_password_123}
     volumes:
       - minio_data:/data
     ports:
-      - "9000:9000"  # MinIO API - Acesso via Host IP para Cloudflare
-      - "9001:9001"  # MinIO Console - Acesso via Host IP para Cloudflare
+      - "9002:9000"  # Minio API - Acesso via Host IP para Cloudflare
+      - "9003:9001"  # Minio Console - Acesso via Host IP para Cloudflare
     networks:
       - projetoravenna_network
     healthcheck:

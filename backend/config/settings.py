@@ -153,6 +153,7 @@ if USE_MINIO:
     # AWS_S3_SIGNATURE_VERSION = 's3v4'
     
     # Public URL for browser access (important for images to load)
+    # The domain should point to the public port (now 9002) via Proxy/Tunnel
     AWS_S3_CUSTOM_DOMAIN = config('MINIO_PUBLIC_DOMAIN', default=None)
     AWS_S3_URL_PROTOCOL = 'https:' if AWS_S3_CUSTOM_DOMAIN else 'http:'
 else:

@@ -115,7 +115,7 @@ sleep 20
 # Check if backend is healthy
 echo -e "${BLUE}🔍 Checking backend health...${NC}"
 RETRIES=0
-MAX_RETRIES=15
+MAX_RETRIES=40
 while [ $RETRIES -lt $MAX_RETRIES ]; do
     if docker-compose ps backend | grep -q "Up (healthy)"; then
         echo -e "${GREEN}✅ Backend is healthy${NC}"
@@ -135,7 +135,7 @@ fi
 # Check if frontend is healthy
 echo -e "${BLUE}🔍 Checking frontend health...${NC}"
 RETRIES=0
-MAX_RETRIES=15
+MAX_RETRIES=40
 while [ $RETRIES -lt $MAX_RETRIES ]; do
     if docker-compose ps frontend | grep -q "Up (healthy)"; then
         echo -e "${GREEN}✅ Frontend is healthy${NC}"
@@ -194,5 +194,5 @@ echo "Access your application at:"
 echo "- Frontend: https://projetoravenna.cloud"
 echo "- Backend API: https://api.projetoravenna.cloud/api/v1/"
 echo "- Admin: https://api.projetoravenna.cloud/admin/"
-echo "- MinIO Console: http://localhost:9001"
+echo "- MinIO Console: http://localhost:9003"
 echo ""
