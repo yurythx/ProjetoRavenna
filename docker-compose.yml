@@ -31,7 +31,7 @@ services:
       - minio_data:/data
     ports:
       - "9002:9000"  # Minio API - Acesso via Host IP para Cloudflare
-      - "9003:9001"  # Minio Console - Acesso via Host IP para Cloudflare
+      - "9003:9003"  # Minio Console - Acesso via Host IP para Cloudflare
     networks:
       - projetoravenna_network
     healthcheck:
