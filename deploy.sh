@@ -15,6 +15,11 @@ NC='\033[0m' # No Color
 echo -e "${GREEN}🚀 ProjetoRavenna - Deploy Script${NC}"
 echo "=================================="
 
+# Reminder to pull latest changes
+echo -e "${BLUE}💡 Did you run 'git pull' to get the latest changes?${NC}"
+read -p "Press Enter to continue or Ctrl+C to stop and run git pull..."
+
+
 # Check if .env exists
 if [ ! -f .env ]; then
     echo -e "${RED}❌ Error: .env file not found!${NC}"
