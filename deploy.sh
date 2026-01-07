@@ -117,12 +117,12 @@ echo -e "${BLUE}🔍 Checking backend health...${NC}"
 RETRIES=0
 MAX_RETRIES=40
 while [ $RETRIES -lt $MAX_RETRIES ]; do
-    if docker-compose ps backend | grep -q "Up (healthy)"; then
+    if docker-compose ps backend | grep -i -q "healthy"; then
         echo -e "${GREEN}✅ Backend is healthy${NC}"
         break
     fi
     echo "Waiting for backend... (attempt $((RETRIES+1))/$MAX_RETRIES)"
-    sleep 5
+    sleep 2
     RETRIES=$((RETRIES+1))
 done
 
@@ -137,12 +137,12 @@ echo -e "${BLUE}🔍 Checking frontend health...${NC}"
 RETRIES=0
 MAX_RETRIES=40
 while [ $RETRIES -lt $MAX_RETRIES ]; do
-    if docker-compose ps frontend | grep -q "Up (healthy)"; then
+    if docker-compose ps frontend | grep -i -q "healthy"; then
         echo -e "${GREEN}✅ Frontend is healthy${NC}"
         break
     fi
     echo "Waiting for frontend... (attempt $((RETRIES+1))/$MAX_RETRIES)"
-    sleep 5
+    sleep 2
     RETRIES=$((RETRIES+1))
 done
 
