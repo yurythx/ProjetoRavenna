@@ -1,6 +1,6 @@
 import { NextRequest } from 'next/server';
 
-const ALLOWED_HOSTS = new Set(['localhost', '127.0.0.1']);
+const ALLOWED_HOSTS = new Set(['localhost', '127.0.0.1', 'api.projetoravenna.cloud', 'minio.projetoravenna.cloud', 'projetoravenna.cloud']);
 const ALLOWED_PORTS = new Set(['8000', '8001']);
 
 export async function GET(req: NextRequest) {
