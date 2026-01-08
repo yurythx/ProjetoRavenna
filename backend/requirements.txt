@@ -6,8 +6,6 @@ drf-spectacular
 djangorestframework-simplejwt
 psycopg2-binary
 python-decouple
-django-storages
-boto3
 django-cleanup
 django-resized
 Pillow

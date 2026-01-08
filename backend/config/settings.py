@@ -134,96 +134,18 @@ STATICFILES_STORAGE = 'whitenoise.storage.CompressedManifestStaticFilesStorage'
 CSRF_TRUSTED_ORIGINS = config('CSRF_TRUSTED_ORIGINS', default="http://localhost:3000", cast=Csv())
 
 # ============================================================================
-# File Storage Configuration (Local vs MinIO/S3)
-# ============================================================================
-# 
-# O ProjetoRavenna suporta dois modos de armazenamento:
-# 1. Local: Arquivos salvos em MEDIA_ROOT (desenvolvimento)
-# 2. MinIO: Arquivos salvos no MinIO (produção, S3-compatible)
-#
-# Para usar MinIO, configure USE_MINIO=True e as variáveis MINIO_* no .env
-# Veja docs/MINIO_SETUP.md para documentação completa
+# File Storage Configuration (Local)
 # ============================================================================
 
-USE_MINIO = config('USE_MINIO', cast=bool, default=False)
-
-if USE_MINIO:
-    # django-storages fornece o backend S3 para MinIO
-    INSTALLED_APPS += ['storages']
-    
-    # Configuração moderna de storages (Django 4.2+)
-    STORAGES = {
-        "default": {
-            "BACKEND": "apps.core.storage.MinIOStorage",
-        },
-        "staticfiles": {
-            "BACKEND": "whitenoise.storage.CompressedManifestStaticFilesStorage",
-        },
-    }
-    
-    # ========================================================================
-    # MinIO Connection Settings
-    # ========================================================================
-    # Credenciais do MinIO (mesmas do MINIO_ROOT_USER e MINIO_ROOT_PASSWORD)
-    AWS_ACCESS_KEY_ID = config('MINIO_ACCESS_KEY', default='minioadmin')
-    AWS_SECRET_ACCESS_KEY = config('MINIO_SECRET_KEY', default='minioadmin')
-    
-    # Bucket onde os arquivos serão salvos
-    AWS_STORAGE_BUCKET_NAME = config('MINIO_BUCKET_NAME', default='projetoravenna')
-    
-    # Endpoint interno do MinIO (dentro da rede Docker)
-    # O Django usa esta URL para salvar arquivos
-    AWS_S3_ENDPOINT_URL = config('MINIO_ENDPOINT', default='http://minio:9000')
-    
-    # MinIO em produção geralmente não usa SSL internamente (Cloudflare faz isso)
-    AWS_S3_USE_SSL = config('MINIO_USE_SSL', cast=bool, default=False)
-    
-    # ========================================================================
-    # MinIO-Specific Settings
-    # ========================================================================
-    # Não sobrescrever arquivos existentes (evita perda acidental)
-    AWS_S3_FILE_OVERWRITE = False
-    
-    # Não usar query string auth (arquivos são públicos para leitura)
-    AWS_QUERYSTRING_AUTH = False
-    
-    # MinIO requer s3v4 signature e path-style addressing
-    AWS_S3_SIGNATURE_VERSION = 's3v4'
-    AWS_S3_ADDRESSING_STYLE = 'path'
-    
-    # ========================================================================
-    # Public URL Configuration
-    # ========================================================================
-    # Domínio público do MinIO (via Cloudflare Tunnel)
-    # Exemplo: minio.projetoravenna.cloud
-    # URLs geradas: https://minio.projetoravenna.cloud/projetoravenna/path/to/file
-    MINIO_PUBLIC_DOMAIN = config('MINIO_PUBLIC_DOMAIN', default=None)
-    
-    if MINIO_PUBLIC_DOMAIN:
-        # URLs públicas incluem o bucket no path
-        # Formato: https://minio.projetoravenna.cloud/projetoravenna/articles/banners/file.webp
-        AWS_S3_CUSTOM_DOMAIN = f"{MINIO_PUBLIC_DOMAIN}/{AWS_STORAGE_BUCKET_NAME}"
-        AWS_S3_URL_PROTOCOL = 'https:'
-    else:
-        # Sem domínio público, usa endpoint interno (desenvolvimento)
-        AWS_S3_CUSTOM_DOMAIN = None
-        AWS_S3_URL_PROTOCOL = 'http:'
-    
-    # MEDIA_URL para compatibilidade (usado apenas se CUSTOM_DOMAIN não estiver configurado)
-    if AWS_S3_CUSTOM_DOMAIN:
-        MEDIA_URL = f"{AWS_S3_URL_PROTOCOL}//{AWS_S3_CUSTOM_DOMAIN}/"
-    else:
-        MEDIA_URL = f"{AWS_S3_ENDPOINT_URL}/{AWS_STORAGE_BUCKET_NAME}/"
-else:
-    STORAGES = {
-        "default": {
-            "BACKEND": "django.core.files.storage.FileSystemStorage",
-        },
-        "staticfiles": {
-            "BACKEND": "whitenoise.storage.CompressedManifestStaticFilesStorage",
-        },
-    }
-    MEDIA_URL = '/media/'
+STORAGES = {
+    "default": {
+        "BACKEND": "django.core.files.storage.FileSystemStorage",
+    },
+    "staticfiles": {
+        "BACKEND": "whitenoise.storage.CompressedManifestStaticFilesStorage",
+    },
+}
+MEDIA_URL = '/media/'
 
 # Sempre definir MEDIA_ROOT e STATIC_ROOT para garantir compatibilidade com bibliotecas
 MEDIA_ROOT = os.path.join(BASE_DIR, 'media')

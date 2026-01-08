@@ -108,8 +108,8 @@ export function Header() {
 
                 {/* Profile Dropdown */}
                 {userMenuOpen && (
-                  <div className="absolute right-0 mt-3 w-64 rounded-2xl bg-card border border-border shadow-[0_10px_40px_-10px_rgba(0,0,0,0.3)] dark:shadow-[0_10px_40px_-10px_rgba(0,0,0,0.7)] animate-in fade-in zoom-in duration-150 z-[60] overflow-hidden">
-                    <div className="p-4 border-b border-border bg-muted/20">
+                  <div className="absolute right-0 mt-3 w-64 rounded-2xl bg-[#FFFFFF] dark:bg-[#1E2430] border border-border shadow-[0_10px_40px_-10px_rgba(0,0,0,0.3)] dark:shadow-[0_10px_40px_-10px_rgba(0,0,0,0.7)] animate-in fade-in zoom-in duration-150 z-[60] overflow-hidden">
+                    <div className="p-4 border-b border-border bg-[#F8F8F8] dark:bg-[#252B37]">
                       <div className="flex items-center gap-3 mb-2">
                         <div className="w-10 h-10 rounded-full bg-[var(--django-green-primary)] flex items-center justify-center text-white font-bold text-sm shadow-sm ring-2 ring-white/10">
                           {user?.first_name?.charAt(0).toUpperCase() || user?.username?.charAt(0).toUpperCase() || 'U'}
@@ -218,7 +218,7 @@ export function Header() {
         {mobileMenuOpen && (
           <div className="md:hidden py-6 border-t border-white/5 animate-in slide-in-from-top duration-300">
             {token && (
-              <div className="px-4 mb-6 py-4 rounded-2xl bg-muted/20 border border-border">
+              <div className="px-4 mb-6 py-4 rounded-2xl bg-[#F8F8F8] dark:bg-[#252B37] border border-border">
                 <div className="flex items-center gap-3">
                   <div className="w-12 h-12 rounded-full bg-[var(--django-green-primary)] flex items-center justify-center text-white font-bold text-lg shadow-sm">
                     {user?.first_name?.charAt(0).toUpperCase() || user?.username?.charAt(0).toUpperCase() || 'U'}
