@@ -101,7 +101,7 @@ sudo ufw enable
 
 Após o deploy, crie o bucket do MinIO:
 
-**Via Console Web (http://seu-ip:9001):**
+**Via Console Web (http://seu-ip:9003):**
 1. Login com credenciais do MinIO
 2. Criar bucket: `projetoravenna`
 3. Access Policy: `Public` (para servir imagens)
@@ -117,13 +117,17 @@ docker-compose exec minio mc anonymous set download myminio/projetoravenna
 
 Para usar MinIO como CDN para arquivos de mídia:
 
-1. Configure um domínio para MinIO (ex: `cdn.projetoravenna.cloud`)
+1. Configure um domínio para MinIO (ex: `minio.projetoravenna.cloud`)
 2. Adicione ao Cloudflare Tunnel:
    ```yaml
-   - hostname: cdn.projetoravenna.cloud
-     service: http://localhost:9000
+   - hostname: minio.projetoravenna.cloud
+     service: http://minio:9000
    ```
-3. Configure Cloudflare para cache de assets
+3. Conecte o tunnel à rede do projeto:
+    ```bash
+    docker network connect projetoravenna_network cloudflared
+    ```
+4. Configure Cloudflare para cache de assets
 
 ## 🗄️ Database
 

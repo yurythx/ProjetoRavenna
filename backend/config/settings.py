@@ -150,7 +150,16 @@ USE_MINIO = config('USE_MINIO', cast=bool, default=False)
 if USE_MINIO:
     # django-storages fornece o backend S3 para MinIO
     INSTALLED_APPS += ['storages']
-    DEFAULT_FILE_STORAGE = 'apps.core.storage.MinIOStorage'
+    
+    # Configuração moderna de storages (Django 4.2+)
+    STORAGES = {
+        "default": {
+            "BACKEND": "apps.core.storage.MinIOStorage",
+        },
+        "staticfiles": {
+            "BACKEND": "whitenoise.storage.CompressedManifestStaticFilesStorage",
+        },
+    }
     
     # ========================================================================
     # MinIO Connection Settings
@@ -206,9 +215,19 @@ if USE_MINIO:
     else:
         MEDIA_URL = f"{AWS_S3_ENDPOINT_URL}/{AWS_STORAGE_BUCKET_NAME}/"
 else:
-    DEFAULT_FILE_STORAGE = 'django.core.files.storage.FileSystemStorage'
+    STORAGES = {
+        "default": {
+            "BACKEND": "django.core.files.storage.FileSystemStorage",
+        },
+        "staticfiles": {
+            "BACKEND": "whitenoise.storage.CompressedManifestStaticFilesStorage",
+        },
+    }
     MEDIA_URL = '/media/'
-    MEDIA_ROOT = os.path.join(BASE_DIR, 'media')
+
+# Sempre definir MEDIA_ROOT e STATIC_ROOT para garantir compatibilidade com bibliotecas
+MEDIA_ROOT = os.path.join(BASE_DIR, 'media')
+STATIC_ROOT = os.path.join(BASE_DIR, 'staticfiles')
 
 # DJANGO-RESIZED Settings
 DJANGORESIZED_DEFAULT_SIZE = [1920, 1080]

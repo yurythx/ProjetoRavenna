@@ -102,4 +102,7 @@ class UploadImageView(APIView):
         path = default_storage.save(f'articles/uploads/{file.name}', ContentFile(file.read()))
         # Use storage.url() to get the correct URL (works with both local and MinIO)
         url = default_storage.url(path)
+        # Ensure URL is absolute for the frontend (especially for TinyMCE)
+        if url.startswith('/'):
+            url = request.build_absolute_uri(url)
         return Response({'location': url}, status=status.HTTP_201_CREATED)
