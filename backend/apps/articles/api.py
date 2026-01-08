@@ -100,6 +100,6 @@ class UploadImageView(APIView):
         if file.size > max_bytes:
             return Response({'detail': 'File too large (max 5MB)'}, status=status.HTTP_400_BAD_REQUEST)
         path = default_storage.save(f'articles/uploads/{file.name}', ContentFile(file.read()))
-        from django.conf import settings
-        url = settings.MEDIA_URL + path.replace('\\', '/')
+        # Use storage.url() to get the correct URL (works with both local and MinIO)
+        url = default_storage.url(path)
         return Response({'location': url}, status=status.HTTP_201_CREATED)

@@ -27,6 +27,10 @@ docker-compose exec db psql -U postgres projetoravenna_db
 
 ## MinIO
 
+# Testar configuração do MinIO (recomendado)
+docker-compose exec backend python manage.py test_minio
+docker-compose exec backend python manage.py test_minio --check-bucket --test-upload
+
 # Create bucket
 docker-compose exec minio mc alias set myminio http://localhost:9000 minioadmin minioadmin
 docker-compose exec minio mc mb myminio/projetoravenna

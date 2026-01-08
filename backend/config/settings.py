@@ -133,33 +133,78 @@ STATICFILES_STORAGE = 'whitenoise.storage.CompressedManifestStaticFilesStorage'
 # CSRF
 CSRF_TRUSTED_ORIGINS = config('CSRF_TRUSTED_ORIGINS', default="http://localhost:3000", cast=Csv())
 
-# File Storage Strategy (Local vs MinIO/S3)
+# ============================================================================
+# File Storage Configuration (Local vs MinIO/S3)
+# ============================================================================
+# 
+# O ProjetoRavenna suporta dois modos de armazenamento:
+# 1. Local: Arquivos salvos em MEDIA_ROOT (desenvolvimento)
+# 2. MinIO: Arquivos salvos no MinIO (produção, S3-compatible)
+#
+# Para usar MinIO, configure USE_MINIO=True e as variáveis MINIO_* no .env
+# Veja docs/MINIO_SETUP.md para documentação completa
+# ============================================================================
+
 USE_MINIO = config('USE_MINIO', cast=bool, default=False)
 
 if USE_MINIO:
+    # django-storages fornece o backend S3 para MinIO
     INSTALLED_APPS += ['storages']
-    DEFAULT_FILE_STORAGE = 'storages.backends.s3boto3.S3Boto3Storage'
+    DEFAULT_FILE_STORAGE = 'apps.core.storage.MinIOStorage'
     
-    # MinIO / AWS Config
+    # ========================================================================
+    # MinIO Connection Settings
+    # ========================================================================
+    # Credenciais do MinIO (mesmas do MINIO_ROOT_USER e MINIO_ROOT_PASSWORD)
     AWS_ACCESS_KEY_ID = config('MINIO_ACCESS_KEY', default='minioadmin')
     AWS_SECRET_ACCESS_KEY = config('MINIO_SECRET_KEY', default='minioadmin')
-    AWS_STORAGE_BUCKET_NAME = config('MINIO_BUCKET_NAME', default='local-bucket')
-    AWS_S3_ENDPOINT_URL = config('MINIO_ENDPOINT', default='http://localhost:9000')
+    
+    # Bucket onde os arquivos serão salvos
+    AWS_STORAGE_BUCKET_NAME = config('MINIO_BUCKET_NAME', default='projetoravenna')
+    
+    # Endpoint interno do MinIO (dentro da rede Docker)
+    # O Django usa esta URL para salvar arquivos
+    AWS_S3_ENDPOINT_URL = config('MINIO_ENDPOINT', default='http://minio:9000')
+    
+    # MinIO em produção geralmente não usa SSL internamente (Cloudflare faz isso)
     AWS_S3_USE_SSL = config('MINIO_USE_SSL', cast=bool, default=False)
+    
+    # ========================================================================
+    # MinIO-Specific Settings
+    # ========================================================================
+    # Não sobrescrever arquivos existentes (evita perda acidental)
     AWS_S3_FILE_OVERWRITE = False
+    
+    # Não usar query string auth (arquivos são públicos para leitura)
     AWS_QUERYSTRING_AUTH = False
     
-    # For MinIO Localhost, sometimes we need signature_version
-    # AWS_S3_SIGNATURE_VERSION = 's3v4'
+    # MinIO requer s3v4 signature e path-style addressing
+    AWS_S3_SIGNATURE_VERSION = 's3v4'
+    AWS_S3_ADDRESSING_STYLE = 'path'
     
-    # Public URL for browser access (important for images to load)
-    # For Minio with custom domain, we usually need the bucket name in the path
-    _custom_domain = config('MINIO_PUBLIC_DOMAIN', default=None)
-    if _custom_domain:
-        AWS_S3_CUSTOM_DOMAIN = f"{_custom_domain}/{AWS_STORAGE_BUCKET_NAME}"
+    # ========================================================================
+    # Public URL Configuration
+    # ========================================================================
+    # Domínio público do MinIO (via Cloudflare Tunnel)
+    # Exemplo: minio.projetoravenna.cloud
+    # URLs geradas: https://minio.projetoravenna.cloud/projetoravenna/path/to/file
+    MINIO_PUBLIC_DOMAIN = config('MINIO_PUBLIC_DOMAIN', default=None)
+    
+    if MINIO_PUBLIC_DOMAIN:
+        # URLs públicas incluem o bucket no path
+        # Formato: https://minio.projetoravenna.cloud/projetoravenna/articles/banners/file.webp
+        AWS_S3_CUSTOM_DOMAIN = f"{MINIO_PUBLIC_DOMAIN}/{AWS_STORAGE_BUCKET_NAME}"
+        AWS_S3_URL_PROTOCOL = 'https:'
     else:
+        # Sem domínio público, usa endpoint interno (desenvolvimento)
         AWS_S3_CUSTOM_DOMAIN = None
-    AWS_S3_URL_PROTOCOL = 'https:' if AWS_S3_CUSTOM_DOMAIN else 'http:'
+        AWS_S3_URL_PROTOCOL = 'http:'
+    
+    # MEDIA_URL para compatibilidade (usado apenas se CUSTOM_DOMAIN não estiver configurado)
+    if AWS_S3_CUSTOM_DOMAIN:
+        MEDIA_URL = f"{AWS_S3_URL_PROTOCOL}//{AWS_S3_CUSTOM_DOMAIN}/"
+    else:
+        MEDIA_URL = f"{AWS_S3_ENDPOINT_URL}/{AWS_STORAGE_BUCKET_NAME}/"
 else:
     DEFAULT_FILE_STORAGE = 'django.core.files.storage.FileSystemStorage'
     MEDIA_URL = '/media/'

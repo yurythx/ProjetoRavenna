@@ -84,6 +84,7 @@ git pull origin main
 - [Docker Commands](docs/COMMANDS.md) - Referência de comandos Docker
 - [Backend Architecture](docs/backend/ARCHITECTURE.md) - Arquitetura do sistema
 - [Django Admin](docs/backend/DJANGO_ADMIN_README.md) - Guia do Admin
+- [MinIO Setup](docs/MINIO_SETUP.md) - **Configuração completa do MinIO** (armazenamento de arquivos)
 
 ## 🔐 Produção
 
