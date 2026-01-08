@@ -10,14 +10,15 @@ type User = {
   last_name?: string;
   avatar?: string;
   role?: string;
+  is_staff?: boolean;
 };
 
-type AuthState = { token: string | null; user: User | null; loading: boolean };
+type AuthState = { token: string | null; user: User | null; isLoading: boolean };
 
 type AuthContextType = {
   token: string | null;
   user: User | null;
-  loading: boolean;
+  isLoading: boolean;
   login: (identifier: string, password: string, remember?: boolean) => Promise<void>;
   logout: () => void;
   refreshUser: () => Promise<void>;
@@ -47,7 +48,7 @@ function getTokenFromCookie() {
 }
 
 export function AuthProvider({ children }: { children: React.ReactNode }) {
-  const [state, setState] = useState<AuthState>({ token: null, user: null, loading: true });
+  const [state, setState] = useState<AuthState>({ token: null, user: null, isLoading: true });
 
   const fetchUser = async (token: string) => {
     try {
@@ -66,31 +67,31 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       if (token) {
         const user = await fetchUser(token);
         if (user) {
-          setState({ token, user, loading: false });
+          setState({ token, user, isLoading: false });
         } else {
           // Token invalid or profile fetch failed
           deleteCookie('auth_token');
           deleteCookie('refresh_token');
-          setState({ token: null, user: null, loading: false });
+          setState({ token: null, user: null, isLoading: false });
         }
       } else {
-        setState({ token: null, user: null, loading: false });
+        setState({ token: null, user: null, isLoading: false });
       }
     };
     initAuth();
   }, []);
 
   async function login(identifier: string, password: string, remember?: boolean) {
-    setState((s) => ({ ...s, loading: true }));
+    setState((s) => ({ ...s, isLoading: true }));
     try {
       const { data } = await api.post('/auth/token/', { email: identifier, password });
       setCookie('auth_token', data.access, remember ? 7 : undefined);
       setCookie('refresh_token', data.refresh, remember ? 7 : undefined);
 
       const user = await fetchUser(data.access);
-      setState({ token: data.access, user, loading: false });
+      setState({ token: data.access, user, isLoading: false });
     } catch (e) {
-      setState({ token: null, user: null, loading: false });
+      setState({ token: null, user: null, isLoading: false });
       throw e;
     }
   }
@@ -98,7 +99,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   function logout() {
     deleteCookie('auth_token');
     deleteCookie('refresh_token');
-    setState({ token: null, user: null, loading: false });
+    setState({ token: null, user: null, isLoading: false });
   }
 
   async function refreshUser() {
@@ -108,7 +109,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }
   }
 
-  const value = useMemo(() => ({ ...state, login, logout, refreshUser }), [state.token, state.user, state.loading]);
+  const value = useMemo(() => ({ ...state, login, logout, refreshUser }), [state.token, state.user, state.isLoading]);
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
 }

@@ -12,7 +12,7 @@ import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 
 export default function PerfilPage() {
-    const { token, loading: authLoading } = useAuth();
+    const { token, isLoading: authLoading } = useAuth();
     const router = useRouter();
     const { profile, isLoading, updateProfile, isUpdating, uploadAvatar, isUploadingAvatar } = useProfile();
 

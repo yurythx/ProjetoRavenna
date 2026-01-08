@@ -11,7 +11,7 @@ import { SuccessDialog } from '@/components/SuccessDialog';
 import { Suspense } from 'react';
 
 function LoginContent() {
-  const { login, loading, token } = useAuth();
+  const { login, isLoading, token } = useAuth();
   const [identifier, setIdentifier] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState<string | null>(null);
@@ -153,11 +153,11 @@ function LoginContent() {
               </div>
               <button
                 type="submit"
-                disabled={loading}
+                disabled={isLoading}
                 className="btn btn-primary w-full h-12 text-base"
-                aria-disabled={loading}
+                aria-disabled={isLoading}
               >
-                {loading ? 'Entrando…' : 'Entrar'}
+                {isLoading ? 'Entrando…' : 'Entrar'}
               </button>
             </form>
           </div>
