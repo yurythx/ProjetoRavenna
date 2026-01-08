@@ -25,8 +25,8 @@ def notify_comment_reply(comment):
             recipient=parent_comment.author,
             sender=comment.author,
             notification_type='COMMENT_REPLY',
-            title='Nova resposta no seu comentário',
-            message=f'{author_name} respondeu seu comentário',
+            title='Seu comentário recebeu uma resposta!',
+            message=f'{author_name} interagiu com você em um artigo.',
             link=f'/artigos/{comment.article.slug}#comment-{comment.id}'
         )
 
@@ -43,8 +43,8 @@ def notify_article_comment(comment):
             recipient=article.author,
             sender=comment.author,
             notification_type='ARTICLE_COMMENT',
-            title='Novo comentário no seu artigo',
-            message=f'{author_name} comentou em "{article.title}"',
+            title='Seu conteúdo está gerando conversas!',
+            message=f'{author_name} comentou no seu artigo "{article.title}"',
             link=f'/artigos/{article.slug}#comment-{comment.id}'
         )
 
@@ -62,7 +62,7 @@ def notify_article_published(article):
             recipient=recipient,
             sender=article.author,
             notification_type='ARTICLE_PUBLISHED',
-            title='Novo artigo publicado!',
-            message=f'"{article.title}" já está disponível para leitura.',
+            title='Novidade no Projeto Ravenna!',
+            message=f'O artigo "{article.title}" acaba de ser publicado. Confira agora.',
             link=f'/artigos/{article.slug}'
         )

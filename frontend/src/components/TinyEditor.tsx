@@ -11,7 +11,7 @@ type TinyEditorProps = {
   height?: number;
 };
 
-export function TinyEditor({ value, onChange, height = 400 }: TinyEditorProps) {
+export function TinyEditor({ value, onChange, height = 600 }: TinyEditorProps) {
   const { resolvedTheme } = useTheme();
   const skin = resolvedTheme === 'dark' ? 'oxide-dark' : 'oxide';
   const contentCss = resolvedTheme === 'dark' ? 'dark' : 'default';

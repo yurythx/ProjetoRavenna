@@ -11,6 +11,7 @@
  */
 
 import { Eye, Clock, TrendingUp, Heart, MessageCircle, Users } from 'lucide-react';
+import { formatCompactNumber, formatFullNumber } from '@/lib/formatters';
 
 interface ArticleStatsProps {
     /**
@@ -61,12 +62,6 @@ interface ArticleStatsProps {
     className?: string;
 }
 
-const formatNumber = (num: number): string => {
-    if (num >= 1000000) return `${(num / 1000000).toFixed(1)}M`;
-    if (num >= 1000) return `${(num / 1000).toFixed(1)}K`;
-    return num.toString();
-};
-
 export default function ArticleStats({
     viewCount,
     uniqueViews,
@@ -82,15 +77,15 @@ export default function ArticleStats({
         {
             icon: Eye,
             label: 'Visualizações',
-            value: formatNumber(viewCount),
-            fullValue: viewCount.toLocaleString(),
+            value: formatCompactNumber(viewCount),
+            fullValue: formatFullNumber(viewCount),
             show: true,
         },
         {
             icon: Users,
             label: 'Visitantes únicos',
-            value: formatNumber(uniqueViews),
-            fullValue: uniqueViews.toLocaleString(),
+            value: formatCompactNumber(uniqueViews),
+            fullValue: formatFullNumber(uniqueViews),
             show: variant === 'full',
         },
         {
@@ -103,22 +98,22 @@ export default function ArticleStats({
         {
             icon: Heart,
             label: 'Curtidas',
-            value: formatNumber(likeCount),
-            fullValue: likeCount.toLocaleString(),
+            value: formatCompactNumber(likeCount),
+            fullValue: formatFullNumber(likeCount),
             show: variant === 'full',
         },
         {
             icon: MessageCircle,
             label: 'Comentários',
-            value: formatNumber(commentCount),
-            fullValue: commentCount.toLocaleString(),
+            value: formatCompactNumber(commentCount),
+            fullValue: formatFullNumber(commentCount),
             show: variant === 'full',
         },
         {
             icon: TrendingUp,
             label: 'Engajamento',
-            value: `${engagementRate.toFixed(1)}%`,
-            fullValue: `${engagementRate.toFixed(2)}% de taxa de engajamento`,
+            value: `${engagementRate.toFixed(1).replace('.', ',')}%`,
+            fullValue: `${engagementRate.toFixed(2).replace('.', ',')}% de taxa de engajamento`,
             show: variant === 'full' && viewCount > 0,
         },
     ].filter(stat => stat.show);

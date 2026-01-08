@@ -1,8 +1,9 @@
-'use client';
 import { Bookmark } from 'lucide-react';
 import { useState } from 'react';
 import { useToggleFavorite } from '@/hooks/useLikes';
 import { useAuth } from '@/contexts/AuthContext';
+import { useRouter } from 'next/navigation';
+import { useToast } from '@/contexts/ToastContext';
 
 interface FavoriteButtonProps {
     articleId: string;
@@ -18,17 +19,23 @@ export function FavoriteButton({
     onChanged,
 }: FavoriteButtonProps) {
     const { token } = useAuth();
+    const { show } = useToast();
+    const router = useRouter();
     const toggleFavorite = useToggleFavorite(articleId);
     const [favorited, setFavorited] = useState<boolean>(initialFavorited);
     const [isAnimating, setIsAnimating] = useState(false);
 
     const handleClick = async (e?: React.MouseEvent<HTMLButtonElement>) => {
+        if (e) e.preventDefault();
         if (e) e.stopPropagation();
+
         if (!token) {
-            // Redirect to login
-            window.location.href = '/auth/login';
+            show({ type: 'warning', message: 'Faça login para salvar artigos' });
+            router.push('/auth/login');
             return;
         }
+
+        if (toggleFavorite.isPending) return;
 
         setIsAnimating(true);
         setTimeout(() => setIsAnimating(false), 400);
@@ -37,6 +44,7 @@ export function FavoriteButton({
         const next = !prev;
         setFavorited(next);
         if (onChanged) onChanged(next);
+
         try {
             const res = await toggleFavorite.mutateAsync();
             if (res && typeof res.favorited === 'boolean') {
@@ -64,28 +72,23 @@ export function FavoriteButton({
 
     return (
         <button
-            onClick={(e) => handleClick(e)}
+            onClick={handleClick}
             disabled={toggleFavorite.isPending}
             className={`
-        inline-flex items-center justify-center rounded-lg transition-all
-        ${buttonSizeClasses[size]}
-        ${favorited
-                    ? 'text-blue-600 hover:text-blue-700'
-                    : 'text-gray-400 hover:text-blue-600'
+                inline-flex items-center justify-center rounded-full transition-all active:scale-90
+                ${buttonSizeClasses[size]}
+                ${favorited
+                    ? 'text-blue-500 bg-blue-500/10'
+                    : 'text-muted-foreground hover:text-blue-500 hover:bg-blue-50 dark:hover:bg-blue-900/10'
                 }
-        ${toggleFavorite.isPending ? 'opacity-50 cursor-wait' : 'hover:bg-blue-50 dark:hover:bg-blue-900/10'}
-        ${isAnimating ? 'animate-bounce-scale' : ''}
-      `}
+                ${toggleFavorite.isPending ? 'opacity-50 cursor-wait' : 'cursor-pointer'}
+                ${isAnimating ? 'animate-bounce-scale' : ''}
+            `}
             aria-label={favorited ? 'Remover dos favoritos' : 'Adicionar aos favoritos'}
-            title={
-                token
-                    ? (favorited ? 'Remover dos favoritos' : 'Salvar para depois')
-                    : 'Faça login para favoritar'
-            }
+            title={favorited ? 'Remover dos favoritos' : 'Salvar para depois'}
         >
             <Bookmark
-                className={`${sizeClasses[size]} transition-all ${isAnimating ? 'scale-125' : ''}`}
-                fill={favorited ? 'currentColor' : 'none'}
+                className={`${sizeClasses[size]} transition-all ${favorited ? 'fill-current' : 'fill-none'}`}
             />
         </button>
     );

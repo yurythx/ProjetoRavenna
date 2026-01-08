@@ -6,6 +6,7 @@
  */
 
 import { Eye } from 'lucide-react';
+import { formatCompactNumber } from '@/lib/formatters';
 
 interface ViewCounterProps {
     /**
@@ -31,21 +32,6 @@ interface ViewCounterProps {
     showLabel?: boolean;
 }
 
-/**
- * Format large numbers to readable strings
- * 1234 -> "1.2K"
- * 1234567 -> "1.2M"
- */
-const formatCount = (num: number): string => {
-    if (num >= 1000000) {
-        return `${(num / 1000000).toFixed(1)}M`;
-    }
-    if (num >= 1000) {
-        return `${(num / 1000).toFixed(1)}K`;
-    }
-    return num.toString();
-};
-
 export default function ViewCounter({
     count,
     size = 'md',
@@ -67,11 +53,11 @@ export default function ViewCounter({
     return (
         <div
             className={`flex items-center text-gray-600 dark:text-gray-400 ${sizeClasses[size]} ${className}`}
-            title={`${count.toLocaleString()} visualizações`}
+            title={`${count.toLocaleString('pt-BR')} visualizações`}
         >
             <Eye size={iconSizes[size]} className="flex-shrink-0" />
             <span className="font-medium">
-                {formatCount(count)}
+                {formatCompactNumber(count)}
                 {showLabel && <span className="ml-1 font-normal">visualizações</span>}
             </span>
         </div>

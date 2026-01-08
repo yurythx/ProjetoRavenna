@@ -2,13 +2,25 @@
 import { createContext, useContext, useEffect, useMemo, useState } from 'react';
 import { api } from '@/lib/api';
 
-type AuthState = { token: string | null; loading: boolean };
+type User = {
+  id: string;
+  username: string;
+  email: string;
+  first_name?: string;
+  last_name?: string;
+  avatar?: string;
+  role?: string;
+};
+
+type AuthState = { token: string | null; user: User | null; loading: boolean };
 
 type AuthContextType = {
   token: string | null;
+  user: User | null;
   loading: boolean;
   login: (identifier: string, password: string, remember?: boolean) => Promise<void>;
   logout: () => void;
+  refreshUser: () => Promise<void>;
 };
 
 const AuthContext = createContext<AuthContextType | null>(null);
@@ -35,11 +47,37 @@ function getTokenFromCookie() {
 }
 
 export function AuthProvider({ children }: { children: React.ReactNode }) {
-  const [state, setState] = useState<AuthState>({ token: null, loading: true });
+  const [state, setState] = useState<AuthState>({ token: null, user: null, loading: true });
+
+  const fetchUser = async (token: string) => {
+    try {
+      const { data } = await api.get('/auth/profile/', {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      return data;
+    } catch {
+      return null;
+    }
+  };
 
   useEffect(() => {
-    const token = getTokenFromCookie();
-    setState({ token, loading: false });
+    const initAuth = async () => {
+      const token = getTokenFromCookie();
+      if (token) {
+        const user = await fetchUser(token);
+        if (user) {
+          setState({ token, user, loading: false });
+        } else {
+          // Token invalid or profile fetch failed
+          deleteCookie('auth_token');
+          deleteCookie('refresh_token');
+          setState({ token: null, user: null, loading: false });
+        }
+      } else {
+        setState({ token: null, user: null, loading: false });
+      }
+    };
+    initAuth();
   }, []);
 
   async function login(identifier: string, password: string, remember?: boolean) {
@@ -48,9 +86,11 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       const { data } = await api.post('/auth/token/', { email: identifier, password });
       setCookie('auth_token', data.access, remember ? 7 : undefined);
       setCookie('refresh_token', data.refresh, remember ? 7 : undefined);
-      setState({ token: data.access, loading: false });
+
+      const user = await fetchUser(data.access);
+      setState({ token: data.access, user, loading: false });
     } catch (e) {
-      setState({ token: null, loading: false });
+      setState({ token: null, user: null, loading: false });
       throw e;
     }
   }
@@ -58,10 +98,18 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   function logout() {
     deleteCookie('auth_token');
     deleteCookie('refresh_token');
-    setState({ token: null, loading: false });
+    setState({ token: null, user: null, loading: false });
   }
 
-  const value = useMemo(() => ({ ...state, login, logout }), [state.token, state.loading]);
+  async function refreshUser() {
+    if (state.token) {
+      const user = await fetchUser(state.token);
+      setState(s => ({ ...s, user }));
+    }
+  }
+
+  const value = useMemo(() => ({ ...state, login, logout, refreshUser }), [state.token, state.user, state.loading]);
+
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
 }
 

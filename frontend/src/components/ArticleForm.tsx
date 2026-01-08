@@ -191,44 +191,54 @@ export function ArticleForm({ initial }: { initial?: Article }) {
     return tgs.filter(t => !tags.includes(t.id) && t.name.toLowerCase().includes(lower));
   }, [tgs, tagSearch, tags]);
 
+  // Mobile detection for height & UI
+  const [isMobile, setIsMobile] = useState(false);
+  useEffect(() => {
+    const check = () => setIsMobile(window.innerWidth < 768);
+    check();
+    window.addEventListener('resize', check);
+    return () => window.removeEventListener('resize', check);
+  }, []);
+
   return (
-    <form onSubmit={onSubmit} onKeyDown={onKeyDown} className="space-y-6" aria-describedby="form-status" aria-live="polite">
+    <form onSubmit={onSubmit} onKeyDown={onKeyDown} className="pb-24 md:pb-0 space-y-6" aria-describedby="form-status" aria-live="polite">
       {error && <div className="bg-red-50 text-red-600 p-3 rounded" id="form-status">{error}</div>}
 
       <div className="grid md:grid-cols-[2fr_1fr] gap-6">
         <div className="space-y-4">
-          <div>
+          <div className="card p-4 md:p-0 md:bg-transparent md:border-none md:shadow-none">
             <label htmlFor="title" className="block text-sm font-medium mb-1">Título</label>
             <input
               id="title"
-              className="input text-lg font-bold"
+              className={`input text-lg font-bold ${titleError ? 'border-red-500' : ''}`}
               placeholder="Título do Artigo"
               value={title}
               onChange={(e) => setTitle(e.target.value)}
               aria-invalid={!!titleError}
             />
-            <div className="text-xs text-gray-500 mt-1 flex justify-between">
+            {titleError && <p className="text-xs text-red-500 mt-1">{titleError}</p>}
+            <div className="text-xs text-gray-500 mt-1 flex flex-col sm:flex-row sm:justify-between gap-1">
               <span>{titleLen} caracteres</span>
-              {slugPreview && <span>URL: /artigos/{slugPreview}</span>}
+              {slugPreview && <span className="truncate">URL: /artigos/{slugPreview}</span>}
             </div>
           </div>
 
-          <div>
-            <label className="block text-sm font-medium mb-1">Conteúdo</label>
-            <TinyEditor value={content} onChange={(v) => setContent(v || '')} height={500} />
-            <div className="text-xs text-gray-500 mt-1">{contentLen} caracteres</div>
+          <div className={`${contentError ? 'border-red-200' : ''}`}>
+            <TinyEditor value={content} onChange={(v) => setContent(v || '')} height={isMobile ? 450 : 750} />
           </div>
+          {contentError && <p className="text-xs text-red-500 mt-1">{contentError}</p>}
+          <div className="text-xs text-gray-500 mt-1">{contentLen} caracteres</div>
         </div>
 
         <div className="space-y-6">
-          {/* Publishing Options */}
+          {/* Publishing Options - Visible on MD+ or as parts of the sticky mobile bar */}
           <div className="card p-4 space-y-4">
-            <h3 className="font-semibold text-sm text-gray-500 uppercase tracking-wider">Publicação</h3>
+            <h3 className="font-semibold text-sm text-gray-500 uppercase tracking-wider">Configurações</h3>
             <div>
               <label htmlFor="category" className="block text-sm font-medium mb-1">Categoria</label>
               <select
                 id="category"
-                className="input w-full"
+                className="input w-full h-11 md:h-10" // Larger touch target on mobile
                 value={category}
                 onChange={(e) => setCategory(e.target.value)}
               >
@@ -238,17 +248,18 @@ export function ArticleForm({ initial }: { initial?: Article }) {
               </select>
             </div>
 
-            <label className="flex items-center gap-2 cursor-pointer">
+            <label className="flex items-center gap-3 py-2 cursor-pointer select-none">
               <input
                 type="checkbox"
-                className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+                className="w-5 h-5 rounded border-gray-300 text-blue-600 focus:ring-blue-500"
                 checked={isPublished}
                 onChange={(e) => setIsPublished(e.target.checked)}
               />
-              <span className="text-sm">Publicar imediatamente</span>
+              <span className="text-sm font-medium">Publicar imediatamente</span>
             </label>
 
-            <div className="flex flex-col gap-2 pt-2 border-t mt-2">
+            {/* desktop buttons */}
+            <div className="hidden md:flex flex-col gap-2 pt-2 border-t mt-2">
               <button
                 type="submit"
                 disabled={loading || !!titleError || !!contentError || !!bannerError || !category}
@@ -294,19 +305,30 @@ export function ArticleForm({ initial }: { initial?: Article }) {
                     />
                     <div className="absolute inset-0 bg-black/40 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
                       <div className="bg-white px-3 py-1 rounded-full text-xs font-medium flex items-center gap-2">
-                        <Upload className="h-3 w-3" /> Alterar
+                        <Upload className="h-4 w-4" /> Alterar
                       </div>
                     </div>
                   </>
                 ) : (
                   <div className="text-center p-4 text-gray-500">
                     <ImageIcon className="h-8 w-8 mx-auto mb-2 opacity-50" />
-                    <span className="text-sm">Clique para upload</span>
+                    <span className="text-sm font-medium">Clique para upload</span>
+                    <span className="block text-[10px] opacity-60">Recomendado: 1200x630px</span>
                   </div>
                 )}
               </label>
+              {previewUrl && (
+                <button
+                  type="button"
+                  onClick={() => { setBanner(null); setPreviewUrl(null); }}
+                  className="absolute -top-2 -right-2 bg-red-500 text-white rounded-full p-2 shadow-lg border-2 border-white hover:bg-red-600 transition-colors z-20"
+                  aria-label="Remover banner"
+                >
+                  <X className="h-4 w-4" />
+                </button>
+              )}
             </div>
-            {bannerError && <p className="text-xs text-red-600">{bannerError}</p>}
+            {bannerError && <p className="text-xs text-red-600 font-medium underline decoration-red-200">{bannerError}</p>}
           </div>
 
           {/* Tags Combobox */}
@@ -315,7 +337,7 @@ export function ArticleForm({ initial }: { initial?: Article }) {
             <div className="relative">
               <input
                 ref={tagInputRef}
-                className="input w-full"
+                className="input w-full h-11 md:h-10"
                 placeholder="Buscar tags..."
                 value={tagSearch}
                 onChange={(e) => {
@@ -325,22 +347,29 @@ export function ArticleForm({ initial }: { initial?: Article }) {
                 onFocus={() => setTagMenuOpen(true)}
                 onBlur={() => setTimeout(() => setTagMenuOpen(false), 200)}
               />
-              {tagMenuOpen && filteredTags.length > 0 && (
-                <div className="absolute z-10 w-full mt-1 bg-white border rounded-md shadow-lg max-h-48 overflow-y-auto">
-                  {filteredTags.map(t => (
-                    <button
-                      key={t.id}
-                      type="button"
-                      className="w-full text-left px-3 py-2 text-sm hover:bg-gray-100 flex items-center justify-between"
-                      onClick={() => {
-                        setTags([...tags, t.id]);
-                        setTagSearch('');
-                        tagInputRef.current?.focus();
-                      }}
-                    >
-                      {t.name}
-                    </button>
-                  ))}
+              {tagMenuOpen && (
+                <div className="absolute z-10 w-full mt-1 bg-white border rounded-lg shadow-lg max-h-60 overflow-y-auto animate-scale-in">
+                  {filteredTags.length > 0 ? (
+                    filteredTags.map(t => (
+                      <button
+                        key={t.id}
+                        type="button"
+                        className="w-full text-left px-4 py-3 text-sm hover:bg-muted transition-colors flex items-center justify-between group"
+                        onClick={() => {
+                          setTags([...tags, t.id]);
+                          setTagSearch('');
+                          tagInputRef.current?.focus();
+                        }}
+                      >
+                        {t.name}
+                        <Check className="h-4 w-4 text-accent opacity-0 group-hover:opacity-100" />
+                      </button>
+                    ))
+                  ) : (
+                    <div className="px-4 py-6 text-center text-sm text-muted-foreground italic">
+                      Nenhuma tag encontrada para "{tagSearch}"
+                    </div>
+                  )}
                 </div>
               )}
             </div>
@@ -349,20 +378,42 @@ export function ArticleForm({ initial }: { initial?: Article }) {
                 const tag = tgs?.find(t => t.id === tid);
                 if (!tag) return null;
                 return (
-                  <span key={tid} className="badge badge-active flex items-center gap-1 pr-1">
+                  <span key={tid} className="badge badge-active py-1.5 px-3 flex items-center gap-2 group">
                     {tag.name}
                     <button
                       type="button"
                       onClick={() => setTags(tags.filter(id => id !== tid))}
                       className="hover:bg-black/20 rounded-full p-0.5"
                     >
-                      <X className="h-3 w-3" />
+                      <X className="h-3.5 w-3.5" />
                     </button>
                   </span>
                 );
               })}
             </div>
           </div>
+        </div>
+      </div>
+
+      {/* Sticky Mobile Action Bar */}
+      <div className="fixed bottom-0 left-0 right-0 bg-white/95 backdrop-blur-md border-t border-border p-4 z-50 md:hidden animate-slide-up shadow-2xl">
+        <div className="flex gap-3 max-w-lg mx-auto">
+          {!initial && (
+            <button
+              type="button"
+              onClick={saveDraftExplicit}
+              className="btn btn-outline flex-1 h-12"
+            >
+              Rascunho
+            </button>
+          )}
+          <button
+            type="submit"
+            disabled={loading || !!titleError || !!contentError || !!bannerError || !category}
+            className="btn btn-primary flex-[2] h-12 shadow-lg shadow-accent/20"
+          >
+            {loading ? '...' : (initial ? 'Atualizar' : 'Publicar')}
+          </button>
         </div>
       </div>
 
@@ -379,4 +430,3 @@ export function ArticleForm({ initial }: { initial?: Article }) {
     </form>
   );
 }
-

@@ -11,12 +11,14 @@ from apps.accounts.profile_views import UserProfileView, AvatarUploadView
 from apps.accounts.password_views import ChangePasswordView
 from apps.core.stats_views import DashboardStatsView
 from apps.core.notification_views import NotificationViewSet
+from apps.core.module_views import AppModuleViewSet
 from apps.core.views import health_check
 from rest_framework.routers import DefaultRouter
 
 # Create router for viewsets
 router = DefaultRouter()
 router.register(r'notifications', NotificationViewSet, basename='notifications')
+router.register(r'modules', AppModuleViewSet, basename='modules')
 
 urlpatterns = [
     path("admin/", admin.site.urls),

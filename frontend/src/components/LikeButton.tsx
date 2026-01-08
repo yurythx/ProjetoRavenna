@@ -1,8 +1,9 @@
-'use client';
 import { Heart } from 'lucide-react';
 import { useState } from 'react';
 import { useToggleLike } from '@/hooks/useLikes';
 import { useAuth } from '@/contexts/AuthContext';
+import { useRouter } from 'next/navigation';
+import { useToast } from '@/contexts/ToastContext';
 
 interface LikeButtonProps {
     articleId: string;
@@ -22,29 +23,37 @@ export function LikeButton({
     onChanged,
 }: LikeButtonProps) {
     const { token } = useAuth();
+    const { show } = useToast();
+    const router = useRouter();
     const toggleLike = useToggleLike(articleId);
     const [liked, setLiked] = useState<boolean>(initialLiked);
     const [count, setCount] = useState<number>(initialCount);
     const [isAnimating, setIsAnimating] = useState(false);
 
     const handleClick = async (e?: React.MouseEvent<HTMLButtonElement>) => {
+        if (e) e.preventDefault();
         if (e) e.stopPropagation();
+
         if (!token) {
-            // Redirect to login
-            window.location.href = '/auth/login';
+            show({ type: 'warning', message: 'Faça login para curtir artigos' });
+            router.push('/auth/login');
             return;
         }
 
+        if (toggleLike.isPending) return;
+
         setIsAnimating(true);
-        setTimeout(() => setIsAnimating(false), 600);
+        setTimeout(() => setIsAnimating(false), 400);
 
         const prevLiked = liked;
         const prevCount = count;
         const nextLiked = !prevLiked;
         const nextCount = prevLiked ? Math.max(0, prevCount - 1) : prevCount + 1;
+
         setLiked(nextLiked);
         setCount(nextCount);
         if (onChanged) onChanged(nextLiked, nextCount);
+
         try {
             const res = await toggleLike.mutateAsync();
             if (res && typeof res.liked === 'boolean' && typeof res.like_count === 'number') {
@@ -67,34 +76,35 @@ export function LikeButton({
     };
 
     const buttonSizeClasses = {
-        sm: 'p-1.5 text-xs',
-        md: 'p-2 text-sm',
-        lg: 'p-3 text-base',
+        sm: 'p-1.5 text-xs px-2',
+        md: 'p-2 text-sm px-3',
+        lg: 'p-3 text-base px-4',
     };
 
     return (
         <button
-            onClick={(e) => handleClick(e)}
+            onClick={handleClick}
             disabled={toggleLike.isPending}
             className={`
-        inline-flex items-center gap-2 rounded-lg transition-all
-        ${buttonSizeClasses[size]}
-        ${liked
-                    ? 'text-red-600 hover:text-red-700'
-                    : 'text-gray-400 hover:text-red-600'
+                inline-flex items-center gap-1.5 rounded-full transition-all active:scale-95
+                ${buttonSizeClasses[size]}
+                ${liked
+                    ? 'text-red-500 bg-red-500/10 border-red-500/20'
+                    : 'text-muted-foreground hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-900/10 border-transparent'
                 }
-        ${toggleLike.isPending ? 'opacity-50 cursor-wait' : 'hover:bg-red-50 dark:hover:bg-red-900/10'}
-        ${isAnimating ? 'animate-bounce-scale' : ''}
-      `}
+                border
+                ${toggleLike.isPending ? 'opacity-50 cursor-wait' : 'cursor-pointer'}
+                ${isAnimating && liked ? 'animate-heart-burst' : ''}
+                ${isAnimating && !liked ? 'animate-bounce-scale' : ''}
+            `}
             aria-label={liked ? 'Descurtir' : 'Curtir'}
-            title={token ? (liked ? 'Descurtir' : 'Curtir') : 'Faça login para curtir'}
+            title={liked ? 'Descurtir' : 'Curtir'}
         >
             <Heart
-                className={`${sizeClasses[size]} transition-all ${isAnimating ? 'scale-125' : ''}`}
-                fill={liked ? 'currentColor' : 'none'}
+                className={`${sizeClasses[size]} transition-all ${liked ? 'fill-current' : 'fill-none'}`}
             />
             {showCount && (
-                <span className="font-medium tabular-nums">
+                <span className="font-bold tabular-nums">
                     {count}
                 </span>
             )}

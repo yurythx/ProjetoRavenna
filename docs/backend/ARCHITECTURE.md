@@ -49,4 +49,20 @@ We avoid duplicating "Name", "Address", "Phone" tables for Clients, Suppliers, P
       "message": "Human readable message",
       "details": { ... }
     }
-    ```
+## 5. Media Storage (MinIO)
+
+To ensure scalability and decouple files from the application server, we use **MinIO** as an S3-compatible object storage.
+
+- **Configuration**: Managed via Django's `STORAGES` (Django 5.0+).
+- **Public Access**: Media files are stored in a public bucket (`projetoravenna`) with `GetObject` permissions enabled.
+- **URLs**: Django generates absolute URLs pointing to the public MinIO domain (e.g., `https://minio.projetoravenna.cloud/...`).
+
+## 6. Frontend Image Proxy
+
+To handle external images (e.g., from old migrations) and optimize performance:
+
+- **Endpoint**: `/api/img?url=<external_url>`
+- **Benefits**:
+  1. **SSRF Protection**: Validates allowed hosts and ports.
+  2. **Caching**: Adds `Cache-Control` headers (24h) to responses, reducing external requests.
+  3. **Consistency**: Silences browser preload warnings by providing consistent cacheable responses.

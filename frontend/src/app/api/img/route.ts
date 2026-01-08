@@ -19,7 +19,13 @@ export async function GET(req: NextRequest) {
     }
     const contentType = res.headers.get('content-type') || 'application/octet-stream';
     const buffer = await res.arrayBuffer();
-    return new Response(buffer, { status: 200, headers: { 'content-type': contentType } });
+    return new Response(buffer, {
+      status: 200,
+      headers: {
+        'content-type': contentType,
+        'Cache-Control': 'public, max-age=86400, stale-while-revalidate=43200'
+      }
+    });
   } catch (e) {
     return new Response(JSON.stringify({ detail: 'Proxy error' }), { status: 500, headers: { 'content-type': 'application/json' } });
   }

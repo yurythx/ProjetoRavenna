@@ -197,8 +197,36 @@ export default function ArticleClient({ slug, initialData }: { slug: string, ini
         return () => window.removeEventListener('scroll', onScroll);
     }, []);
 
-    if (showLoading) return <p>Carregando…</p>;
-    if (error || !data) return <p>Artigo não encontrado</p>;
+    if (showLoading) {
+        return (
+            <div className="container-custom py-12 animate-pulse">
+                {/* Skeleton Header */}
+                <div className="max-w-3xl mx-auto space-y-6">
+                    <div className="h-4 w-24 bg-muted rounded-full" />
+                    <div className="h-12 w-3/4 bg-muted rounded-xl" />
+                    <div className="flex gap-4 border-b border-border pb-8">
+                        <div className="w-12 h-12 rounded-full bg-muted" />
+                        <div className="space-y-2">
+                            <div className="h-4 w-32 bg-muted rounded" />
+                            <div className="h-3 w-20 bg-muted rounded" />
+                        </div>
+                    </div>
+                </div>
+                {/* Skeleton Banner */}
+                <div className="aspect-[21/9] w-full bg-muted rounded-2xl my-8" />
+                {/* Skeleton Text */}
+                <div className="max-w-3xl mx-auto space-y-4">
+                    <div className="h-4 w-full bg-muted rounded" />
+                    <div className="h-4 w-full bg-muted rounded" />
+                    <div className="h-4 w-5/6 bg-muted rounded" />
+                    <div className="h-4 w-4/6 bg-muted rounded" />
+                    <div className="h-4 w-full bg-muted rounded pt-4" />
+                    <div className="h-4 w-full bg-muted rounded" />
+                </div>
+            </div>
+        );
+    }
+    if (error || !data) return <div className="container-custom py-20 text-center"><p className="text-red-500 font-medium">Artigo não encontrado</p></div>;
 
     const authorName = data.author_name || 'Autor';
     const rawBanner = data.banner as unknown as string || '';
@@ -214,9 +242,54 @@ export default function ArticleClient({ slug, initialData }: { slug: string, ini
             <div className={`fixed top-0 left-0 right-0 h-16 bg-white/90 dark:bg-black/90 backdrop-blur-md border-b border-gray-200 dark:border-gray-800 z-[60] flex items-center transition-transform duration-300 ${scrolled ? 'translate-y-0' : '-translate-y-full'}`}>
                 <div className="container-custom flex items-center justify-between">
                     <h2 className="font-semibold text-sm md:text-base truncate max-w-[60%] opacity-90">{data.title}</h2>
-                    <div className="flex gap-2">
-                        <button onClick={onShare} className="btn btn-outline text-xs py-1 px-3 h-8">Compartilhar</button>
+                    <div className="flex gap-2 items-center">
+                        <div className="flex bg-muted/50 rounded-full border border-border/50 p-1 mr-2 scale-90 md:scale-100">
+                            <LikeButton
+                                articleId={data.id}
+                                initialLiked={liked}
+                                initialCount={likeCount}
+                                onChanged={(l, c) => { setLiked(l); setLikeCount(c); }}
+                                size="sm"
+                                showCount={true}
+                            />
+                            <FavoriteButton
+                                articleId={data.id}
+                                initialFavorited={favorited}
+                                onChanged={(f) => setFavorited(f)}
+                                size="sm"
+                            />
+                        </div>
+                        {/* Mobile TOC Button */}
+                        {toc.length > 0 && (
+                            <button
+                                onClick={() => {
+                                    const el = document.getElementById('mobile-toc');
+                                    if (el) el.classList.toggle('hidden');
+                                }}
+                                className="lg:hidden btn btn-outline text-xs h-8 px-3"
+                            >
+                                Sumário
+                            </button>
+                        )}
+                        <button onClick={onShare} className="btn btn-primary text-xs py-1 px-3 h-8">Compartilhar</button>
                     </div>
+                </div>
+                {/* Mobile TOC Popover */}
+                <div id="mobile-toc" className="hidden absolute top-full left-0 right-0 bg-background/95 backdrop-blur-lg border-b border-border p-6 shadow-2xl animate-slide-down lg:hidden max-h-[60vh] overflow-y-auto">
+                    <h5 className="font-bold text-xs uppercase tracking-wider text-muted-foreground mb-4">Neste artigo</h5>
+                    <nav className="space-y-3">
+                        {toc.map((item, i) => (
+                            <a
+                                key={`${item.id}-mob-${i}`}
+                                href={`#${item.id}`}
+                                className={`block text-sm transition-all ${item.id === activeId ? 'text-accent font-bold' : 'text-muted-foreground'}`}
+                                style={{ marginLeft: `${(item.level - 1) * 8}px` }}
+                                onClick={() => document.getElementById('mobile-toc')?.classList.add('hidden')}
+                            >
+                                {item.text}
+                            </a>
+                        ))}
+                    </nav>
                 </div>
             </div>
 
@@ -242,7 +315,6 @@ export default function ArticleClient({ slug, initialData }: { slug: string, ini
                                         className="object-cover transition-transform duration-700 group-hover:scale-105"
                                         sizes="(max-width: 768px) 100vw, (max-width: 1200px) 75vw, 1000px"
                                         unoptimized
-                                        priority
                                     />
                                     <div className="absolute inset-0 bg-black/20" />
                                 </div>
@@ -263,7 +335,7 @@ export default function ArticleClient({ slug, initialData }: { slug: string, ini
                                 {data.title}
                             </h1>
 
-                            {/* Like and Favorite Buttons */}
+                            {/* Like and Favorite Buttons - Main */}
                             <div className="flex items-center gap-3 mb-6 pb-6 border-b border-border">
                                 <LikeButton
                                     articleId={data.id}
@@ -292,12 +364,37 @@ export default function ArticleClient({ slug, initialData }: { slug: string, ini
                                         likeCount={likeCount}
                                         commentCount={0}
                                         layout="horizontal"
-                                        variant="compact"
+                                        variant="full"
                                     />
                                 </div>
                             )}
 
-                            <div className="flex flex-wrap items-center gap-6 text-sm text-muted-foreground border-b border-border pb-8">
+                            <div className="flex flex-wrap items-center gap-6 text-sm text-muted-foreground border-b border-border pb-8 relative">
+                                {/* Desktop Sidebar Actions */}
+                                <div className="hidden xl:flex flex-col gap-4 absolute -left-20 top-0 pt-2 animate-fade-in">
+                                    <div className="flex flex-col gap-2 p-2 bg-card border border-border rounded-full shadow-lg sticky top-32">
+                                        <LikeButton
+                                            articleId={data.id}
+                                            initialLiked={liked}
+                                            initialCount={likeCount}
+                                            onChanged={(l, c) => { setLiked(l); setLikeCount(c); }}
+                                            size="sm"
+                                            showCount={true}
+                                        />
+                                        <div className="w-full h-[1px] bg-border mx-auto px-2" />
+                                        <FavoriteButton
+                                            articleId={data.id}
+                                            initialFavorited={favorited}
+                                            onChanged={(f) => setFavorited(f)}
+                                            size="sm"
+                                        />
+                                        <div className="w-full h-[1px] bg-border mx-auto px-2" />
+                                        <button onClick={onShare} className="p-2 text-muted-foreground hover:text-accent transition-colors" title="Compartilhar">
+                                            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M8.684 13.342C8.886 12.938 9 12.482 9 12c0-.482-.114-.938-.316-1.342m0 2.684a3 3 0 110-2.684m0 2.684l6.632 3.316m-6.632-6l6.632-3.316m0 0a3 3 0 105.367-2.684 3 3 0 00-5.367 2.684zm0 9.316a3 3 0 105.368 2.684 3 3 0 00-5.368-2.684z" /></svg>
+                                        </button>
+                                    </div>
+                                </div>
+
                                 <div className="flex items-center gap-3">
                                     <div className="w-10 h-10 rounded-full bg-accent/20 flex items-center justify-center text-accent font-bold text-lg">
                                         {authorName.charAt(0).toUpperCase()}
@@ -334,16 +431,17 @@ export default function ArticleClient({ slug, initialData }: { slug: string, ini
                         <div className="mt-12 pt-8 border-t border-border">
                             <h4 className="text-sm font-semibold uppercase tracking-wider text-muted-foreground mb-4">Tópicos Relacionados</h4>
                             <div className="flex flex-wrap gap-2">
-                                {data.tags?.map((tid) => {
-                                    const tag = tgs?.find((t) => t.id === tid);
-                                    if (!tag) return null;
+                                {data.tags?.map((tag: any) => {
+                                    const tid = typeof tag === 'string' ? tag : tag.id;
+                                    const tagData = tgs?.find((t) => t.id === tid) || (typeof tag === 'object' ? tag : null);
+                                    if (!tagData) return null;
                                     return (
                                         <Link
-                                            key={tag.id}
-                                            href={`/artigos?tags=${tag.slug || tag.name}`}
+                                            key={tid}
+                                            href={`/artigos?tags=${tagData.slug || tagData.name}`}
                                             className="px-4 py-1.5 rounded-full bg-muted hover:bg-accent hover:text-white transition-colors text-sm font-medium"
                                         >
-                                            #{tag.name}
+                                            #{tagData.name}
                                         </Link>
                                     );
                                 })}

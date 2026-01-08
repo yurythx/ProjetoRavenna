@@ -1,6 +1,8 @@
 'use client';
 import { CheckCircle2, Eye, Share2, ArrowRight } from 'lucide-react';
 import { createPortal } from 'react-dom';
+import { useToast } from '@/contexts/ToastContext';
+
 export function SuccessDialog({
   open,
   title,
@@ -14,13 +16,14 @@ export function SuccessDialog({
   onClose: () => void;
   slug?: string;
 }) {
+  const { show } = useToast();
   if (!open) return null;
 
   const handleShare = () => {
     if (slug && typeof navigator !== 'undefined') {
       const url = `${window.location.origin}/artigos/${slug}`;
       navigator.clipboard.writeText(url);
-      alert('Link copiado para a área de transferência!');
+      show({ type: 'success', message: 'Link copiado para a área de transferência!' });
     }
   };
 
