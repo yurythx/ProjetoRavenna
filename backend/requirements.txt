@@ -12,3 +12,5 @@ Pillow
 dj-database-url
 gunicorn
 whitenoise
+django-storages
+boto3

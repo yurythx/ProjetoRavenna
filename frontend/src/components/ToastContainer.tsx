@@ -9,7 +9,7 @@ export function ToastContainer() {
 
   return (
     <div
-      className="fixed top-4 right-4 z-50 space-y-3 max-w-sm w-full pointer-events-none"
+      className="fixed bottom-20 md:bottom-4 right-4 z-[9999] space-y-3 max-w-sm w-full pointer-events-none"
       aria-live="polite"
       aria-atomic="true"
       role="region"

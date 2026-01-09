@@ -72,13 +72,6 @@ export function Header() {
             >
               Artigos
             </Link>
-            <Link
-              href="/tags"
-              className={`text-sm font-medium transition-colors hover:text-[var(--django-green-primary)] ${pathname === '/tags' ? 'text-[var(--django-green-primary)]' : ''}`}
-              style={{ color: pathname === '/tags' ? 'var(--django-green-primary)' : 'var(--header-text)' }}
-            >
-              Tags
-            </Link>
           </nav>
 
           {/* Search Bar - Desktop */}
@@ -107,70 +100,70 @@ export function Header() {
                 </button>
 
                 {/* Profile Dropdown */}
-                {userMenuOpen && (
-                  <div className="absolute right-0 mt-3 w-64 rounded-2xl bg-[#FFFFFF] dark:bg-[#1E2430] border border-border shadow-[0_10px_40px_-10px_rgba(0,0,0,0.3)] dark:shadow-[0_10px_40px_-10px_rgba(0,0,0,0.7)] animate-in fade-in zoom-in duration-150 z-[60] overflow-hidden">
-                    <div className="p-4 border-b border-border bg-[#F8F8F8] dark:bg-[#252B37]">
-                      <div className="flex items-center gap-3 mb-2">
-                        <div className="w-10 h-10 rounded-full bg-[var(--django-green-primary)] flex items-center justify-center text-white font-bold text-sm shadow-sm ring-2 ring-white/10">
-                          {user?.first_name?.charAt(0).toUpperCase() || user?.username?.charAt(0).toUpperCase() || 'U'}
-                        </div>
-                        <div className="flex flex-col min-w-0">
-                          <p className="text-sm font-bold truncate leading-tight">
-                            {user?.first_name ? `${user.first_name} ${user.last_name || ''}` : user?.username}
-                          </p>
-                          <p className="text-[11px] text-muted-foreground truncate">{user?.email}</p>
-                        </div>
+              {userMenuOpen && (
+                <div className="absolute right-0 mt-3 w-64 rounded-2xl bg-white dark:bg-[#1E2430] border border-border shadow-[0_10px_40px_-10px_rgba(0,0,0,0.3)] dark:shadow-[0_10px_40px_-10px_rgba(0,0,0,0.7)] animate-in fade-in zoom-in duration-150 z-[60] overflow-hidden">
+                  <div className="p-4 border-b border-border bg-[#F8F8F8] dark:bg-[#252B37]">
+                    <div className="flex items-center gap-3 mb-2">
+                      <div className="w-10 h-10 rounded-full bg-[var(--django-green-primary)] flex items-center justify-center text-white font-bold text-sm shadow-sm ring-2 ring-white/10">
+                        {user?.first_name?.charAt(0).toUpperCase() || user?.username?.charAt(0).toUpperCase() || 'U'}
                       </div>
-                      <div className="mt-2">
-                        <span className="px-2 py-0.5 text-[9px] font-bold uppercase tracking-wider rounded-full bg-[var(--accent)]/10 text-[var(--accent)] border border-[var(--accent)]/20">
-                          {user?.role || 'Membro'}
-                        </span>
+                      <div className="flex flex-col min-w-0">
+                        <p className="text-sm font-bold truncate leading-tight text-foreground dark:text-white">
+                          {user?.first_name ? `${user.first_name} ${user.last_name || ''}` : user?.username}
+                        </p>
+                        <p className="text-[11px] text-muted-foreground truncate">{user?.email}</p>
                       </div>
                     </div>
+                    <div className="mt-2">
+                      <span className="px-2 py-0.5 text-[9px] font-bold uppercase tracking-wider rounded-full bg-[var(--accent)]/10 text-[var(--accent)] border border-[var(--accent)]/20">
+                        {user?.role || 'Membro'}
+                      </span>
+                    </div>
+                  </div>
 
-                    <div className="p-1.5">
-                      <Link
-                        href="/perfil"
-                        className="flex items-center gap-3 px-3 py-2.5 text-sm rounded-xl hover:bg-muted transition-colors group"
-                      >
-                        <User className="h-4 w-4 opacity-60 group-hover:opacity-100 group-hover:text-[var(--accent)]" />
-                        <span className="font-medium">Meu Perfil</span>
-                      </Link>
+                  <div className="p-1.5">
+                    <Link
+                      href="/perfil"
+                      className="flex items-center gap-3 px-3 py-2.5 text-sm rounded-xl hover:bg-muted transition-colors group text-foreground dark:text-gray-200"
+                    >
+                      <User className="h-4 w-4 opacity-60 group-hover:opacity-100 group-hover:text-[var(--accent)]" />
+                      <span className="font-medium">Meu Perfil</span>
+                    </Link>
 
-                      <Link
-                        href="/admin/dashboard"
-                        className="flex items-center gap-3 px-3 py-2.5 text-sm rounded-xl hover:bg-muted transition-colors group"
-                      >
-                        <PenSquare className="h-4 w-4 opacity-60 group-hover:opacity-100 group-hover:text-[var(--accent)]" />
-                        <span className="font-medium">Dashboard Admin</span>
-                      </Link>
+                    <Link
+                      href="/admin/dashboard"
+                      className="flex items-center gap-3 px-3 py-2.5 text-sm rounded-xl hover:bg-muted transition-colors group text-foreground dark:text-gray-200"
+                    >
+                      <PenSquare className="h-4 w-4 opacity-60 group-hover:opacity-100 group-hover:text-[var(--accent)]" />
+                      <span className="font-medium">Dashboard Admin</span>
+                    </Link>
 
-                      <Link
-                        href="/favoritos"
-                        className="flex items-center gap-3 px-3 py-2.5 text-sm rounded-xl hover:bg-muted transition-colors group"
-                      >
-                        <Bookmark className="h-4 w-4 opacity-60 group-hover:opacity-100 group-hover:text-[var(--accent)]" />
-                        <span className="font-medium">Salvos & Favoritos</span>
-                      </Link>
+                    <Link
+                      href="/favoritos"
+                      className="flex items-center gap-3 px-3 py-2.5 text-sm rounded-xl hover:bg-muted transition-colors group text-foreground dark:text-gray-200"
+                    >
+                      <Bookmark className="h-4 w-4 opacity-60 group-hover:opacity-100 group-hover:text-[var(--accent)]" />
+                      <span className="font-medium">Salvos & Favoritos</span>
+                    </Link>
 
-                      <Link
-                        href="/notificacoes"
-                        className="flex items-center gap-3 px-3 py-2.5 text-sm rounded-xl hover:bg-muted transition-colors group"
-                      >
-                        <div className="relative">
-                          <Bell className="h-4 w-4 opacity-60 group-hover:opacity-100 group-hover:text-[var(--accent)]" />
-                          {unreadCount > 0 && (
-                            <span className="absolute -top-1 -right-1 w-2 h-2 bg-red-500 rounded-full ring-2 ring-card" />
-                          )}
-                        </div>
-                        <span className="font-medium">Notificações</span>
+                    <Link
+                      href="/notificacoes"
+                      className="flex items-center gap-3 px-3 py-2.5 text-sm rounded-xl hover:bg-muted transition-colors group text-foreground dark:text-gray-200"
+                    >
+                      <div className="relative">
+                        <Bell className="h-4 w-4 opacity-60 group-hover:opacity-100 group-hover:text-[var(--accent)]" />
                         {unreadCount > 0 && (
-                          <span className="ml-auto bg-red-500/10 text-red-500 text-[10px] font-bold px-1.5 rounded-md">
-                            {unreadCount}
-                          </span>
+                          <span className="absolute -top-1 -right-1 w-2 h-2 bg-red-500 rounded-full ring-2 ring-card" />
                         )}
-                      </Link>
-                    </div>
+                      </div>
+                      <span className="font-medium">Notificações</span>
+                      {unreadCount > 0 && (
+                        <span className="ml-auto bg-red-500/10 text-red-500 text-[10px] font-bold px-1.5 rounded-md">
+                          {unreadCount}
+                        </span>
+                      )}
+                    </Link>
+                  </div>
 
                     <div className="p-1.5 border-t border-border">
                       <button

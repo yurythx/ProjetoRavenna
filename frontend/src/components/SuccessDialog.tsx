@@ -9,12 +9,14 @@ export function SuccessDialog({
   description,
   onClose,
   slug,
+  confirmLabel,
 }: {
   open: boolean;
   title: string;
   description?: string;
   onClose: () => void;
   slug?: string;
+  confirmLabel?: string;
 }) {
   const { show } = useToast();
   if (!open) return null;
@@ -41,26 +43,28 @@ export function SuccessDialog({
 
         <div className="p-4 space-y-2">
           {slug && (
-            <a
-              href={`/artigos/${slug}`}
-              className="flex items-center justify-center gap-2 w-full py-3 bg-green-600 hover:bg-green-700 text-white rounded-xl font-medium transition-colors shadow-lg shadow-green-600/20"
-            >
-              <Eye className="w-4 h-4" /> Ver Artigo <ArrowRight className="w-4 h-4" />
-            </a>
-          )}
+            <>
+              <a
+                href={`/artigos/${slug}`}
+                className="flex items-center justify-center gap-2 w-full py-3 bg-green-600 hover:bg-green-700 text-white rounded-xl font-medium transition-colors shadow-lg shadow-green-600/20"
+              >
+                <Eye className="w-4 h-4" /> Ver Artigo <ArrowRight className="w-4 h-4" />
+              </a>
 
-          <button
-            onClick={handleShare}
-            className="flex items-center justify-center gap-2 w-full py-3 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 rounded-xl font-medium transition-colors"
-          >
-            <Share2 className="w-4 h-4" /> Copiar Link
-          </button>
+              <button
+                onClick={handleShare}
+                className="flex items-center justify-center gap-2 w-full py-3 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 rounded-xl font-medium transition-colors"
+              >
+                <Share2 className="w-4 h-4" /> Copiar Link
+              </button>
+            </>
+          )}
 
           <button
             onClick={onClose}
             className="w-full py-2 text-slate-500 hover:text-slate-700 dark:text-slate-400 dark:hover:text-slate-200 text-sm transition-colors pt-2"
           >
-            Continuar editando
+            {confirmLabel || 'Fechar'}
           </button>
         </div>
       </div>

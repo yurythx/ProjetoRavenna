@@ -18,6 +18,48 @@ services:
       timeout: 5s
       retries: 5
 
+  # MinIO Object Storage
+  minio:
+    image: minio/minio
+    container_name: projetoravenna_minio
+    restart: unless-stopped
+    command: server /data --console-address ":9003" --address ":9002"
+    environment:
+      MINIO_ROOT_USER: ${MINIO_ROOT_USER:-minioadmin}
+      MINIO_ROOT_PASSWORD: ${MINIO_ROOT_PASSWORD:-minioadmin}
+      # CORS Security
+      MINIO_API_CORS_ALLOW_ORIGIN: "${CORS_ALLOWED_ORIGINS:-https://projetoravenna.cloud,https://www.projetoravenna.cloud,http://localhost:3000}"
+      MINIO_BROWSER_REDIRECT_URL: "${MINIO_PUBLIC_DOMAIN_URL:-https://minio.projetoravenna.cloud}"
+    volumes:
+      - minio_data:/data
+    ports:
+      - "9002:9002" # API Port
+      - "9003:9003" # Console Port
+    networks:
+      - projetoravenna_network
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:9002/minio/health/live"]
+      interval: 30s
+      timeout: 20s
+      retries: 3
+
+  # MinIO Bucket Setup
+  createbuckets:
+    image: minio/mc
+    container_name: projetoravenna_createbuckets
+    depends_on:
+      minio:
+        condition: service_healthy
+    entrypoint: >
+      /bin/sh -c "
+      /usr/bin/mc alias set myminio http://minio:9002 ${MINIO_ROOT_USER:-minioadmin} ${MINIO_ROOT_PASSWORD:-minioadmin};
+      /usr/bin/mc mb myminio/${MINIO_BUCKET_NAME:-projetoravenna};
+      /usr/bin/mc anonymous set download myminio/${MINIO_BUCKET_NAME:-projetoravenna};
+      exit 0;
+      "
+    networks:
+      - projetoravenna_network
+
   # Django Backend
   backend:
     build:
@@ -33,10 +75,18 @@ services:
       # Database
       DATABASE_URL: postgresql://postgres:${DB_PASSWORD:-postgres_secure_password_123}@db:5432/projetoravenna_db
       
+      # MinIO
+      USE_MINIO: ${USE_MINIO:-True}
+      MINIO_ROOT_USER: ${MINIO_ROOT_USER:-minioadmin}
+      MINIO_ROOT_PASSWORD: ${MINIO_ROOT_PASSWORD:-minioadmin}
+      MINIO_BUCKET_NAME: ${MINIO_BUCKET_NAME:-projetoravenna}
+      MINIO_ENDPOINT_URL: ${MINIO_ENDPOINT_URL:-http://minio:9002}
+      MINIO_PUBLIC_DOMAIN: ${MINIO_PUBLIC_DOMAIN:-localhost:9002}
+
       # Allowed Hosts & CORS
       ALLOWED_HOSTS: api.projetoravenna.cloud,localhost,127.0.0.1,backend
-      CORS_ALLOWED_ORIGINS: https://projetoravenna.cloud,https://www.projetoravenna.cloud
-      CSRF_TRUSTED_ORIGINS: https://api.projetoravenna.cloud
+      CORS_ALLOWED_ORIGINS: https://projetoravenna.cloud,https://www.projetoravenna.cloud,http://localhost:8000,http://127.0.0.1:8000,http://localhost:3000,http://localhost:3001
+      CSRF_TRUSTED_ORIGINS: https://api.projetoravenna.cloud,http://localhost:8000,http://127.0.0.1:8000,http://localhost:3000,http://localhost:3001
       
       # Gunicorn Configuration
       GUNICORN_WORKERS: ${GUNICORN_WORKERS:-3}
@@ -49,6 +99,8 @@ services:
     #   - "8000:8000"
     depends_on:
       db:
+        condition: service_healthy
+      minio:
         condition: service_healthy
     networks:
       - projetoravenna_network
@@ -86,7 +138,11 @@ services:
     restart: unless-stopped
     environment:
       NEXT_PUBLIC_API_URL: https://api.projetoravenna.cloud/api/v1
+      INTERNAL_API_URL: http://backend:8000/api/v1
       NODE_ENV: production
+      IS_DOCKER: "true"
+      NEXT_PUBLIC_CAPTCHA_PROVIDER: hcaptcha
+      NEXT_PUBLIC_CAPTCHA_SITEKEY: 10000000-ffff-ffff-ffff-000000000001
     # Portas comentadas - acesso via Cloudflare Tunnel
     ports:
       - "3001:3001"
@@ -106,6 +162,8 @@ volumes:
     name: projetoravenna_postgres_data
   media_data:
     name: projetoravenna_media_data
+  minio_data:
+    name: projetoravenna_minio_data
 
 networks:
   projetoravenna_network:

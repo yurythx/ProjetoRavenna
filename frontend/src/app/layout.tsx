@@ -1,10 +1,18 @@
 import type { Metadata, Viewport } from "next";
+import { Roboto } from "next/font/google";
 import "./globals.css";
 import Providers from "./providers";
 import { Header } from "@/components/Header";
 import { ModuleAlert } from "@/components/ModuleAlert";
 import { ToastContainer } from "@/components/ToastContainer";
 import { ThemeProvider } from "@/contexts/ThemeContext";
+
+const roboto = Roboto({
+  weight: ['300', '400', '500', '700', '900'],
+  subsets: ['latin'],
+  display: 'swap',
+  variable: '--font-sans',
+});
 
 export const metadata: Metadata = {
   title: {
@@ -36,7 +44,7 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="pt-BR" suppressHydrationWarning data-scroll-behavior="smooth">
-      <body className="antialiased min-h-screen flex flex-col">
+      <body className={`${roboto.variable} antialiased min-h-screen flex flex-col`}>
         <ThemeProvider>
           <Providers>
             <ToastContainer />

@@ -156,26 +156,6 @@ fi
 echo -e "${YELLOW}📁 Collecting static files...${NC}"
 docker-compose exec -T backend python manage.py collectstatic --noinput
 
-# Setup MinIO bucket automatically
-echo -e "${YELLOW}🪣 Setting up MinIO bucket...${NC}"
-sleep 5  # Wait for MinIO to be fully ready
-
-# Configure MinIO client and create bucket
-MINIO_USER=${MINIO_ROOT_USER:-minioadmin}
-MINIO_PASS=${MINIO_ROOT_PASSWORD:-minioadmin_secure_password_123}
-BUCKET_NAME=${MINIO_BUCKET_NAME:-projetoravenna}
-
-docker-compose exec -T minio mc alias set myminio http://localhost:9000 "$MINIO_USER" "$MINIO_PASS" 2>/dev/null || true
-
-# Check if bucket exists, create if not
-if docker-compose exec -T minio mc ls myminio/$BUCKET_NAME 2>/dev/null; then
-    echo -e "${GREEN}✅ Bucket '$BUCKET_NAME' already exists${NC}"
-else
-    docker-compose exec -T minio mc mb myminio/$BUCKET_NAME
-    docker-compose exec -T minio mc anonymous set download myminio/$BUCKET_NAME
-    echo -e "${GREEN}✅ Bucket '$BUCKET_NAME' created and configured${NC}"
-fi
-
 # Check status
 echo -e "${YELLOW}📊 Container Status:${NC}"
 docker-compose ps
@@ -186,9 +166,9 @@ echo ""
 echo "Next steps:"
 echo "1. Create superuser: docker-compose exec backend python manage.py createsuperuser"
 echo "2. Configure Cloudflare Tunnel to point to:"
-echo "   - projetoravenna.cloud -> http://frontend:3001"
-echo "   - api.projetoravenna.cloud -> http://backend:8000"
-echo "   - minio.projetoravenna.cloud -> http://minio:9000 (para imagens)"
+echo "   - projetoravenna.cloud -> http://localhost:3001 (Frontend)"
+echo "   - api.projetoravenna.cloud -> http://localhost:8000 (Nginx/Backend)"
+echo "   - minio.projetoravenna.cloud -> http://localhost:9002 (MinIO API)"
 echo ""
 echo "Access your application at:"
 echo "- Frontend: https://projetoravenna.cloud"

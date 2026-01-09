@@ -1,7 +1,7 @@
 import { NextRequest } from 'next/server';
 
-const ALLOWED_HOSTS = new Set(['localhost', '127.0.0.1', 'api.projetoravenna.cloud', 'projetoravenna.cloud']);
-const ALLOWED_PORTS = new Set(['8000', '8001']);
+const ALLOWED_HOSTS = new Set(['localhost', '127.0.0.1', 'api.projetoravenna.cloud', 'projetoravenna.cloud', 'minio.projetoravenna.cloud']);
+const ALLOWED_PORTS = new Set(['8000', '8001', '9002']);
 
 export async function GET(req: NextRequest) {
   try {
@@ -13,6 +13,23 @@ export async function GET(req: NextRequest) {
     if (!ALLOWED_HOSTS.has(target.hostname) || (target.port && !ALLOWED_PORTS.has(target.port))) {
       return new Response(JSON.stringify({ detail: 'Host not allowed' }), { status: 403, headers: { 'content-type': 'application/json' } });
     }
+
+    // Docker environment fix: rewrite localhost:9002 to minio:9002 and ensure HTTP
+    if (process.env.IS_DOCKER === 'true' && (target.hostname === 'localhost' || target.hostname === '127.0.0.1') && target.port === '9002') {
+      target.hostname = 'minio';
+      target.protocol = 'http:';
+    }
+
+    // Add minio to allowed hosts check if rewritten
+    const effectiveHostname = target.hostname;
+    const effectivePort = target.port;
+    
+    if (!ALLOWED_HOSTS.has(effectiveHostname) && effectiveHostname !== 'minio') {
+         if (!ALLOWED_HOSTS.has(target.hostname) || (target.port && !ALLOWED_PORTS.has(target.port))) {
+            return new Response(JSON.stringify({ detail: 'Host not allowed' }), { status: 403, headers: { 'content-type': 'application/json' } });
+         }
+    }
+
     const res = await fetch(target.toString(), { headers: { accept: 'image/*' } });
     if (!res.ok) {
       return new Response(JSON.stringify({ detail: 'Upstream error', status: res.status }), { status: 502, headers: { 'content-type': 'application/json' } });
@@ -27,7 +44,8 @@ export async function GET(req: NextRequest) {
       }
     });
   } catch (e) {
-    return new Response(JSON.stringify({ detail: 'Proxy error' }), { status: 500, headers: { 'content-type': 'application/json' } });
+    console.error('Proxy error details:', e);
+    return new Response(JSON.stringify({ detail: 'Proxy error', error: String(e) }), { status: 500, headers: { 'content-type': 'application/json' } });
   }
 }
 

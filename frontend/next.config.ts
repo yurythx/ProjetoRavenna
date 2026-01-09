@@ -4,7 +4,10 @@ const nextConfig: NextConfig = {
   images: {
     remotePatterns: [
       { protocol: 'http', hostname: 'localhost', port: '8000' },
+      { protocol: 'http', hostname: 'localhost', port: '9002' }, // MinIO Local
       { protocol: 'http', hostname: '127.0.0.1', port: '8000' },
+      { protocol: 'http', hostname: '127.0.0.1', port: '9002' }, // MinIO Local IP
+      { protocol: 'http', hostname: 'minio', port: '9002' }, // Docker Internal
       { protocol: 'https', hostname: 'api.projetoravenna.cloud' },
       { protocol: 'https', hostname: 'minio.projetoravenna.cloud' },
     ],

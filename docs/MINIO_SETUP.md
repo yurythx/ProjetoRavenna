@@ -1,6 +1,6 @@
 # 📦 Guia Completo de Configuração do MinIO
 
-Este documento explica como o MinIO está configurado no ProjetoRavenna e como gerenciá-lo.
+Este documento explica como o MinIO está configurado no ProjetoRavenna e como gerenciá-lo, incluindo configurações de segurança, CORS e integração com Next.js.
 
 ## 📋 Visão Geral
 
@@ -14,21 +14,22 @@ O MinIO é usado como armazenamento de objetos (S3-compatible) para:
 ```
 ┌─────────────┐
 │   Django    │ ──► MinIO (S3 API) ──► Bucket: projetoravenna
-│   Backend   │      http://minio:9000
+│   Backend   │      http://minio:9002
 └─────────────┘
                      │
                      ▼
-              Cloudflare Tunnel
+              Cloudflare Tunnel (ou localhost)
                      │
                      ▼
          https://minio.projetoravenna.cloud
+         (ou http://localhost:9002 em dev)
 ```
 
 ## ⚙️ Configuração
 
-### Variáveis de Ambiente
+### Variáveis de Ambiente (`.env`)
 
-Configure no arquivo `.env` na raiz do projeto:
+Configure estas variáveis no arquivo `.env` na raiz do projeto:
 
 ```env
 # MinIO Credentials
@@ -36,272 +37,123 @@ MINIO_ROOT_USER=minioadmin                    # Username do MinIO
 MINIO_ROOT_PASSWORD=sua_senha_forte_aqui      # Senha do MinIO (OBRIGATÓRIO)
 MINIO_BUCKET_NAME=projetoravenna              # Nome do bucket (padrão: projetoravenna)
 
-# MinIO Public Domain (para acesso via HTTPS)
-MINIO_PUBLIC_DOMAIN=minio.projetoravenna.cloud # Domínio público do MinIO
+# MinIO URLs
+MINIO_ENDPOINT_URL=http://minio:9002          # URL interna (usada pelo backend)
+MINIO_PUBLIC_DOMAIN=minio.projetoravenna.cloud # Domínio público (usado nas URLs geradas)
+MINIO_PUBLIC_DOMAIN_URL=https://minio.projetoravenna.cloud # URL completa para redirects/CORS
+
+# Security & CORS
+CORS_ALLOWED_ORIGINS=https://projetoravenna.cloud,https://www.projetoravenna.cloud,http://localhost:3000
 ```
 
 ### Como Funciona
 
-1. **Docker Compose**: O MinIO roda como container na porta interna `9000`
-2. **Django Storage**: Usa `django-storages` com backend S3 para salvar arquivos
+1. **Docker Compose**:
+   - **API S3**: Porta interna `9002` (Mapeada para `9002` no host)
+   - **Console Web**: Porta interna `9003` (Mapeada para `9003` no host)
+2. **Django Storage**: Usa `django-storages` com backend S3 para salvar arquivos.
 3. **URLs Públicas**: Arquivos são acessíveis via `https://minio.projetoravenna.cloud/projetoravenna/...`
-4. **Cloudflare Tunnel**: Faz proxy HTTPS do MinIO para o domínio público
+4. **Cloudflare Tunnel**: Faz proxy HTTPS do MinIO para o domínio público.
+
+## � Segurança e CORS
+
+### Configuração de CORS
+
+O MinIO está configurado para permitir Cross-Origin Resource Sharing (CORS) apenas de origens confiáveis. Isso é definido nas variáveis de ambiente do serviço `minio` no `docker-compose.yml`:
+
+```yaml
+environment:
+  MINIO_API_CORS_ALLOW_ORIGIN: "${CORS_ALLOWED_ORIGINS}"
+  MINIO_BROWSER_REDIRECT_URL: "${MINIO_PUBLIC_DOMAIN_URL}"
+```
+
+Isso impede que sites de terceiros consumam a banda do seu bucket via requisições diretas (hotlinking via AJAX/Fetch).
+
+### Permissões do Bucket
+
+O bucket é criado automaticamente com política de **leitura pública** (`download`) para que as imagens possam ser exibidas no site sem autenticação para cada requisição.
+
+- ✅ **Leitura**: Pública (Anonymous)
+- ❌ **Escrita**: Privada (Requer credenciais do Django)
 
 ## 🔧 Configuração no Django
 
-O Django está configurado em `backend/config/settings.py`:
+O Django está configurado em `backend/config/settings.py` para usar MinIO quando `USE_MINIO=True`:
 
 ```python
-# Quando USE_MINIO=True:
-DEFAULT_FILE_STORAGE = 'apps.core.storage.MinIOStorage'
-AWS_STORAGE_BUCKET_NAME = 'projetoravenna'
-AWS_S3_ENDPOINT_URL = 'http://minio:9000'  # Interno (Docker network)
-AWS_S3_CUSTOM_DOMAIN = 'minio.projetoravenna.cloud/projetoravenna'  # Público
+if USE_MINIO:
+    AWS_S3_ENDPOINT_URL = config('MINIO_ENDPOINT_URL', default='http://minio:9002')
+    MINIO_PUBLIC_DOMAIN = config('MINIO_PUBLIC_DOMAIN', default='localhost:9002')
+    AWS_S3_CUSTOM_DOMAIN = MINIO_PUBLIC_DOMAIN
+    # ...
 ```
 
-### Por que duas URLs?
+## 🖥️ Configuração no Next.js (Frontend)
 
-- **Interna** (`http://minio:9000`): Django usa para salvar arquivos (dentro da rede Docker)
-- **Pública** (`https://minio.projetoravenna.cloud`): Navegadores usam para carregar imagens (via Cloudflare)
+Para que o componente `<Image />` do Next.js consiga otimizar as imagens vindas do MinIO, é necessário configurar os domínios permitidos em `frontend/next.config.ts`.
 
-## 🚀 Deploy Automático
+A configuração atual suporta tanto **Produção** quanto **Desenvolvimento Local**:
 
-O script `deploy.sh` cria automaticamente o bucket e configura permissões:
-
-```bash
-# O script executa automaticamente:
-docker-compose exec minio mc mb myminio/projetoravenna
-docker-compose exec minio mc anonymous set download myminio/projetoravenna
+```typescript
+images: {
+  remotePatterns: [
+    // Desenvolvimento Local (MinIO na porta 9002)
+    { protocol: 'http', hostname: 'localhost', port: '9002' },
+    { protocol: 'http', hostname: '127.0.0.1', port: '9002' },
+    
+    // Produção
+    { protocol: 'https', hostname: 'minio.projetoravenna.cloud' },
+  ],
+  // ...
+}
 ```
 
-## 🧪 Testar Configuração
+Isso permite que você rode o projeto localmente com imagens apontando para `localhost:9002` e, em produção, elas apontem para `minio.projetoravenna.cloud` sem precisar alterar o código.
 
-### Comando de Teste do Django
+## 🚀 Deploy Automático e Setup
 
-O projeto inclui um comando de management para testar a configuração do MinIO:
+O serviço `createbuckets` no `docker-compose.yml` roda automaticamente na inicialização para:
+1. Criar o bucket se não existir.
+2. Definir a política de acesso como `download` (público).
 
-```bash
-# Teste básico (verifica configurações e conexão)
-docker-compose exec backend python manage.py test_minio
-
-# Teste completo (inclui verificação de bucket e upload)
-docker-compose exec backend python manage.py test_minio --check-bucket --test-upload
-
-# Modo verbose (mostra informações detalhadas)
-docker-compose exec backend python manage.py test_minio --verbose
-```
-
-O comando verifica:
-- ✅ Se MinIO está habilitado
-- ✅ Se todas as configurações estão presentes
-- ✅ Se a conexão com MinIO funciona
-- ✅ Se o bucket existe e tem permissões corretas
-- ✅ Se upload e geração de URL funcionam
+Você não precisa rodar comandos manuais, a menos que queira resetar ou inspecionar.
 
 ## 📝 Comandos Úteis
 
 ### Acessar Console do MinIO
+- **URL**: `http://localhost:9003`
+- **Login**: Use as credenciais do `.env`
 
-```bash
-# Localmente (via porta exposta)
-http://localhost:9003
-
-# Login com credenciais do .env
-```
-
-### Listar arquivos no bucket
-
+### Listar arquivos (via Docker)
 ```bash
 docker-compose exec minio mc ls myminio/projetoravenna --recursive
 ```
 
-### Fazer upload manual
-
+### Upload Manual
 ```bash
 docker-compose exec minio mc cp arquivo.jpg myminio/projetoravenna/articles/banners/
 ```
 
-### Verificar permissões do bucket
-
-```bash
-docker-compose exec minio mc anonymous get myminio/projetoravenna
-```
-
-### Configurar permissões públicas (se necessário)
-
-```bash
-docker-compose exec minio mc anonymous set download myminio/projetoravenna
-```
-
-### Remover arquivo
-
-```bash
-docker-compose exec minio mc rm myminio/projetoravenna/path/to/file.jpg
-```
-
-### Estatísticas do bucket
-
-```bash
-docker-compose exec minio mc du myminio/projetoravenna
-```
-
-## 🔒 Segurança
-
-### Permissões do Bucket
-
-O bucket está configurado com permissão **pública de leitura** (`download`):
-- ✅ Qualquer um pode **ler** arquivos (necessário para servir imagens)
-- ❌ Apenas autenticados podem **escrever** (via Django)
-
-### Credenciais
-
-- **Nunca** commite o arquivo `.env` no Git
-- Use senhas fortes para `MINIO_ROOT_PASSWORD`
-- Em produção, considere usar IAM policies do MinIO para controle granular
-
-## 🌐 Cloudflare Tunnel
-
-### Configuração Necessária
-
-O Cloudflare Tunnel precisa ter uma rota configurada:
-
-```
-Hostname: minio.projetoravenna.cloud
-Service:  http://minio:9000
-```
-
-**Importante**: O container do Cloudflare precisa estar na rede `projetoravenna_network`:
-
-```bash
-docker network connect projetoravenna_network cloudflared
-```
-
-### Verificar Configuração
-
-```bash
-# Verificar se Cloudflare está na rede correta
-docker inspect cloudflared | grep projetoravenna_network
-
-# Ver logs do Cloudflare
-docker logs cloudflared
-```
-
-## 🔍 Diagnóstico
-
-### Script de Diagnóstico Automático
-
-Execute o script de diagnóstico para verificar todas as configurações:
-
+### Teste de Diagnóstico
+O projeto inclui um script para verificar toda a configuração:
 ```bash
 ./diagnose_minio.sh
 ```
 
-O script verifica:
-- ✅ Containers Docker (MinIO, Backend, Frontend)
-- ✅ Configurações do MinIO
-- ✅ Conectividade interna
-- ✅ Bucket e permissões
-- ✅ Configurações do Django
-- ✅ Cloudflare Tunnel
-- ✅ Acesso público
-- ✅ Geração de URLs
+## 🌐 Cloudflare Tunnel
 
-### Comando Django de Teste
+Se estiver usando Cloudflare Tunnel, certifique-se de configurar o serviço para a porta **9002**:
 
-Para testes mais detalhados, use o comando de management:
-
-```bash
-docker-compose exec backend python manage.py test_minio --check-bucket --test-upload --verbose
+```
+Hostname: minio.projetoravenna.cloud
+Service:  http://minio:9002
 ```
 
-## 🐛 Troubleshooting
+## 🎯 Checklist de Verificação
 
-### Problema: Imagens não carregam (502 Bad Gateway)
-
-**Causa**: Cloudflare Tunnel não configurado ou bucket sem permissões públicas.
-
-**Solução**:
-1. Verifique se o Cloudflare Tunnel tem a rota para `minio.projetoravenna.cloud`
-2. Verifique permissões: `docker-compose exec minio mc anonymous get myminio/projetoravenna`
-3. Execute o script de diagnóstico: `./diagnose_minio.sh`
-
-### Problema: URLs apontam para api.projetoravenna.cloud
-
-**Causa**: `MINIO_PUBLIC_DOMAIN` não configurado ou Django não está usando MinIO.
-
-**Solução**:
-1. Verifique `.env`: `MINIO_PUBLIC_DOMAIN=minio.projetoravenna.cloud`
-2. Verifique `USE_MINIO=True` no docker-compose.yml
-3. Reinicie o backend: `docker-compose restart backend`
-
-### Problema: Erro ao fazer upload
-
-**Causa**: Credenciais incorretas ou MinIO não acessível.
-
-**Solução**:
-1. Verifique credenciais no `.env`
-2. Verifique se MinIO está rodando: `docker-compose ps minio`
-3. Verifique logs: `docker-compose logs minio`
-
-### Problema: Bucket não existe
-
-**Causa**: Deploy não executou a criação automática do bucket.
-
-**Solução**:
-```bash
-docker-compose exec minio mc mb myminio/projetoravenna
-docker-compose exec minio mc anonymous set download myminio/projetoravenna
-```
-
-## 📊 Monitoramento
-
-### Ver uso de espaço
-
-```bash
-docker-compose exec minio mc du myminio/projetoravenna
-```
-
-### Ver logs do MinIO
-
-```bash
-docker-compose logs -f minio
-```
-
-### Health Check
-
-O MinIO tem health check configurado no Docker Compose. Verifique:
-
-```bash
-docker-compose ps minio
-```
-
-## 🔄 Backup
-
-### Backup do bucket (futuro)
-
-```bash
-# Criar backup do bucket
-docker-compose exec minio mc mirror myminio/projetoravenna /backup/minio/
-
-# Restaurar backup
-docker-compose exec minio mc mirror /backup/minio/ myminio/projetoravenna
-```
-
-## 📚 Referências
-
-- [Documentação MinIO](https://min.io/docs/)
-- [django-storages S3](https://django-storages.readthedocs.io/en/latest/backends/amazon-S3.html)
-- [Cloudflare Tunnel](https://developers.cloudflare.com/cloudflare-one/connections/connect-apps/)
-
-## 🎯 Checklist de Configuração
-
-- [ ] Variáveis `MINIO_ROOT_USER` e `MINIO_ROOT_PASSWORD` configuradas no `.env`
-- [ ] `MINIO_PUBLIC_DOMAIN` configurado no `.env`
-- [ ] Bucket criado e com permissões públicas
-- [ ] Cloudflare Tunnel configurado para `minio.projetoravenna.cloud`
-- [ ] Cloudflare na rede `projetoravenna_network`
-- [ ] Comando `test_minio` passa sem erros
-- [ ] Script `diagnose_minio.sh` mostra tudo OK
-- [ ] Teste de upload funcionando
-- [ ] URLs geradas apontam para `minio.projetoravenna.cloud`
-- [ ] Imagens carregam corretamente no frontend
+- [ ] Variáveis `MINIO_ROOT_USER`, `PASSWORD` e `BUCKET_NAME` no `.env`
+- [ ] `MINIO_ENDPOINT_URL` apontando para `http://minio:9002`
+- [ ] `CORS_ALLOWED_ORIGINS` configurado com domínios do frontend
+- [ ] Bucket criado e com permissão pública (verificado via `mc anonymous get`)
+- [ ] `next.config.ts` inclui `minio.projetoravenna.cloud` e `localhost:9002`
+- [ ] Imagens carregam no frontend sem erros 403 (CORS) ou 404 (Not Found)

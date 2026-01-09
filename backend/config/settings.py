@@ -131,20 +131,55 @@ STATIC_ROOT = os.path.join(BASE_DIR, 'staticfiles')
 STATICFILES_STORAGE = 'whitenoise.storage.CompressedManifestStaticFilesStorage'
 
 # CSRF
-CSRF_TRUSTED_ORIGINS = config('CSRF_TRUSTED_ORIGINS', default="http://localhost:3000", cast=Csv())
+CSRF_TRUSTED_ORIGINS = config('CSRF_TRUSTED_ORIGINS', default="http://localhost:3000,http://localhost:8000", cast=Csv())
 
 # ============================================================================
-# File Storage Configuration (Local)
+# File Storage Configuration (MinIO / Local)
 # ============================================================================
 
-STORAGES = {
-    "default": {
-        "BACKEND": "django.core.files.storage.FileSystemStorage",
-    },
-    "staticfiles": {
-        "BACKEND": "whitenoise.storage.CompressedManifestStaticFilesStorage",
-    },
-}
+USE_MINIO = config('USE_MINIO', default=False, cast=bool)
+
+if USE_MINIO:
+    # MinIO Credentials & Config
+    AWS_ACCESS_KEY_ID = config('MINIO_ROOT_USER', default='minioadmin')
+    AWS_SECRET_ACCESS_KEY = config('MINIO_ROOT_PASSWORD', default='minioadmin')
+    AWS_STORAGE_BUCKET_NAME = config('MINIO_BUCKET_NAME', default='projetoravenna')
+    AWS_S3_ENDPOINT_URL = config('MINIO_ENDPOINT_URL', default='http://minio:9002') # Internal (Docker)
+    MINIO_PUBLIC_DOMAIN = config('MINIO_PUBLIC_DOMAIN', default='localhost:9002') # External (Browser)
+
+    # Boto3 Settings
+    AWS_S3_REGION_NAME = 'us-east-1' # Required by boto3
+    AWS_S3_SIGNATURE_VERSION = 's3v4'
+    AWS_S3_FILE_OVERWRITE = False
+    AWS_S3_VERIFY = False # Disable SSL verification for internal communication if needed
+    AWS_S3_URL_PROTOCOL = 'http:' # Force HTTP for MinIO
+    AWS_S3_SECURE_URLS = False # Force HTTP (disable HTTPS)
+    
+    # Custom Domain for URLs (Cloudflare -> MinIO)
+    # Append bucket name if not using virtual-host style (e.g. minio.domain/bucket/file)
+    if 'localhost' in MINIO_PUBLIC_DOMAIN or '127.0.0.1' in MINIO_PUBLIC_DOMAIN or 'minio.projetoravenna.cloud' in MINIO_PUBLIC_DOMAIN:
+        AWS_S3_CUSTOM_DOMAIN = f'{MINIO_PUBLIC_DOMAIN}/{AWS_STORAGE_BUCKET_NAME}'
+    else:
+        AWS_S3_CUSTOM_DOMAIN = MINIO_PUBLIC_DOMAIN
+    
+    STORAGES = {
+        "default": {
+            "BACKEND": "apps.core.storage.MinIOStorage",
+        },
+        "staticfiles": {
+            "BACKEND": "whitenoise.storage.CompressedManifestStaticFilesStorage",
+        },
+    }
+else:
+    # Local File System
+    STORAGES = {
+        "default": {
+            "BACKEND": "django.core.files.storage.FileSystemStorage",
+        },
+        "staticfiles": {
+            "BACKEND": "whitenoise.storage.CompressedManifestStaticFilesStorage",
+        },
+    }
 MEDIA_URL = '/media/'
 
 # Sempre definir MEDIA_ROOT e STATIC_ROOT para garantir compatibilidade com bibliotecas
@@ -170,7 +205,7 @@ AUTH_USER_MODEL = 'accounts.CustomUser'
 
 # CORS
 # CORS_ALLOW_ALL_ORIGINS = True # Disabled in favor of specific origins for security
-CORS_ALLOWED_ORIGINS = config('CORS_ALLOWED_ORIGINS', default="http://localhost:3000", cast=Csv())
+CORS_ALLOWED_ORIGINS = config('CORS_ALLOWED_ORIGINS', default="http://localhost:3000,http://localhost:3000,http://localhost:8000,http://127.0.0.1:8000", cast=Csv())
 CORS_ALLOW_CREDENTIALS = True
 
 # REST Framework

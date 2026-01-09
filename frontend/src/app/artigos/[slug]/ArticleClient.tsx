@@ -421,7 +421,7 @@ export default function ArticleClient({ slug, initialData }: { slug: string, ini
                         <article
                             ref={articleRef}
                             suppressHydrationWarning
-                            className="prose prose-lg prose-slate dark:prose-invert max-w-none"
+                            className="prose prose-lg prose-slate dark:prose-invert max-w-none overflow-anchor-none"
                             dangerouslySetInnerHTML={{
                                 __html: sanitize(data.content || ''),
                             }}
