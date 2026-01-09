@@ -42,12 +42,11 @@ services:
       GUNICORN_WORKERS: ${GUNICORN_WORKERS:-3}
       GUNICORN_TIMEOUT: ${GUNICORN_TIMEOUT:-120}
     volumes:
-      - ./backend/media:/app/media
+      - media_data:/app/media
       - ./backend/staticfiles:/app/staticfiles
-    # Portas comentadas - acesso via Cloudflare Tunnel
-    # Descomente apenas se precisar acessar diretamente via IP
-    ports:
-      - "8000:8000"
+    # Portas comentadas - acesso via Nginx (interno)
+    # ports:
+    #   - "8000:8000"
     depends_on:
       db:
         condition: service_healthy
@@ -59,6 +58,22 @@ services:
       timeout: 10s
       retries: 5
       start_period: 40s
+
+  # Nginx (API Gateway & Media Server)
+  nginx:
+    build:
+      context: ./nginx
+      dockerfile: Dockerfile
+    container_name: projetoravenna_nginx
+    restart: unless-stopped
+    ports:
+      - "8000:80" # Expose Nginx on Host 8000 (Cloudflare tunnel connects here)
+    volumes:
+      - media_data:/var/www/media:ro
+    depends_on:
+      - backend
+    networks:
+      - projetoravenna_network
 
   # Next.js Frontend
   frontend:
@@ -89,6 +104,8 @@ services:
 volumes:
   postgres_data:
     name: projetoravenna_postgres_data
+  media_data:
+    name: projetoravenna_media_data
 
 networks:
   projetoravenna_network:
