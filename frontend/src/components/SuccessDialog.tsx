@@ -23,7 +23,7 @@ export function SuccessDialog({
     if (slug && typeof navigator !== 'undefined') {
       const url = `${window.location.origin}/artigos/${slug}`;
       navigator.clipboard.writeText(url);
-      show({ type: 'success', message: 'Link copiado para a área de transferência!' });
+      show({ type: 'success', message: 'Link copiado para a área de transferência.' });
     }
   };
 

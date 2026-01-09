@@ -145,16 +145,16 @@ export function ArticleForm({ initial }: { initial?: Article }) {
         const { data } = await api.post('/articles/posts/', form);
         queryClient.invalidateQueries({ queryKey: ['articles'] });
         try { localStorage.removeItem('articleDraft'); } catch { }
-        setSuccessData({ open: true, slug: data.slug, title: 'Artigo Publicado!' });
+        setSuccessData({ open: true, slug: data.slug, title: 'Artigo publicado com sucesso!' });
       } else {
         const { data } = await api.put(`/articles/posts/${initial.slug}/`, form);
         queryClient.invalidateQueries({ queryKey: ['articles'] });
         queryClient.invalidateQueries({ queryKey: ['article', initial.slug] });
-        setSuccessData({ open: true, slug: data.slug, title: 'Artigo Atualizado!' });
+        setSuccessData({ open: true, slug: data.slug, title: 'Artigo atualizado com sucesso!' });
       }
     } catch (err: any) {
-      setError('Falha ao salvar');
-      show({ type: 'error', message: 'Falha ao salvar artigo' });
+      setError('Não foi possível salvar o artigo.');
+      show({ type: 'error', message: 'Erro ao salvar o artigo' });
     } finally {
       setLoading(false);
     }
@@ -164,9 +164,9 @@ export function ArticleForm({ initial }: { initial?: Article }) {
     try {
       const d = { title, content, category, is_published: isPublished, tags };
       localStorage.setItem('articleDraft', JSON.stringify(d));
-      show({ type: 'success', message: 'Rascunho salvo' });
+      show({ type: 'success', message: 'Rascunho salvo com sucesso' });
     } catch {
-      show({ type: 'error', message: 'Falha ao salvar rascunho' });
+      show({ type: 'error', message: 'Não foi possível salvar o rascunho' });
     }
   }
 

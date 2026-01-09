@@ -45,7 +45,7 @@ export function ChangePasswordModal({ isOpen, onClose }: ChangePasswordModalProp
 
         try {
             await api.post('/auth/change-password/', formData);
-            toast.success('Senha alterada com sucesso!');
+            toast.success('Sua senha foi alterada com sucesso!');
             setFormData({ old_password: '', new_password: '', confirm_password: '' });
             onClose();
         } catch (error: any) {
@@ -55,7 +55,7 @@ export function ChangePasswordModal({ isOpen, onClose }: ChangePasswordModalProp
                 const firstError = Object.values(errorData)[0];
                 toast.error(Array.isArray(firstError) ? firstError[0] : String(firstError));
             } else {
-                toast.error('Erro ao alterar senha');
+                toast.error('Não foi possível alterar a senha. Tente novamente.');
             }
         } finally {
             setIsLoading(false);

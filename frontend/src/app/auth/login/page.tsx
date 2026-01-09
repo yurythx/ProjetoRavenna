@@ -32,7 +32,7 @@ function LoginContent() {
     setErrorDetails([]);
     try {
       await login(identifier, password, remember);
-      show({ type: 'success', message: `Bem-vindo${identifier ? `, ${identifier}` : ''}!` });
+      show({ type: 'success', message: `Que bom te ver novamente${identifier ? `, ${identifier}` : ''}!` });
       setSuccessOpen(true);
       setTimeout(() => {
         setSuccessOpen(false);
@@ -46,22 +46,22 @@ function LoginContent() {
         // Erro de rede ou servidor inacessível
         message = 'Servidor indisponível';
         details = [
-          'Não foi possível conectar ao backend.',
+          'Não conseguimos conectar ao servidor.',
           'Verifique sua conexão com a internet.',
-          'O servidor pode estar em manutenção.'
+          'O sistema pode estar em manutenção.'
         ];
       } else if (err.response.status >= 500) {
         // Erro interno do servidor
         message = 'Erro no servidor';
-        details = ['Ocorreu um erro interno no backend. Tente novamente mais tarde.'];
+        details = ['Algo deu errado do nosso lado. Tente novamente em instantes.'];
       } else {
         // Erros de cliente (400, 401, 403)
         const resp = err.response.data || {};
         if (resp.detail) {
           message = String(resp.detail);
           if (message.includes('No active account') || message.includes('Authentication credentials were not provided')) {
-            message = 'Credenciais inválidas';
-            details = ['Verifique se seu email e senha estão corretos.'];
+            message = 'Email ou senha incorretos';
+            details = ['Por favor, verifique suas credenciais e tente novamente.'];
           }
         } else {
           message = 'Dados inválidos';
@@ -173,8 +173,8 @@ function LoginContent() {
           />
           <SuccessDialog
             open={successOpen}
-            title="Bem-vindo"
-            description={`Autenticado${identifier ? ` como ${identifier}` : ''}. Redirecionando...`}
+            title="Boas-vindas!"
+            description={`Login realizado com sucesso${identifier ? ` como ${identifier}` : ''}. Entrando...`}
             onClose={() => {
               setSuccessOpen(false);
               router.push(next);

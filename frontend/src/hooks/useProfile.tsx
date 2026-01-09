@@ -40,10 +40,10 @@ export function useProfile() {
         },
         onSuccess: (data) => {
             queryClient.setQueryData(['profile'], data);
-            toast.success('Perfil atualizado com sucesso!');
+            toast.success('Seus dados foram atualizados!');
         },
         onError: (error: any) => {
-            const message = error.response?.data?.detail || 'Erro ao atualizar perfil';
+            const message = error.response?.data?.detail || 'Não foi possível atualizar o perfil';
             toast.error(message);
         },
     });
@@ -62,10 +62,10 @@ export function useProfile() {
         },
         onSuccess: (data) => {
             queryClient.setQueryData(['profile'], data);
-            toast.success('Foto de perfil atualizada!');
+            toast.success('Sua foto de perfil foi atualizada!');
         },
         onError: (error: any) => {
-            const message = error.response?.data?.avatar?.[0] || 'Erro ao enviar foto';
+            const message = error.response?.data?.avatar?.[0] || 'Não foi possível enviar a foto';
             toast.error(message);
         },
     });

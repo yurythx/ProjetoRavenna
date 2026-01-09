@@ -122,10 +122,10 @@ export default function ArticleClient({ slug, initialData }: { slug: string, ini
             queryClient.invalidateQueries({
                 predicate: (q) => Array.isArray(q.queryKey) && (q.queryKey[0] === 'articles' || (q.queryKey[0] === 'article' && q.queryKey[1] === data.slug)),
             });
-            show({ type: 'success', message: 'Artigo deletado com sucesso' });
+            show({ type: 'success', message: 'Artigo excluído com sucesso' });
             router.push('/artigos');
         } catch {
-            show({ type: 'error', message: 'Falha ao deletar artigo' });
+            show({ type: 'error', message: 'Não foi possível excluir o artigo' });
         }
     }
 
