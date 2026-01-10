@@ -75,10 +75,10 @@ services:
       # COMUNICAÇÃO INTERNA (Django -> MinIO): Usa nome do container Docker
       - MINIO_ENDPOINT_URL=http://minio:9000
       # COMUNICAÇÃO EXTERNA (Navegador -> MinIO): Usa domínio público real
-      # ⚠️ IMPORTANTE: Mude para seu domínio real em produção!
+      # ⚠️ IMPORTANTE: NÃO adicione https:// - Django adiciona automaticamente!
       # Desenvolvimento local: localhost:9000
-      # Produção: https://minio.projetoravenna.cloud
-      - MINIO_PUBLIC_DOMAIN=https://minio.projetoravenna.cloud
+      # Produção: minio.projetoravenna.cloud (SEM protocolo)
+      - MINIO_PUBLIC_DOMAIN=minio.projetoravenna.cloud
       - USE_MINIO=True
     depends_on:
       db:
