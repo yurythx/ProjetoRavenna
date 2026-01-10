@@ -25,8 +25,7 @@ RUN pip install --no-cache-dir --upgrade pip && \
 # Copy project
 COPY . /app/
 
-# Make entrypoint executable
-COPY entrypoint.sh /app/entrypoint.sh
+# Make entrypoint executable (Fix permission issue on Windows/Linux mount)
 RUN chmod +x /app/entrypoint.sh
 
 # Run entrypoint.sh
