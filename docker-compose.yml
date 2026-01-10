@@ -93,13 +93,13 @@ services:
       context: ./frontend
       dockerfile: Dockerfile
       args:
-        NEXT_PUBLIC_API_URL: https://api.projetoravenna.cloud
+        NEXT_PUBLIC_API_URL: https://api.projetoravenna.cloud/api/v1
     ports:
       - "3001:3001"
     environment:
       - NODE_ENV=production
       - PORT=3001
-      - NEXT_PUBLIC_API_URL=https://api.projetoravenna.cloud
+      - NEXT_PUBLIC_API_URL=https://api.projetoravenna.cloud/api/v1
     depends_on:
       - backend
     healthcheck:
