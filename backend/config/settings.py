@@ -146,8 +146,8 @@ if USE_MINIO:
     AWS_ACCESS_KEY_ID = config('MINIO_ROOT_USER', default='minioadmin')
     AWS_SECRET_ACCESS_KEY = config('MINIO_ROOT_PASSWORD', default='minioadmin')
     AWS_STORAGE_BUCKET_NAME = config('MINIO_BUCKET_NAME', default='projetoravenna')
-    AWS_S3_ENDPOINT_URL = config('MINIO_ENDPOINT_URL', default='http://minio:9002') # Internal (Docker)
-    MINIO_PUBLIC_DOMAIN = config('MINIO_PUBLIC_DOMAIN', default='localhost:9002') # External (Browser)
+    AWS_S3_ENDPOINT_URL = config('MINIO_ENDPOINT_URL', default='http://minio:9000') # Internal (Docker)
+    MINIO_PUBLIC_DOMAIN = config('MINIO_PUBLIC_DOMAIN', default='localhost:9000') # External (Browser)
 
     # Boto3 Settings
     AWS_S3_REGION_NAME = 'us-east-1' # Required by boto3
