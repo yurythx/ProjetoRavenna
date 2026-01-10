@@ -56,18 +56,23 @@ Salvar: `Ctrl+O`, `Enter`, `Ctrl+X`
 chmod +x deploy.sh backend/entrypoint.sh
 ```
 
-### 4. Deploy
+### 4. Deploy com Docker Compose
 
 ```bash
-./deploy.sh
+# Iniciar todos os serviços (Backend, Postgres, Redis, MinIO)
+docker-compose up -d --build
 ```
 
-Aguarde 5-10 minutos. Script faz tudo automaticamente.
+Aguarde alguns minutos. O script de inicialização (`entrypoint.sh`) irá:
+1. Esperar o banco de dados ficar pronto.
+2. Rodar as migrações do Django.
+3. Coletar arquivos estáticos.
+4. Iniciar o servidor Gunicorn.
 
 ### 5. Criar Superuser
 
 ```bash
-docker-compose exec backend python manage.py createsuperuser
+docker-compose exec web python manage.py createsuperuser
 ```
 
 ## Cloudflare Tunnel

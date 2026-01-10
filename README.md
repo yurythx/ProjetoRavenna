@@ -31,15 +31,31 @@ ProjetoRavenna/
 ## 🔧 Desenvolvimento Local
 
 ```bash
-# Instalar dependências
-cd backend && pip install -r requirements.txt
-cd frontend && npm install
+# 1. Configurar variáveis de ambiente
+cp .env.example .env
+# (Opcional) Editar .env se necessário
 
-# Iniciar serviços
-docker-compose up -d
+# 2. Iniciar ambiente completo com Docker
+docker-compose up --build
 
-# Criar superuser
-docker-compose exec backend python manage.py createsuperuser
+# 3. Acessar
+# O sistema estará rodando em:
+# - Frontend: http://localhost:3001
+# - API: http://localhost:8000
+# - MinIO Console: http://localhost:9001 (user: minioadmin / pass: minioadmin)
+# - MailHog (Emails): Logs no terminal
+```
+
+### Rodando Testes
+
+```bash
+# Rodar todos os testes dentro do container
+docker-compose exec web python manage.py test apps.articles.tests
+
+# Rodar localmente (sem Docker)
+cd backend
+pip install -r requirements.txt
+python manage.py test apps.articles.tests
 ```
 
 ## 📦 Git Workflow (Como subir alterações)
