@@ -58,7 +58,7 @@ services:
       exit 0;
       "
 
-  web:
+  backend:
     build: 
       context: ./backend
       dockerfile: Dockerfile
@@ -72,8 +72,13 @@ services:
     environment:
       - DATABASE_URL=postgres://postgres:postgres@db:5432/projetoravenna
       - REDIS_URL=redis://redis:6379/1
+      # COMUNICAÇÃO INTERNA (Django -> MinIO): Usa nome do container Docker
       - MINIO_ENDPOINT_URL=http://minio:9000
-      - MINIO_PUBLIC_DOMAIN=localhost:9000
+      # COMUNICAÇÃO EXTERNA (Navegador -> MinIO): Usa domínio público real
+      # ⚠️ IMPORTANTE: Mude para seu domínio real em produção!
+      # Desenvolvimento local: localhost:9000
+      # Produção: https://minio.projetoravenna.cloud
+      - MINIO_PUBLIC_DOMAIN=https://minio.projetoravenna.cloud
       - USE_MINIO=True
     depends_on:
       db:
@@ -82,6 +87,26 @@ services:
         condition: service_healthy
       minio:
         condition: service_healthy
+
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+      args:
+        NEXT_PUBLIC_API_URL: https://api.projetoravenna.cloud
+    ports:
+      - "3001:3001"
+    environment:
+      - NODE_ENV=production
+      - PORT=3001
+      - NEXT_PUBLIC_API_URL=https://api.projetoravenna.cloud
+    depends_on:
+      - backend
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:3001"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
 
 volumes:
   postgres_data:

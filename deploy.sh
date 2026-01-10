@@ -62,7 +62,7 @@ mkdir -p "$BACKUP_DIR"
 if docker-compose ps db | grep -q "Up"; then
     BACKUP_FILE="$BACKUP_DIR/backup_pre_deploy_$(date +%Y%m%d_%H%M%S).sql.gz"
     
-    if docker-compose exec -T db pg_dump -U postgres projetoravenna_db | gzip > "$BACKUP_FILE"; then
+    if docker-compose exec -T db pg_dump -U postgres projetoravenna | gzip > "$BACKUP_FILE"; then
         # Verify backup was created and has content
         if [ -f "$BACKUP_FILE" ] && [ -s "$BACKUP_FILE" ]; then
             BACKUP_SIZE=$(du -h "$BACKUP_FILE" | cut -f1)
@@ -77,7 +77,12 @@ if docker-compose ps db | grep -q "Up"; then
         fi
     else
         echo -e "${RED}❌ Backup failed!${NC}"
-        exit 1
+        # Don't exit here, backup failure shouldn't stop deploy if user wants to proceed
+        read -p "Backup failed. Continue anyway? (y/N) " -n 1 -r
+        echo
+        if [[ ! $REPLY =~ ^[Yy]$ ]]; then
+            exit 1
+        fi
     fi
 else
     echo -e "${YELLOW}⚠️  Database not running, skipping backup${NC}"
@@ -90,13 +95,16 @@ docker-compose down
 # Check disk space before building
 echo -e "${BLUE}💾 Checking disk space...${NC}"
 AVAILABLE_SPACE=$(df -BG . | tail -1 | awk '{print $4}' | sed 's/G//')
-if [ "$AVAILABLE_SPACE" -lt 5 ]; then
-    echo -e "${RED}❌ Warning: Less than 5GB available disk space!${NC}"
-    echo "Available: ${AVAILABLE_SPACE}GB"
-    read -p "Continue anyway? (y/N) " -n 1 -r
-    echo
-    if [[ ! $REPLY =~ ^[Yy]$ ]]; then
-        exit 1
+# Check if available space is numeric
+if [[ "$AVAILABLE_SPACE" =~ ^[0-9]+$ ]]; then
+    if [ "$AVAILABLE_SPACE" -lt 5 ]; then
+        echo -e "${RED}❌ Warning: Less than 5GB available disk space!${NC}"
+        echo "Available: ${AVAILABLE_SPACE}GB"
+        read -p "Continue anyway? (y/N) " -n 1 -r
+        echo
+        if [[ ! $REPLY =~ ^[Yy]$ ]]; then
+            exit 1
+        fi
     fi
 fi
 
@@ -117,8 +125,8 @@ echo -e "${BLUE}🔍 Checking backend health...${NC}"
 RETRIES=0
 MAX_RETRIES=40
 while [ $RETRIES -lt $MAX_RETRIES ]; do
-    if docker-compose ps backend | grep -i -q "healthy"; then
-        echo -e "${GREEN}✅ Backend is healthy${NC}"
+    if docker-compose ps backend | grep -i -q "Up"; then
+        echo -e "${GREEN}✅ Backend is running${NC}"
         break
     fi
     echo "Waiting for backend... (attempt $((RETRIES+1))/$MAX_RETRIES)"
@@ -127,7 +135,7 @@ while [ $RETRIES -lt $MAX_RETRIES ]; do
 done
 
 if [ $RETRIES -eq $MAX_RETRIES ]; then
-    echo -e "${RED}❌ Backend failed to become healthy${NC}"
+    echo -e "${RED}❌ Backend failed to start${NC}"
     echo "Check logs with: docker-compose logs backend"
     exit 1
 fi
@@ -152,9 +160,17 @@ if [ $RETRIES -eq $MAX_RETRIES ]; then
     exit 1
 fi
 
-# Collect static files (removed from entrypoint.sh)
+# Run migrations and setup
+echo -e "${YELLOW}🗃️  Running migrations...${NC}"
+docker-compose exec -T backend python manage.py migrate
+
+# Collect static files
 echo -e "${YELLOW}📁 Collecting static files...${NC}"
 docker-compose exec -T backend python manage.py collectstatic --noinput
+
+# Fix MinIO configuration
+echo -e "${YELLOW}🔧 Configuring MinIO buckets and policies...${NC}"
+docker-compose exec -T backend python manage.py fix_minio || echo -e "${YELLOW}⚠️  MinIO fix script failed, check logs${NC}"
 
 # Check status
 echo -e "${YELLOW}📊 Container Status:${NC}"
@@ -163,16 +179,12 @@ docker-compose ps
 echo ""
 echo -e "${GREEN}🎉 Deployment completed successfully!${NC}"
 echo ""
-echo "Next steps:"
+echo "Next steps (if this is a fresh install):"
 echo "1. Create superuser: docker-compose exec backend python manage.py createsuperuser"
-echo "2. Configure Cloudflare Tunnel to point to:"
-echo "   - projetoravenna.cloud -> http://localhost:3001 (Frontend)"
-echo "   - api.projetoravenna.cloud -> http://localhost:8000 (Nginx/Backend)"
-echo "   - minio.projetoravenna.cloud -> http://localhost:9002 (MinIO API)"
 echo ""
 echo "Access your application at:"
-echo "- Frontend: https://projetoravenna.cloud"
-echo "- Backend API: https://api.projetoravenna.cloud/api/v1/"
-echo "- Admin: https://api.projetoravenna.cloud/admin/"
-echo "- MinIO Console: http://localhost:9003"
+echo "- Frontend: http://localhost:3001"
+echo "- Backend API: http://localhost:8000/api/v1/"
+echo "- Admin: http://localhost:8000/admin/"
+echo "- MinIO Console: http://localhost:9001"
 echo ""

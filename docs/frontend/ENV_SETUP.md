@@ -66,7 +66,7 @@ npm run dev
 
 ## ✅ Verificação
 
-Acesse `http://localhost:3000` e verifique se:
+Acesse `http://localhost:3001` e verifique se:
 - Os cards dos serviços aparecem corretamente
 - Os links externos apontam para suas URLs
 - O card "Artigos & Blog" aponta para `/artigos`

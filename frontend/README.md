@@ -20,7 +20,7 @@ Aplicação Next.js 15 com App Router, TypeScript e TailwindCSS.
    npm run dev
    ```
 
-Acesse [http://localhost:3000](http://localhost:3000).
+Acesse [http://localhost:3001](http://localhost:3001).
 
 ## 📚 Documentação (Pasta `../docs/frontend`)
 
