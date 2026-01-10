@@ -234,6 +234,46 @@ git pull origin main
 
 ---
 
+## 🔧 Troubleshooting
+
+### Problemas Comuns
+
+**Imagens quebradas (403 Forbidden):**
+- Ver: **[docs/TROUBLESHOOTING_MINIO_DOUBLE_HTTPS.md](docs/TROUBLESHOOTING_MINIO_DOUBLE_HTTPS.md)**
+- Causa comum: `MINIO_PUBLIC_DOMAIN` com `https://` (não adicione, Django faz automaticamente)
+
+**Container não inicia:**
+```bash
+docker compose logs nome_do_container
+```
+
+**Erro 502 Bad Gateway:**
+```bash
+docker compose ps
+docker compose restart backend frontend
+```
+
+**Banco de dados:**
+```bash
+docker compose logs db
+docker compose restart db
+```
+
+### Logs
+
+```bash
+# Ver logs em tempo real
+docker compose logs -f backend
+
+# Últimas 50 linhas
+docker compose logs --tail=50 backend
+
+# Todos os serviços
+docker compose logs -f
+```
+
+---
+
 ## 🆘 Suporte e Troubleshooting
 
 ### Problemas Comuns
