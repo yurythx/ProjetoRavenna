@@ -35,8 +35,7 @@ ENV NODE_ENV production
 # Uncomment the following line in case you want to disable telemetry during runtime.
 # ENV NEXT_TELEMETRY_DISABLED 1
 
-# Install curl for healthcheck
-RUN apk add --no-cache curl
+# No curl needed - healthcheck will use built-in node commands
 
 RUN addgroup --system --gid 1001 nodejs
 RUN adduser --system --uid 1001 nextjs
