@@ -26,7 +26,9 @@ RUN pip install --no-cache-dir --upgrade pip && \
 COPY . /app/
 
 # Make entrypoint executable (Fix permission issue on Windows/Linux mount)
-RUN chmod +x /app/entrypoint.sh
+# Ensure Unix line endings (CRLF -> LF) using sed in case of Windows editing
+RUN chmod +x /app/entrypoint.sh && \
+    sed -i 's/\r$//' /app/entrypoint.sh
 
 # Run entrypoint.sh
 ENTRYPOINT ["/app/entrypoint.sh"]
