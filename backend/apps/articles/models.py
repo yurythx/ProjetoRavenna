@@ -54,6 +54,12 @@ class Article(BaseUUIDModel, SlugMixin):
     
     def update_search_vector(self):
         """Update the search vector with weighted content for full-text search"""
+        from django.db import connection
+        
+        # SearchVector is Postgres-specific. Skip for SQLite (tests/dev).
+        if connection.vendor == 'sqlite':
+            return
+
         from django.contrib.postgres.search import SearchVector
         
         # Weight A (highest) for title, Weight B for content
@@ -61,8 +67,19 @@ class Article(BaseUUIDModel, SlugMixin):
             SearchVector('title', weight='A', config='portuguese') +
             SearchVector('content', weight='B', config='portuguese')
         )
-        self.save(update_fields=['search_vector'])
+        # Avoid calling save() again to prevent recursion if called from save()
+        super().save(update_fields=['search_vector'])
     
+    def save(self, *args, **kwargs):
+        # Standard save
+        super().save(*args, **kwargs)
+        
+        # Update search vector automatically
+        # We need to do this after save because SearchVector might need database functions
+        # However, for simple vector updates, we can do it before or after.
+        # But since we are updating a specific field, let's do it here.
+        self.update_search_vector()
+
     # Analytics Methods
     
     def get_view_count(self):

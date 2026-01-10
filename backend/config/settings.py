@@ -137,6 +137,8 @@ CSRF_TRUSTED_ORIGINS = config('CSRF_TRUSTED_ORIGINS', default="http://localhost:
 # File Storage Configuration (MinIO / Local)
 # ============================================================================
 
+MAX_UPLOAD_SIZE = config('MAX_UPLOAD_SIZE', default=5 * 1024 * 1024, cast=int)
+
 USE_MINIO = config('USE_MINIO', default=False, cast=bool)
 
 if USE_MINIO:
@@ -219,6 +221,17 @@ REST_FRAMEWORK = {
         'rest_framework.filters.SearchFilter',
         'rest_framework.filters.OrderingFilter',
     ),
+    'DEFAULT_THROTTLE_CLASSES': [
+        'rest_framework.throttling.AnonRateThrottle',
+        'rest_framework.throttling.UserRateThrottle'
+    ],
+    'DEFAULT_THROTTLE_RATES': {
+        'anon': '100/day',
+        'user': '1000/day',
+        'uploads': '20/hour',  # Custom scope for file uploads
+        'comments': '10/minute', # Custom scope for comments
+        'analytics': '1000/hour', # High throughput for tracking
+    },
     'EXCEPTION_HANDLER': 'apps.core.exceptions.standard_exception_handler',
 }
 
@@ -242,4 +255,37 @@ SIMPLE_JWT = {
 # Proxy Configuration (Cloudflare)
 # Important for correct HTTPS handling when behind a proxy
 SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')
+
+# ============================================================================
+# Cache Configuration (Redis)
+# ============================================================================
+REDIS_URL = config('REDIS_URL', default=None)
+
+if REDIS_URL:
+    CACHES = {
+        "default": {
+            "BACKEND": "django_redis.cache.RedisCache",
+            "LOCATION": REDIS_URL,
+            "OPTIONS": {
+                "CLIENT_CLASS": "django_redis.client.DefaultClient",
+            }
+        }
+    }
+else:
+    CACHES = {
+        "default": {
+            "BACKEND": "django.core.cache.backends.locmem.LocMemCache",
+        }
+    }
+
+# ============================================================================
+# Email Configuration
+# ============================================================================
+EMAIL_BACKEND = config('EMAIL_BACKEND', default='django.core.mail.backends.console.EmailBackend')
+EMAIL_HOST = config('EMAIL_HOST', default='smtp.gmail.com')
+EMAIL_PORT = config('EMAIL_PORT', default=587, cast=int)
+EMAIL_USE_TLS = config('EMAIL_USE_TLS', default=True, cast=bool)
+EMAIL_HOST_USER = config('EMAIL_HOST_USER', default='')
+EMAIL_HOST_PASSWORD = config('EMAIL_HOST_PASSWORD', default='')
+DEFAULT_FROM_EMAIL = config('DEFAULT_FROM_EMAIL', default='noreply@projetoravenna.com')
 

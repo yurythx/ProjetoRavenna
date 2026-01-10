@@ -16,8 +16,9 @@ from rest_framework.response import Response
 from rest_framework.permissions import AllowAny, IsAuthenticated
 from django.shortcuts import get_object_or_404
 from django.core.cache import cache
-from django.db.models import Count, Avg, F, Q
+from django.db.models import Count, Avg, F, Q, Sum
 from django.utils import timezone
+from rest_framework.throttling import ScopedRateThrottle
 
 from .models import Article
 from .analytics_models import ArticleView, ReadingSession
@@ -35,6 +36,8 @@ class ArticleAnalyticsViewSet(viewsets.ViewSet):
     
     # Required for DRF router to work with detail actions
     queryset = Article.objects.all()
+    throttle_classes = [ScopedRateThrottle]
+    throttle_scope = 'analytics'
     
     def get_object(self):
         """
@@ -252,7 +255,11 @@ class ArticleAnalyticsViewSet(viewsets.ViewSet):
         
         # Calculate totals
         total_articles = articles.count()
-        total_views = sum(a.get_view_count() for a in articles)
+        
+        # Optimized: Aggregate views in DB instead of loop
+        # total_views = sum(a.get_view_count() for a in articles) # N+1 problem
+        views_aggregate = ArticleView.objects.filter(article__in=articles).aggregate(total=Count('id'))
+        total_views = views_aggregate['total'] or 0
         
         # Recent views (last 7 days)
         seven_days_ago = timezone.now() - timedelta(days=7)
@@ -261,16 +268,11 @@ class ArticleAnalyticsViewSet(viewsets.ViewSet):
             created_at__gte=seven_days_ago
         ).count()
         
-        # Top performing articles (by views)
-        articles_with_views = [
-            {
-                'article': article,
-                'views': article.get_view_count()
-            }
-            for article in articles
-        ]
-        articles_with_views.sort(key=lambda x: x['views'], reverse=True)
-        top_articles = articles_with_views[:5]
+        # Top performing articles (by views) - Optimized
+        # Instead of sorting in python, use annotate and order_by
+        top_articles_qs = articles.annotate(
+            view_count_annotated=Count('views')
+        ).order_by('-view_count_annotated')[:5]
         
         return Response({
             'total_views': total_views,
@@ -279,13 +281,13 @@ class ArticleAnalyticsViewSet(viewsets.ViewSet):
             'average_views': round(total_views / total_articles, 1) if total_articles > 0 else 0,
             'top_articles': [
                 {
-                    'id': str(item['article'].id),
-                    'title': item['article'].title,
-                    'slug': item['article'].slug,
-                    'views': item['views'],
-                    'unique_views': item['article'].get_unique_views(),
-                    'engagement_rate': item['article'].get_engagement_rate()
+                    'id': str(article.id),
+                    'title': article.title,
+                    'slug': article.slug,
+                    'views': article.view_count_annotated,
+                    'unique_views': article.get_unique_views(), # Still might hit DB, could be further optimized
+                    'engagement_rate': article.get_engagement_rate() # Still hits DB
                 }
-                for item in top_articles
+                for article in top_articles_qs
             ]
         })

@@ -3,6 +3,7 @@ from rest_framework.decorators import action
 from rest_framework.response import Response
 from rest_framework.permissions import IsAuthenticatedOrReadOnly, AllowAny, IsAdminUser
 from drf_spectacular.utils import extend_schema, OpenApiParameter
+from rest_framework.throttling import ScopedRateThrottle
 from .models import Comment, Article
 from .comment_serializers import CommentSerializer, CommentDetailSerializer
 
@@ -15,6 +16,8 @@ class CommentViewSet(viewsets.ModelViewSet):
     """
     serializer_class = CommentSerializer
     permission_classes = [IsAuthenticatedOrReadOnly]
+    throttle_classes = [ScopedRateThrottle]
+    throttle_scope = 'comments'
     
     def get_permissions(self):
         if self.action in ['create']:
@@ -51,16 +54,8 @@ class CommentViewSet(viewsets.ModelViewSet):
         return super().list(request, *args, **kwargs)
     
     def perform_create(self, serializer):
-        # Simple rate limiting for guests (30s per IP)
+        # Rate limiting is now handled by ScopedRateThrottle ('comments')
         user = self.request.user
-        from django.core.cache import cache
-        ip = self.request.META.get('REMOTE_ADDR') or 'unknown'
-        if not user.is_authenticated:
-            key = f"comment_rate:{ip}"
-            if cache.get(key):
-                from rest_framework.exceptions import Throttled
-                raise Throttled(detail="Muitas tentativas. Tente novamente em instantes.")
-            cache.set(key, True, 30)
         comment = serializer.save(author=user if user.is_authenticated else None)
         from django.db import transaction
         from apps.core.notification_utils import notify_comment_reply, notify_article_comment

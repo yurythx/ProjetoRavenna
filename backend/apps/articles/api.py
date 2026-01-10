@@ -1,7 +1,7 @@
 from rest_framework import viewsets, status, permissions
 from rest_framework.response import Response
 from .models import Article, Category, Tag
-from .serializers import ArticleSerializer, CategorySerializer, TagSerializer
+from .serializers import ArticleSerializer, CategorySerializer, TagSerializer, ImageUploadSerializer
 from .services import article_create, article_update
 from .selectors import article_list
 from .filters import ArticleFilter
@@ -11,6 +11,9 @@ from rest_framework.permissions import IsAuthenticatedOrReadOnly
 from rest_framework.views import APIView
 from django.core.files.storage import default_storage
 from django.core.files.base import ContentFile
+from rest_framework.throttling import ScopedRateThrottle
+import uuid
+import os
 
 class CategoryViewSet(viewsets.ModelViewSet):
     queryset = Category.objects.all()
@@ -89,20 +92,27 @@ class ArticleViewSet(viewsets.ModelViewSet):
 
 class UploadImageView(APIView):
     permission_classes = [IsAuthenticatedOrReadOnly]
+    throttle_classes = [ScopedRateThrottle]
+    throttle_scope = 'uploads'
 
     def post(self, request, *args, **kwargs):
-        file = request.FILES.get('file')
-        if not file:
-            return Response({'detail': 'No file provided'}, status=status.HTTP_400_BAD_REQUEST)
-        if not str(file.content_type).startswith('image/'):
-            return Response({'detail': 'Invalid file type'}, status=status.HTTP_400_BAD_REQUEST)
-        max_bytes = 5 * 1024 * 1024
-        if file.size > max_bytes:
-            return Response({'detail': 'File too large (max 5MB)'}, status=status.HTTP_400_BAD_REQUEST)
-        path = default_storage.save(f'articles/uploads/{file.name}', ContentFile(file.read()))
+        serializer = ImageUploadSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        
+        file = serializer.validated_data['file']
+        
+        # Generate UUID filename to prevent collisions and information leakage
+        ext = os.path.splitext(file.name)[1].lower()
+        if not ext:
+            ext = '.jpg' # Fallback
+            
+        filename = f"{uuid.uuid4()}{ext}"
+        path = default_storage.save(f'articles/uploads/{filename}', ContentFile(file.read()))
+        
         # Use storage.url() to get the correct URL (works with both local and MinIO)
         url = default_storage.url(path)
         # Ensure URL is absolute for the frontend (especially for TinyMCE)
         if url.startswith('/'):
             url = request.build_absolute_uri(url)
+            
         return Response({'location': url}, status=status.HTTP_201_CREATED)
