@@ -154,8 +154,14 @@ if USE_MINIO:
     AWS_S3_SIGNATURE_VERSION = 's3v4'
     AWS_S3_FILE_OVERWRITE = False
     AWS_S3_VERIFY = False # Disable SSL verification for internal communication if needed
-    AWS_S3_URL_PROTOCOL = 'https:' # Force HTTPS for MinIO (Production)
-    AWS_S3_SECURE_URLS = True # Force HTTPS
+    
+    # Determine protocol based on public domain (avoid forcing HTTPS on localhost)
+    if 'localhost' in MINIO_PUBLIC_DOMAIN or '127.0.0.1' in MINIO_PUBLIC_DOMAIN:
+        AWS_S3_URL_PROTOCOL = 'http:'
+        AWS_S3_SECURE_URLS = False
+    else:
+        AWS_S3_URL_PROTOCOL = 'https:' # Force HTTPS for production
+        AWS_S3_SECURE_URLS = True
     
     # Custom Domain for URLs (Cloudflare -> MinIO)
     # Append bucket name if not using virtual-host style (e.g. minio.domain/bucket/file)
