@@ -240,11 +240,11 @@ export default function ArticleClient({ slug, initialData }: { slug: string, ini
                 style={{ width: `${progress}%`, background: 'var(--accent)' }} />
 
             {/* Sticky Header */}
-            <div className={`fixed top-0 left-0 right-0 h-16 bg-white/90 dark:bg-black/90 backdrop-blur-md border-b border-gray-200 dark:border-gray-800 z-[60] flex items-center transition-transform duration-300 ${scrolled ? 'translate-y-0' : '-translate-y-full'}`}>
+            <div className={`fixed top-0 left-0 right-0 h-16 bg-white dark:bg-gray-900 border-b border-gray-300 dark:border-gray-700 shadow-lg z-[60] flex items-center transition-transform duration-300 ${scrolled ? 'translate-y-0' : '-translate-y-full'}`}>
                 <div className="container-custom flex items-center justify-between">
-                    <h2 className="font-semibold text-sm md:text-base truncate max-w-[60%] opacity-90">{data.title}</h2>
+                    <h2 className="font-semibold text-sm md:text-base truncate max-w-[60%] text-gray-900 dark:text-white">{data.title}</h2>
                     <div className="flex gap-2 items-center">
-                        <div className="flex bg-muted/50 rounded-full border border-border/50 p-1 mr-2 scale-90 md:scale-100">
+                        <div className="flex bg-gray-100 dark:bg-gray-800 rounded-full border border-gray-300 dark:border-gray-600 p-1.5 mr-2">
                             <LikeButton
                                 articleId={data.id}
                                 initialLiked={liked}
@@ -267,12 +267,12 @@ export default function ArticleClient({ slug, initialData }: { slug: string, ini
                                     const el = document.getElementById('mobile-toc');
                                     if (el) el.classList.toggle('hidden');
                                 }}
-                                className="lg:hidden btn btn-outline text-xs h-8 px-3"
+                                className="lg:hidden px-3 py-1.5 text-xs font-medium rounded-lg bg-gray-200 dark:bg-gray-700 text-gray-900 dark:text-white hover:bg-gray-300 dark:hover:bg-gray-600 transition-colors border border-gray-300 dark:border-gray-600"
                             >
                                 Sumário
                             </button>
                         )}
-                        <button onClick={onShare} className="btn btn-primary text-xs py-1 px-3 h-8">Compartilhar</button>
+                        <button onClick={onShare} className="px-4 py-1.5 text-xs font-medium rounded-lg bg-blue-600 text-white hover:bg-blue-700 transition-colors shadow-sm">Compartilhar</button>
                     </div>
                 </div>
                 {/* Mobile TOC Popover */}
