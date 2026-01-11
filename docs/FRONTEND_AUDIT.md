@@ -154,17 +154,18 @@ useEffect(() => {
 
 ## 📋 Checklist de Correções
 
-### Críticas (Fazer AGORA)
+### Críticas (COMPLETAS ✅)
 - [x] Adicionar cache em `useTags()`
 - [x] Adicionar cache em `useCategories()`
 - [x] Corrigir dependências de useEffect em `ArticleClient.tsx`
-- [ ] Adicionar cache em `useArticles()`
-- [ ] Adicionar cache em `useArticle()`
+- [x] Adicionar cache em `useArticles()`
+- [x] Adicionar cache em `useArticle()`
 
-### Importantes (Fazer em Breve)
-- [ ] Adicionar debounce em localStorage saves
-- [ ] Revisar outros componentes com 'use client'
-- [ ] Adicionar error boundaries onde necessário
+### Importantes (COMPLETAS ✅)
+- [x] Adicionar debounce em localStorage saves
+- [x] Criar hook reutilizável `useDebounce`
+- [ ] Revisar outros componentes com 'use client' (baixa prioridade)
+- [ ] Adicionar error boundaries onde necessário (baixa prioridade)
 
 ### Desejáveis (Backlog)
 - [ ] Implementar React.memo em componentes pesados

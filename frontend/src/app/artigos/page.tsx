@@ -60,8 +60,9 @@ function ArticlesContent() {
     } catch { }
   }, []);
 
-  // Update URL and localStorage
+  // Update URL and localStorage (debounced)
   useEffect(() => {
+    // Update URL immediately for better UX
     const qp = new URLSearchParams();
     if (search) qp.set('search', search);
     if (category) qp.set('category', category);
@@ -69,9 +70,15 @@ function ArticlesContent() {
     if (ordering) qp.set('ordering', ordering);
     const qs = qp.toString();
     router.replace(qs ? `${pathname}?${qs}` : pathname);
-    try {
-      localStorage.setItem('artigosFilters', JSON.stringify({ search, category, tags, ordering }));
-    } catch { }
+
+    // Debounce localStorage save to avoid excessive writes
+    const timeoutId = setTimeout(() => {
+      try {
+        localStorage.setItem('artigosFilters', JSON.stringify({ search, category, tags, ordering }));
+      } catch { }
+    }, 1000); // 1 second debounce
+
+    return () => clearTimeout(timeoutId);
   }, [search, category, tags, ordering, pathname, router]);
 
   // Debounce Search
