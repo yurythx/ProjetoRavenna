@@ -276,14 +276,14 @@ export default function ArticleClient({ slug, initialData }: { slug: string, ini
                     </div>
                 </div>
                 {/* Mobile TOC Popover */}
-                <div id="mobile-toc" className="hidden absolute top-full left-0 right-0 bg-background/95 backdrop-blur-lg border-b border-border p-6 shadow-2xl animate-slide-down lg:hidden max-h-[60vh] overflow-y-auto">
-                    <h5 className="font-bold text-xs uppercase tracking-wider text-muted-foreground mb-4">Neste artigo</h5>
+                <div id="mobile-toc" className="hidden absolute top-full left-0 right-0 bg-white dark:bg-gray-900 border-b border-gray-300 dark:border-gray-700 p-6 shadow-2xl lg:hidden max-h-[60vh] overflow-y-auto z-50">
+                    <h5 className="font-bold text-xs uppercase tracking-wider text-gray-600 dark:text-gray-400 mb-4">Neste artigo</h5>
                     <nav className="space-y-3">
                         {toc.map((item, i) => (
                             <a
                                 key={`${item.id}-mob-${i}`}
                                 href={`#${item.id}`}
-                                className={`block text-sm transition-all ${item.id === activeId ? 'text-accent font-bold' : 'text-muted-foreground'}`}
+                                className={`block text-sm transition-all ${item.id === activeId ? 'text-blue-600 dark:text-blue-400 font-bold' : 'text-gray-700 dark:text-gray-300 hover:text-blue-600 dark:hover:text-blue-400'}`}
                                 style={{ marginLeft: `${(item.level - 1) * 8}px` }}
                                 onClick={() => document.getElementById('mobile-toc')?.classList.add('hidden')}
                             >

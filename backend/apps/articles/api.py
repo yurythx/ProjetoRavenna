@@ -72,6 +72,41 @@ class ArticleViewSet(viewsets.ModelViewSet):
 
         return Response(ArticleSerializer(article).data)
 
+    def retrieve(self, request, *args, **kwargs):
+        """
+        Retrieve single article with visibility rules:
+        - Admin: Can view any article
+        - Authenticated: Can view published + own drafts
+        - Anonymous: Can view published only
+        """
+        slug = kwargs.get('slug')
+        article = article_detail(slug=slug, user=request.user)
+        
+        if not article:
+            return Response({'detail': 'Not found.'}, status=status.HTTP_404_NOT_FOUND)
+        
+        # Apply visibility rules
+        user = request.user
+        
+        # Admin sees everything
+        if not (user.is_authenticated and user.is_superuser):
+            # Non-admin users
+            if article.is_published:
+                # Published article - everyone can see
+                pass
+            elif user.is_authenticated and article.author == user:
+                # Own draft - author can see
+                pass
+            else:
+                # Unpublished article from another author - forbidden
+                return Response(
+                    {'detail': 'You do not have permission to view this draft.'}, 
+                    status=status.HTTP_403_FORBIDDEN
+                )
+        
+        serializer = self.get_serializer(article)
+        return Response(serializer.data)
+
     def list(self, request, *args, **kwargs):
         # 1. Selector Layer: Get optimized queryset with visibility logic
         # article_list selector now requires 'user' argument to determine visibility

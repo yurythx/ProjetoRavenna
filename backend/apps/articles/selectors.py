@@ -21,6 +21,7 @@ def article_detail(slug: str, user=None):
             comments_count=Count('comments', filter=models.Q(comments__is_approved=True), distinct=True)
         )
 
+    # Add user-specific annotations for authenticated users (including admins)
     if user and user.is_authenticated:
         queryset = queryset.annotate(
             is_liked_by_user=Exists(
