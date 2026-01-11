@@ -21,6 +21,10 @@ export function useArticle(slug: string, options?: { initialData?: Article }) {
       return data;
     },
     initialData: options?.initialData,
+    staleTime: 2 * 60 * 1000,      // 2 minutes
+    cacheTime: 10 * 60 * 1000,     // 10 minutes (keep longer in memory)
+    refetchOnWindowFocus: false,   // Don't refetch on window focus
+    enabled: !!slug,               // Only fetch if slug exists
   });
 }
 
