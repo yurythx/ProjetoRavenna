@@ -76,7 +76,7 @@ export default function ArticleClient({ slug, initialData }: { slug: string, ini
             setLikeCount(data.like_count || 0);
             setFavorited(!!data.is_favorited);
         }
-    }, [data?.id, data?.is_liked, data?.like_count, data?.is_favorited]);
+    }, [data?.id]); // Only re-run when article ID changes
 
     const [toc, setToc] = useState<{ id: string; text: string; level: number }[]>([]);
 
@@ -174,14 +174,15 @@ export default function ArticleClient({ slug, initialData }: { slug: string, ini
             io.disconnect();
             window.removeEventListener('scroll', scrollHandler);
         };
-    }, [data?.content, show]);
+    }, [data?.id]); // Only re-run when article ID changes, not content
 
     // Track initial view
     useEffect(() => {
         if (data?.id) {
             trackView({});
         }
-    }, [data?.content, show]);
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [data?.id]); // Only track once per article, not on every content change
 
     useEffect(() => {
         const onScroll = () => {
