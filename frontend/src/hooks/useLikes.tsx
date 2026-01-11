@@ -247,7 +247,9 @@ export function useUserFavorites() {
             return data;
         },
         enabled: !!token,
-        staleTime: 1000 * 60 * 5, // Cache for 5 minutes
+        staleTime: 5 * 60 * 1000,      // 5 minutes
+        cacheTime: 10 * 60 * 1000,     // 10 minutes
+        refetchOnWindowFocus: false,
     });
 }
 
@@ -264,6 +266,8 @@ export function useUserLikes() {
             return data;
         },
         enabled: !!token,
-        staleTime: 1000 * 60 * 5, // Cache for 5 minutes
+        staleTime: 5 * 60 * 1000,      // 5 minutes
+        cacheTime: 10 * 60 * 1000,     // 10 minutes
+        refetchOnWindowFocus: false,
     });
 }

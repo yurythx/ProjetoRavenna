@@ -46,6 +46,9 @@ export function useComments(articleId?: string) {
             return data;
         },
         enabled: !!articleId,
+        staleTime: 1 * 60 * 1000,      // 1 minute (comments update frequently)
+        cacheTime: 5 * 60 * 1000,      // 5 minutes
+        refetchOnWindowFocus: false,   // Don't refetch on focus
     });
 
     // Create comment
