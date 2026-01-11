@@ -1,7 +1,7 @@
 'use client';
 
 import Link from 'next/link';
-import { usePathname } from 'next/navigation';
+import { usePathname, useRouter } from 'next/navigation';
 import {
     LayoutDashboard,
     BookOpen,
@@ -12,18 +12,18 @@ import {
     ChevronRight
 } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
-import { redirect } from 'next/navigation';
 import { useEffect } from 'react';
 
 export default function AdminLayout({ children }: { children: React.ReactNode }) {
     const { user, token, isLoading } = useAuth();
     const pathname = usePathname();
+    const router = useRouter();
 
     useEffect(() => {
         if (!isLoading && (!token || !user?.is_staff)) {
-            redirect('/');
+            router.push('/');
         }
-    }, [user, token, isLoading]);
+    }, [user, token, isLoading, router]);
 
     if (isLoading) return (
         <div className="flex items-center justify-center min-h-screen">
@@ -57,8 +57,8 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
                                 key={item.href}
                                 href={item.href}
                                 className={`flex items-center justify-between p-3 rounded-xl transition-all group ${isActive
-                                        ? 'bg-accent text-white shadow-lg shadow-accent/20'
-                                        : 'text-muted-foreground hover:bg-muted hover:text-foreground'
+                                    ? 'bg-accent text-white shadow-lg shadow-accent/20'
+                                    : 'text-muted-foreground hover:bg-muted hover:text-foreground'
                                     }`}
                             >
                                 <div className="flex items-center gap-3">

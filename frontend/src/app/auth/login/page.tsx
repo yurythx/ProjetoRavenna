@@ -87,9 +87,6 @@ function LoginContent() {
     setError(null);
     setErrorDetails([]);
   }, [identifier, password]);
-  useEffect(() => {
-    // redirecionamento ocorre via SuccessDialog para mostrar bem-vindo antes
-  }, []);
 
   return (
     <div className="min-h-screen" style={{ background: 'linear-gradient(135deg, var(--background) 0%, var(--muted) 50%, var(--background) 100%)' }}>
