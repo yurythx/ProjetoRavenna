@@ -11,9 +11,10 @@ export function useCategories(params?: Record<string, unknown>) {
       const { data } = await api.get('/articles/categories/', { params });
       return data;
     },
+    staleTime: 5 * 60 * 1000, // 5 minutes
+    cacheTime: 10 * 60 * 1000, // 10 minutes
     refetchOnWindowFocus: false,
     refetchOnReconnect: false,
     retry: false,
   });
 }
-
