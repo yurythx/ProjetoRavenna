@@ -53,7 +53,7 @@ exec gunicorn config.wsgi:application \
   --threads 2 \
   --timeout $TIMEOUT \
   --graceful-timeout $GRACEFUL_TIMEOUT \
-  --keepalive $KEEPALIVE \
+  --keep-alive $KEEPALIVE \
   --max-requests $MAX_REQUESTS \
   --max-requests-jitter $MAX_REQUESTS_JITTER \
   --access-logfile - \
