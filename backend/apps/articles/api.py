@@ -3,7 +3,7 @@ from rest_framework.response import Response
 from .models import Article, Category, Tag
 from .serializers import ArticleSerializer, CategorySerializer, TagSerializer, ImageUploadSerializer
 from .services import article_create, article_update
-from .selectors import article_list
+from .selectors import article_list, article_detail
 from .filters import ArticleFilter
 from apps.core.permissions import IsAdminOrReadOnly
 from .permissions import IsOwnerOrAdminOrReadOnly
