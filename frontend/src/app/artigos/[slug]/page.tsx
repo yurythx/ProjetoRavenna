@@ -37,13 +37,14 @@ export async function generateMetadata(
 
   const previousImages = (await parent).openGraph?.images || [];
   const images = article.banner ? [article.banner, ...previousImages] : previousImages;
+  const description = article.excerpt || article.content.substring(0, 160).replace(/<[^>]*>/g, '');
 
   return {
     title: article.title,
-    description: article.content.substring(0, 160).replace(/<[^>]*>/g, ''), // Strip HTML for description
+    description: description,
     openGraph: {
       title: article.title,
-      description: article.content.substring(0, 160).replace(/<[^>]*>/g, ''),
+      description: description,
       url: `/artigos/${article.slug}`,
       images: images,
       type: 'article',
