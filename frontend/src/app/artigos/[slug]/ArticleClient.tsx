@@ -9,7 +9,7 @@ import { useQueryClient } from '@tanstack/react-query';
 import { useCategories } from '@/hooks/useCategories';
 import { useTags } from '@/hooks/useTags';
 import { ConfirmDialog } from '@/components/ConfirmDialog';
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useRef, useState, useMemo, useCallback } from 'react';
 import DOMPurify from 'dompurify';
 import { useArticles } from '@/hooks/useArticles';
 import { ArticleCard } from '@/components/ArticleCard';
@@ -50,14 +50,16 @@ export default function ArticleClient({ slug, initialData }: { slug: string, ini
     const { mutate: trackView } = useTrackView(data?.id || '');
 
     // Analytics: Track reading progress
+    const onProgress = useCallback((progress: number, timeSpent: number) => {
+        if (data?.id) {
+            trackView({ reading_progress: progress, time_spent: timeSpent });
+        }
+    }, [data?.id, trackView]);
+
     const { progress: readingProgress } = useReadingProgress(
         data?.id || '',
         {
-            onProgress: (progress, timeSpent) => {
-                if (data?.id) {
-                    trackView({ reading_progress: progress, time_spent: timeSpent });
-                }
-            },
+            onProgress,
             enabled: !!data?.id,
             disableVisualUpdates: true,
         }
@@ -207,6 +209,12 @@ export default function ArticleClient({ slug, initialData }: { slug: string, ini
     const authorName = data.author_name || 'Autor';
     const rawBanner = data.banner as unknown as string || '';
     const banner = rawBanner && /^https?:\/\//.test(rawBanner) ? `/api/img?url=${encodeURIComponent(rawBanner)}` : rawBanner;
+
+    const contentHtml = useMemo(() => {
+        return {
+            __html: sanitize(data.content || ''),
+        };
+    }, [data.content]);
 
     return (
         <div className="container-custom pb-16">
@@ -359,9 +367,7 @@ export default function ArticleClient({ slug, initialData }: { slug: string, ini
                             ref={articleRef}
                             suppressHydrationWarning
                             className="prose prose-lg prose-slate dark:prose-invert max-w-none overflow-anchor-none"
-                            dangerouslySetInnerHTML={{
-                                __html: sanitize(data.content || ''),
-                            }}
+                            dangerouslySetInnerHTML={contentHtml}
                         />
 
                         {/* Tags Footer */}

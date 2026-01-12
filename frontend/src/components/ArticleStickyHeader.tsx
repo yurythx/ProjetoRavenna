@@ -53,7 +53,7 @@ export function ArticleStickyHeader({
     }, []);
 
     return (
-        <div className={`fixed top-0 left-0 right-0 h-16 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 border-b border-border shadow-sm z-[60] flex items-center transition-transform duration-300 ${isVisible ? 'translate-y-0' : '-translate-y-full'}`}>
+        <div className={`fixed top-0 left-0 right-0 h-16 bg-background/95 border-b border-border shadow-sm z-[60] flex items-center transition-transform duration-300 ${isVisible ? 'translate-y-0' : '-translate-y-full'}`}>
             <div className="container-custom flex items-center justify-between w-full">
                 <h2 className="font-semibold text-sm md:text-base truncate max-w-[50%] md:max-w-[60%] text-foreground">
                     {article.title}
