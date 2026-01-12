@@ -62,7 +62,7 @@ services:
     build: 
       context: ./backend
       dockerfile: Dockerfile
-    command: python manage.py runserver 0.0.0.0:8000
+    # command: python manage.py runserver 0.0.0.0:8000 (Removed for production - uses entrypoint.sh)
     volumes:
       - ./backend:/app
     ports:

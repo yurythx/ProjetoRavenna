@@ -10,6 +10,13 @@ export async function GET(req: NextRequest) {
       return new Response(JSON.stringify({ detail: 'Missing url param' }), { status: 400, headers: { 'content-type': 'application/json' } });
     }
     const target = new URL(url);
+
+    // SECURITY: Prevent localhost/internal access in production
+    const isLocalhost = target.hostname === 'localhost' || target.hostname === '127.0.0.1';
+    if (process.env.NODE_ENV === 'production' && isLocalhost) {
+       return new Response(JSON.stringify({ detail: 'Localhost access denied in production' }), { status: 403, headers: { 'content-type': 'application/json' } });
+    }
+
     if (!ALLOWED_HOSTS.has(target.hostname) || (target.port && !ALLOWED_PORTS.has(target.port))) {
       return new Response(JSON.stringify({ detail: 'Host not allowed' }), { status: 403, headers: { 'content-type': 'application/json' } });
     }

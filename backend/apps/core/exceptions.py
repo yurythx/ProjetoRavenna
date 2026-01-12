@@ -58,14 +58,24 @@ def standard_exception_handler(exc, context):
         )
         
         # Return JSON response instead of HTML
+        
+        # In production, hide technical details
+        from django.conf import settings
+        
+        error_details = {
+            "error_type": exc.__class__.__name__,
+        }
+        
+        if settings.DEBUG:
+            error_details["error_message"] = str(exc)
+        else:
+            error_details["error_message"] = "Internal Error. Please contact administrator."
+
         response = Response(
             {
                 "code": "internal_server_error",
                 "message": "An internal server error occurred. Please contact support.",
-                "details": {
-                    "error_type": exc.__class__.__name__,
-                    "error_message": str(exc)
-                }
+                "details": error_details
             },
             status=status.HTTP_500_INTERNAL_SERVER_ERROR
         )

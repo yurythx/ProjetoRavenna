@@ -12,6 +12,7 @@ class CustomJWTAuthentication(JWTAuthentication):
         try:
             return super().authenticate(request)
         except (InvalidToken, AuthenticationFailed):
-            # If token is invalid, return None (AnonymousUser)
-            # The Permission classes will handle access control.
-            return None
+            # If token is invalid, raise error to inform the client
+            # instead of failing silently as anonymous.
+            # This helps the frontend know when to refresh tokens.
+            raise InvalidToken()
