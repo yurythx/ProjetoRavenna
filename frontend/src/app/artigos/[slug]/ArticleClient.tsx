@@ -8,15 +8,12 @@ import { api } from '@/lib/api';
 import { useQueryClient } from '@tanstack/react-query';
 import { useCategories } from '@/hooks/useCategories';
 import { useTags } from '@/hooks/useTags';
-import { Badge } from '@/components/Badge';
 import { ConfirmDialog } from '@/components/ConfirmDialog';
-import { readingTime } from '@/lib/readingTime';
 import { useEffect, useRef, useState } from 'react';
 import DOMPurify from 'dompurify';
 import { useArticles } from '@/hooks/useArticles';
 import { ArticleCard } from '@/components/ArticleCard';
 import slugify from '@sindresorhus/slugify';
-import { components } from '@/types/api';
 import { CommentSection } from '@/components/CommentSection';
 import { LikeButton } from '@/components/LikeButton';
 import { FavoriteButton } from '@/components/FavoriteButton';
@@ -25,8 +22,6 @@ import ReadingTime from '@/components/ReadingTime';
 import ArticleStats from '@/components/ArticleStats';
 import { useTrackView } from '@/hooks/useAnalytics';
 import { useReadingProgress } from '@/hooks/useReadingProgress';
-
-
 
 const sanitize = (html: string) => {
     if (typeof window === 'undefined') return html;
@@ -65,10 +60,12 @@ export default function ArticleClient({ slug, initialData }: { slug: string, ini
 
     // Sticky Header State
     const [scrolled, setScrolled] = useState(false);
+    
     // Local like/favorite state to reflect immediate changes
     const [liked, setLiked] = useState<boolean>(!!data?.is_liked);
     const [likeCount, setLikeCount] = useState<number>(data?.like_count || 0);
     const [favorited, setFavorited] = useState<boolean>(!!data?.is_favorited);
+    
     useEffect(() => {
         // Sync when data changes (e.g., refetch)
         if (data) {
@@ -76,81 +73,71 @@ export default function ArticleClient({ slug, initialData }: { slug: string, ini
             setLikeCount(data.like_count || 0);
             setFavorited(!!data.is_favorited);
         }
-    }, [data?.id]); // Only re-run when article ID changes
+    }, [data?.id, data?.is_liked, data?.like_count, data?.is_favorited]);
 
     const [toc, setToc] = useState<{ id: string; text: string; level: number }[]>([]);
-
-    useEffect(() => {
-        if (!data?.content) return;
-        const generatedToc: { id: string; text: string; level: number }[] = [];
-        const isHtml = /<[^>]+>/.test(data.content);
-        if (isHtml) {
-            const div = document.createElement('div');
-            div.innerHTML = data.content;
-            const heads = div.querySelectorAll('h1,h2,h3,h4,h5,h6');
-            heads.forEach((h) => {
-                const level = parseInt(h.tagName.substring(1), 10);
-                const text = h.textContent?.trim() || '';
-                const existing = (h as HTMLElement).id;
-                const id = existing || (text ? slugify(text) : '');
-                generatedToc.push({ id, text, level });
-            });
-        }
-        setToc(generatedToc);
-    }, [data?.content]);
-
     const articleRef = useRef<HTMLDivElement | null>(null);
     const [activeId, setActiveId] = useState<string>('');
     const [progress, setProgress] = useState<number>(0);
 
-    async function onShare() {
-        const url = typeof window !== 'undefined' ? window.location.href : '';
-        try {
-            if ((navigator as any).share) {
-                await (navigator as any).share({ title: data?.title, text: data?.title, url });
-            } else if (navigator.clipboard) {
-                await navigator.clipboard.writeText(url);
-                show({ type: 'success', message: 'Link copiado' });
-            }
-        } catch { }
-    }
-    const [confirmOpen, setConfirmOpen] = useState(false);
-    async function onDelete() {
-        if (!data) return;
-        try {
-            await api.delete(`/articles/posts/${data.slug}/`);
-            queryClient.invalidateQueries({
-                predicate: (q) => Array.isArray(q.queryKey) && (q.queryKey[0] === 'articles' || (q.queryKey[0] === 'article' && q.queryKey[1] === data.slug)),
-            });
-            show({ type: 'success', message: 'Artigo excluído com sucesso' });
-            router.push('/artigos');
-        } catch {
-            show({ type: 'error', message: 'Não foi possível excluir o artigo' });
-        }
-    }
+    // Scroll listener for progress bar and sticky header
+    useEffect(() => {
+        const handleScroll = () => {
+            const totalHeight = document.documentElement.scrollHeight - window.innerHeight;
+            const scrollPosition = window.scrollY;
+            const newProgress = totalHeight > 0 ? (scrollPosition / totalHeight) * 100 : 0;
+            setProgress(newProgress);
+            setScrolled(scrollPosition > 100);
+        };
 
+        window.addEventListener('scroll', handleScroll, { passive: true });
+        return () => window.removeEventListener('scroll', handleScroll);
+    }, []);
+
+    // Unified TOC and Scroll Spy Logic
     useEffect(() => {
         const el = articleRef.current;
-        if (!el || !data) return;
+        if (!el || !data?.content) return;
+
+        // 1. Setup IDs and generate TOC data from the actual DOM
         const headings = el.querySelectorAll('h1,h2,h3,h4,h5,h6');
+        const generatedToc: { id: string; text: string; level: number }[] = [];
+
         headings.forEach((h) => {
-            if (!(h as HTMLElement).id) {
-                const text = h.textContent?.trim() || '';
-                if (text) (h as HTMLElement).id = slugify(text);
+            const headingEl = h as HTMLElement;
+            const text = headingEl.textContent?.trim() || '';
+            
+            // Generate ID if missing
+            if (!headingEl.id && text) {
+                headingEl.id = slugify(text);
+            }
+            
+            if (text && headingEl.id) {
+                generatedToc.push({
+                    id: headingEl.id,
+                    text,
+                    level: parseInt(headingEl.tagName.substring(1), 10)
+                });
             }
         });
+
+        setToc(generatedToc);
+
+        // 2. Setup Intersection Observer for scroll spying
         const io = new IntersectionObserver(
             (entries) => {
                 entries.forEach((entry) => {
                     if (entry.isIntersecting) {
-                        const id = (entry.target as HTMLElement).id;
-                        if (id) setActiveId(id);
+                        setActiveId(entry.target.id);
                     }
                 });
             },
-            { rootMargin: '0px 0px -70% 0px', threshold: 0.1 }
+            { rootMargin: '0px 0px -80% 0px', threshold: 0.1 }
         );
+
         headings.forEach((h) => io.observe(h));
+
+        // 3. Click handler for "copy link" feature
         const clickHandler = (e: Event) => {
             const target = e.currentTarget as HTMLElement;
             const id = target.id;
@@ -168,7 +155,34 @@ export default function ArticleClient({ slug, initialData }: { slug: string, ini
             headings.forEach((h) => h.removeEventListener('click', clickHandler));
             io.disconnect();
         };
-    }, [data?.id]); // Only re-run when article ID changes, not content
+    }, [data?.content, show]); 
+
+    async function onShare() {
+        const url = typeof window !== 'undefined' ? window.location.href : '';
+        try {
+            if ((navigator as any).share) {
+                await (navigator as any).share({ title: data?.title, text: data?.title, url });
+            } else if (navigator.clipboard) {
+                await navigator.clipboard.writeText(url);
+                show({ type: 'success', message: 'Link copiado' });
+            }
+        } catch { }
+    }
+
+    const [confirmOpen, setConfirmOpen] = useState(false);
+    async function onDelete() {
+        if (!data) return;
+        try {
+            await api.delete(`/articles/posts/${data.slug}/`);
+            queryClient.invalidateQueries({
+                predicate: (q) => Array.isArray(q.queryKey) && (q.queryKey[0] === 'articles' || (q.queryKey[0] === 'article' && q.queryKey[1] === data.slug)),
+            });
+            show({ type: 'success', message: 'Artigo excluído com sucesso' });
+            router.push('/artigos');
+        } catch {
+            show({ type: 'error', message: 'Não foi possível excluir o artigo' });
+        }
+    }
 
     // Track initial view
     useEffect(() => {
@@ -176,7 +190,7 @@ export default function ArticleClient({ slug, initialData }: { slug: string, ini
             trackView({});
         }
         // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [data?.id]); // Only track once per article, not on every content change
+    }, [data?.id]);
 
     if (showLoading) {
         return (
@@ -215,64 +229,27 @@ export default function ArticleClient({ slug, initialData }: { slug: string, ini
 
     return (
         <div className="container-custom pb-16">
-            {/* Scroll Progress Bar */}
-            <div className="fixed top-0 left-0 h-1 z-[70] transition-all duration-300"
-                style={{ width: `${progress}%`, background: 'var(--accent)' }} />
+            <ArticleScrollProgress />
 
-            {/* Sticky Header */}
-            <div className={`fixed top-0 left-0 right-0 h-16 bg-white dark:bg-gray-900 border-b border-gray-300 dark:border-gray-700 shadow-lg z-[60] flex items-center transition-transform duration-300 ${scrolled ? 'translate-y-0' : '-translate-y-full'}`}>
-                <div className="container-custom flex items-center justify-between">
-                    <h2 className="font-semibold text-sm md:text-base truncate max-w-[60%] text-gray-900 dark:text-white">{data.title}</h2>
-                    <div className="flex gap-2 items-center">
-                        <div className="flex bg-gray-100 dark:bg-gray-800 rounded-full border border-gray-300 dark:border-gray-600 p-1.5 mr-2">
-                            <LikeButton
-                                articleId={data.id}
-                                initialLiked={liked}
-                                initialCount={likeCount}
-                                onChanged={(l, c) => { setLiked(l); setLikeCount(c); }}
-                                size="sm"
-                                showCount={true}
-                            />
-                            <FavoriteButton
-                                articleId={data.id}
-                                initialFavorited={favorited}
-                                onChanged={(f) => setFavorited(f)}
-                                size="sm"
-                            />
-                        </div>
-                        {/* Mobile TOC Button */}
-                        {toc.length > 0 && (
-                            <button
-                                onClick={() => {
-                                    const el = document.getElementById('mobile-toc');
-                                    if (el) el.classList.toggle('hidden');
-                                }}
-                                className="lg:hidden px-3 py-1.5 text-xs font-medium rounded-lg bg-gray-200 dark:bg-gray-700 text-gray-900 dark:text-white hover:bg-gray-300 dark:hover:bg-gray-600 transition-colors border border-gray-300 dark:border-gray-600"
-                            >
-                                Sumário
-                            </button>
-                        )}
-                        <button onClick={onShare} className="px-4 py-1.5 text-xs font-medium rounded-lg bg-blue-600 text-white hover:bg-blue-700 transition-colors shadow-sm">Compartilhar</button>
-                    </div>
-                </div>
-                {/* Mobile TOC Popover */}
-                <div id="mobile-toc" className="hidden absolute top-full left-0 right-0 bg-white dark:bg-gray-900 border-b border-gray-300 dark:border-gray-700 p-6 shadow-2xl lg:hidden max-h-[60vh] overflow-y-auto z-50">
-                    <h5 className="font-bold text-xs uppercase tracking-wider text-gray-600 dark:text-gray-400 mb-4">Neste artigo</h5>
-                    <nav className="space-y-3">
-                        {toc.map((item, i) => (
-                            <a
-                                key={`${item.id}-mob-${i}`}
-                                href={`#${item.id}`}
-                                className={`block text-sm transition-all ${item.id === activeId ? 'text-blue-600 dark:text-blue-400 font-bold' : 'text-gray-700 dark:text-gray-300 hover:text-blue-600 dark:hover:text-blue-400'}`}
-                                style={{ marginLeft: `${(item.level - 1) * 8}px` }}
-                                onClick={() => document.getElementById('mobile-toc')?.classList.add('hidden')}
-                            >
-                                {item.text}
-                            </a>
-                        ))}
-                    </nav>
-                </div>
-            </div>
+            <ArticleStickyHeader
+                article={data}
+                liked={liked}
+                likeCount={likeCount}
+                favorited={favorited}
+                onLikeChange={(l, c) => { setLiked(l); setLikeCount(c); }}
+                onFavoriteChange={(f) => setFavorited(f)}
+                onShare={onShare}
+                hasToc={toc.length > 0}
+                onToggleMobileToc={() => {
+                    const el = document.getElementById('mobile-toc');
+                    if (el) el.classList.toggle('hidden');
+                }}
+            >
+                <MobileTOC 
+                    items={toc} 
+                    onClose={() => document.getElementById('mobile-toc')?.classList.add('hidden')} 
+                />
+            </ArticleStickyHeader>
 
             <ConfirmDialog
                 open={confirmOpen}
@@ -488,35 +465,8 @@ export default function ArticleClient({ slug, initialData }: { slug: string, ini
                 <aside className="hidden lg:block space-y-8">
                     {/* TOC Widget */}
                     {toc.length > 0 && (
-                        <div className="sticky top-24 bg-card rounded-xl border border-border p-6 shadow-sm">
-                            <h5 className="font-bold text-sm uppercase tracking-wider text-muted-foreground mb-4">Neste artigo</h5>
-                            <nav className="space-y-1">
-                                {toc.map((item, i) => (
-                                    <a
-                                        key={`${item.id}-${i}`}
-                                        href={`#${item.id}`}
-                                        className={`block py-1.5 text-sm transition-all border-l-2 pl-3 ${item.id === activeId ? 'border-accent text-accent font-medium' : 'border-transparent text-muted-foreground hover:text-foreground'}`}
-                                        style={{ marginLeft: `${(item.level - 1) * 8}px` }}
-                                        onClick={(e) => {
-                                            e.preventDefault();
-                                            document.getElementById(item.id)?.scrollIntoView({ behavior: 'smooth' });
-                                        }}
-                                    >
-                                        {item.text}
-                                    </a>
-                                ))}
-                            </nav>
-                        </div>
+                        <ArticleTOC items={toc} />
                     )}
-
-                    {/* CTA Widget */}
-                    <div className="bg-gradient-to-br from-gray-900 to-gray-800 text-white p-6 rounded-xl shadow-lg">
-                        <h4 className="font-bold text-lg mb-2">Gostou deste conteúdo?</h4>
-                        <p className="text-sm text-gray-300 mb-4">Descubra como o Projeto Ravenna pode revolucionar a gestão da sua empresa.</p>
-                        <Link href="/" className="block w-full py-2 bg-accent text-center rounded-lg font-medium hover:bg-accent-hover transition-colors">
-                            Conhecer Soluções
-                        </Link>
-                    </div>
                 </aside>
             </div>
 
