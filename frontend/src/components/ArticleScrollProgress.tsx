@@ -1,8 +1,9 @@
 'use client';
+
 import { useEffect, useState } from 'react';
 
-export const ArticleScrollProgress = () => {
-    const [width, setWidth] = useState(0);
+export function ArticleScrollProgress() {
+    const [progress, setProgress] = useState(0);
 
     useEffect(() => {
         let ticking = false;
@@ -11,7 +12,7 @@ export const ArticleScrollProgress = () => {
             const totalHeight = document.documentElement.scrollHeight - window.innerHeight;
             const scrollPosition = window.scrollY;
             const newProgress = totalHeight > 0 ? (scrollPosition / totalHeight) * 100 : 0;
-            setWidth(newProgress);
+            setProgress(newProgress);
             ticking = false;
         };
 
@@ -28,8 +29,8 @@ export const ArticleScrollProgress = () => {
 
     return (
         <div 
-            className="fixed top-0 left-0 h-1 z-[70] transition-all duration-100 ease-out will-change-[width]"
-            style={{ width: `${width}%`, background: 'var(--accent)' }} 
+            className="fixed top-0 left-0 h-1 z-[70] transition-all duration-100 ease-out bg-accent"
+            style={{ width: `${progress}%` }} 
         />
     );
-};
+}

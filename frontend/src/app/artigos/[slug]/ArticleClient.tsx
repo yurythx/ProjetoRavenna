@@ -23,6 +23,10 @@ import ArticleStats from '@/components/ArticleStats';
 import { useTrackView } from '@/hooks/useAnalytics';
 import { useReadingProgress } from '@/hooks/useReadingProgress';
 
+import { ArticleScrollProgress } from '@/components/ArticleScrollProgress';
+import { ArticleStickyHeader } from '@/components/ArticleStickyHeader';
+import { ArticleTOC, MobileTOC } from '@/components/ArticleTOC';
+
 const sanitize = (html: string) => {
     if (typeof window === 'undefined') return html;
     return DOMPurify.sanitize(html);
