@@ -1,18 +1,20 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useRef } from 'react';
 
 export function ArticleScrollProgress() {
-    const [progress, setProgress] = useState(0);
+    const barRef = useRef<HTMLDivElement>(null);
 
     useEffect(() => {
         let ticking = false;
 
         const updateProgress = () => {
+            if (!barRef.current) return;
             const totalHeight = document.documentElement.scrollHeight - window.innerHeight;
             const scrollPosition = window.scrollY;
-            const newProgress = totalHeight > 0 ? (scrollPosition / totalHeight) * 100 : 0;
-            setProgress(newProgress);
+            // Use scaleX for performance (0 to 1) to avoid layout thrashing
+            const scale = totalHeight > 0 ? scrollPosition / totalHeight : 0;
+            barRef.current.style.transform = `scaleX(${scale})`;
             ticking = false;
         };
 
@@ -28,9 +30,12 @@ export function ArticleScrollProgress() {
     }, []);
 
     return (
-        <div 
-            className="fixed top-0 left-0 h-1 z-[70] transition-all duration-100 ease-out bg-accent"
-            style={{ width: `${progress}%` }} 
-        />
+        <div className="fixed top-0 left-0 w-full h-1 z-[70] bg-transparent pointer-events-none">
+            <div 
+                ref={barRef}
+                className="h-full bg-accent origin-left will-change-transform"
+                style={{ transform: 'scaleX(0)' }} 
+            />
+        </div>
     );
 }
