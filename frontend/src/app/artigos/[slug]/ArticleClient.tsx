@@ -164,15 +164,9 @@ export default function ArticleClient({ slug, initialData }: { slug: string, ini
         };
         headings.forEach((h) => h.addEventListener('click', clickHandler));
 
-        const scrollHandler = () => {
-            setScrolled(window.scrollY > 300);
-        };
-        window.addEventListener('scroll', scrollHandler);
-
         return () => {
             headings.forEach((h) => h.removeEventListener('click', clickHandler));
             io.disconnect();
-            window.removeEventListener('scroll', scrollHandler);
         };
     }, [data?.id]); // Only re-run when article ID changes, not content
 
@@ -183,20 +177,6 @@ export default function ArticleClient({ slug, initialData }: { slug: string, ini
         }
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [data?.id]); // Only track once per article, not on every content change
-
-    useEffect(() => {
-        const onScroll = () => {
-            const el = articleRef.current;
-            if (!el) return;
-            const total = el.scrollHeight - window.innerHeight;
-            const scrolled = Math.min(Math.max(window.scrollY - (el.offsetTop || 0), 0), total);
-            const pct = total > 0 ? (scrolled / total) * 100 : 0;
-            setProgress(Math.max(0, Math.min(100, pct)));
-        };
-        onScroll();
-        window.addEventListener('scroll', onScroll, { passive: true });
-        return () => window.removeEventListener('scroll', onScroll);
-    }, []);
 
     if (showLoading) {
         return (

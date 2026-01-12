@@ -35,10 +35,11 @@ interface UseReadingProgressOptions {
     progressThreshold?: number;
 
     /**
-     * Time threshold for callback (seconds)
-     * @default 30
+     * Disable visual state updates (progress/timeSpent) if not needed for rendering.
+     * Useful when you only need the onProgress callback.
+     * @default false
      */
-    timeThreshold?: number;
+    disableVisualUpdates?: boolean;
 }
 
 interface UseReadingProgressReturn {
@@ -58,6 +59,18 @@ interface UseReadingProgressReturn {
     reachedBottom: boolean;
 }
 
+// Throttle function helper
+function throttle<T extends (...args: any[]) => any>(func: T, limit: number): T {
+    let inThrottle: boolean;
+    return function(this: any, ...args: any[]) {
+        if (!inThrottle) {
+            func.apply(this, args);
+            inThrottle = true;
+            setTimeout(() => inThrottle = false, limit);
+        }
+    } as T;
+}
+
 export const useReadingProgress = (
     articleId: string,
     options: UseReadingProgressOptions = {}
@@ -67,6 +80,7 @@ export const useReadingProgress = (
         enabled = true,
         progressThreshold = 10,
         timeThreshold = 30,
+        disableVisualUpdates = false,
     } = options;
 
     const [progress, setProgress] = useState(0);
@@ -98,7 +112,10 @@ export const useReadingProgress = (
                 : 0;
 
             const newProgress = Math.min(100, Math.max(0, Math.round(scrollPercentage)));
-            setProgress(newProgress);
+            
+            if (!disableVisualUpdates) {
+                setProgress(newProgress);
+            }
 
             // Check if reached bottom (>95%)
             if (newProgress >= 95 && !reachedBottom) {
@@ -108,10 +125,13 @@ export const useReadingProgress = (
             return newProgress;
         };
 
-        const handleScroll = () => {
+        const handleScroll = throttle(() => {
             const newProgress = calculateProgress();
             const currentTimeSpent = Math.floor((Date.now() - startTimeRef.current) / 1000);
-            setTimeSpent(currentTimeSpent);
+            
+            if (!disableVisualUpdates) {
+                setTimeSpent(currentTimeSpent);
+            }
 
             // Check if we should trigger callback
             const progressDiff = Math.abs(newProgress - lastReportedProgressRef.current);
@@ -125,12 +145,14 @@ export const useReadingProgress = (
                 lastReportedProgressRef.current = newProgress;
                 lastReportedTimeRef.current = currentTimeSpent;
             }
-        };
+        }, 100); // Throttle to run at most once every 100ms (10fps for logic, enough for analytics)
 
         // Track time spent every second
         intervalRef.current = setInterval(() => {
             const currentTimeSpent = Math.floor((Date.now() - startTimeRef.current) / 1000);
-            setTimeSpent(currentTimeSpent);
+            if (!disableVisualUpdates) {
+                setTimeSpent(currentTimeSpent);
+            }
         }, 1000);
 
         // Initial progress calculation
@@ -146,7 +168,7 @@ export const useReadingProgress = (
                 clearInterval(intervalRef.current);
             }
         };
-    }, [articleId, enabled, onProgress, progressThreshold, timeThreshold, reachedBottom]);
+    }, [articleId, enabled, onProgress, progressThreshold, timeThreshold, reachedBottom, disableVisualUpdates]);
 
     return {
         progress,
