@@ -42,23 +42,33 @@ class ArticleViewSet(viewsets.ModelViewSet):
         data = serializer.validated_data
         
         # 2. Service Layer
-        tags = data.get('tags', None) 
+        # Handle both 'tags' (direct list) and 'tag_ids' (from serializer source)
+        tags = data.get('tags', [])
         
-        # Check permissions explicitly or rely on DRF's perform_create hook? 
-        # Standard ViewSet checks permissions before entering create.
-        
-        article = article_create(
-            title=data['title'],
-            content=data['content'],
-            category=data['category'],
-            author=request.user if request.user.is_authenticated else None,
-            tags=tags,
-            is_published=data.get('is_published', False),
-            banner=data.get('banner', None),
-            excerpt=data.get('excerpt', '')
-        )
-        
-        return Response(ArticleSerializer(article).data, status=status.HTTP_201_CREATED)
+        try:
+            # Check permissions explicitly or rely on DRF's perform_create hook? 
+            # Standard ViewSet checks permissions before entering create.
+            
+            article = article_create(
+                title=data['title'],
+                content=data['content'],
+                category=data['category'],
+                author=request.user if request.user.is_authenticated else None,
+                tags=tags,
+                is_published=data.get('is_published', False),
+                banner=data.get('banner', None),
+                excerpt=data.get('excerpt', '')
+            )
+            
+            return Response(ArticleSerializer(article).data, status=status.HTTP_201_CREATED)
+        except Exception as e:
+            # Log the full error to console/file for debugging
+            import traceback
+            traceback.print_exc()
+            return Response(
+                {"detail": "Erro ao criar artigo. Por favor, tente novamente.", "error": str(e)}, 
+                status=status.HTTP_400_BAD_REQUEST
+            )
 
     def update(self, request, *args, **kwargs):
         partial = kwargs.pop('partial', False)
@@ -68,10 +78,17 @@ class ArticleViewSet(viewsets.ModelViewSet):
         serializer = self.get_serializer(instance, data=request.data, partial=partial)
         serializer.is_valid(raise_exception=True)
         
-        # We use strict service for updates too
-        article = article_update(instance, **serializer.validated_data)
-
-        return Response(ArticleSerializer(article).data)
+        try:
+            # We use strict service for updates too
+            article = article_update(instance, **serializer.validated_data)
+            return Response(ArticleSerializer(article).data)
+        except Exception as e:
+            import traceback
+            traceback.print_exc()
+            return Response(
+                {"detail": "Erro ao atualizar artigo.", "error": str(e)}, 
+                status=status.HTTP_400_BAD_REQUEST
+            )
 
     def retrieve(self, request, *args, **kwargs):
         """

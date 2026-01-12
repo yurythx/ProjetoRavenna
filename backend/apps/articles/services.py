@@ -29,8 +29,13 @@ def article_create(*, title: str, content: str, category, author, tags=None, ban
             article.tags.set(tags)
         
         if is_published:
-            from apps.core.notification_utils import notify_article_published
-            transaction.on_commit(lambda: notify_article_published(article))
+            try:
+                from apps.core.notification_utils import notify_article_published
+                transaction.on_commit(lambda: notify_article_published(article))
+            except ImportError:
+                print("Warning: Could not import notify_article_published")
+            except Exception as e:
+                print(f"Error scheduling notification: {e}")
         
     return article
 
