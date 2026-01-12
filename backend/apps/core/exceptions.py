@@ -1,6 +1,10 @@
 from rest_framework.views import exception_handler
 from rest_framework.response import Response
 from rest_framework import status
+import logging
+import traceback
+
+logger = logging.getLogger(__name__)
 
 def standard_exception_handler(exc, context):
     """
@@ -42,5 +46,28 @@ def standard_exception_handler(exc, context):
              payload["message"] = "Permission denied."
         
         response.data = payload
+    else:
+        # Handle unhandled exceptions (500 errors)
+        logger.error(
+            f"Unhandled exception in {context.get('view', 'unknown view')}: {exc}",
+            exc_info=True,
+            extra={
+                'request': context.get('request'),
+                'view': context.get('view'),
+            }
+        )
+        
+        # Return JSON response instead of HTML
+        response = Response(
+            {
+                "code": "internal_server_error",
+                "message": "An internal server error occurred. Please contact support.",
+                "details": {
+                    "error_type": exc.__class__.__name__,
+                    "error_message": str(exc)
+                }
+            },
+            status=status.HTTP_500_INTERNAL_SERVER_ERROR
+        )
 
     return response
