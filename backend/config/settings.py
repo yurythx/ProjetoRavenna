@@ -154,6 +154,7 @@ if USE_MINIO:
     AWS_S3_SIGNATURE_VERSION = 's3v4'
     AWS_S3_FILE_OVERWRITE = False
     AWS_S3_VERIFY = False # Disable SSL verification for internal communication if needed
+    AWS_AUTO_CREATE_BUCKET = True # Ensure bucket exists
     
     # Determine protocol based on public domain (avoid forcing HTTPS on localhost)
     if 'localhost' in MINIO_PUBLIC_DOMAIN or '127.0.0.1' in MINIO_PUBLIC_DOMAIN:

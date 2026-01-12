@@ -66,7 +66,7 @@ def standard_exception_handler(exc, context):
             "error_type": exc.__class__.__name__,
         }
         
-        if settings.DEBUG:
+        if settings.DEBUG or exc.__class__.__name__ == 'ClientError':
             error_details["error_message"] = str(exc)
         else:
             error_details["error_message"] = "Internal Error. Please contact administrator."
