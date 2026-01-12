@@ -232,11 +232,11 @@ REST_FRAMEWORK = {
         'rest_framework.throttling.UserRateThrottle'
     ],
     'DEFAULT_THROTTLE_RATES': {
-        'anon': '1000/hour',      # Aumentado de 100/day - permite navegação normal
-        'user': '10000/hour',     # Aumentado de 1000/day - permite uso intenso
-        'uploads': '100/hour',    # Aumentado de 20/hour
-        'comments': '50/minute',  # Aumentado de 10/minute
-        'analytics': '10000/hour', # Mantido alto para tracking
+        'anon': '10000/hour',      # Aumentado significativamente para evitar bloqueios
+        'user': '100000/hour',     # Limite muito alto para usuários logados
+        'uploads': '1000/hour',    # Uploads liberados
+        'comments': '500/minute',  # Comentários liberados
+        'analytics': '100000/hour', # Analytics liberado
     },
     'EXCEPTION_HANDLER': 'apps.core.exceptions.standard_exception_handler',
 }
