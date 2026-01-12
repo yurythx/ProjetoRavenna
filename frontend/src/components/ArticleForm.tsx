@@ -61,7 +61,8 @@ export function ArticleForm({ initial }: { initial?: Article }) {
       setContent(d.content || '');
       setCategory(d.category || '');
       setIsPublished(!!d.is_published);
-      setTags(Array.isArray(d.tags) ? d.tags : []);
+      const loadedTags = Array.isArray(d.tags) ? d.tags : [];
+      setTags(loadedTags.map((t: any) => (typeof t === 'object' && t.id ? t.id : t)));
     } catch { }
   }, []);
 
@@ -223,6 +224,7 @@ export function ArticleForm({ initial }: { initial?: Article }) {
             <label htmlFor="title" className="block text-sm font-medium mb-1">Título</label>
             <input
               id="title"
+              maxLength={255}
               className={`input text-lg font-bold ${titleError ? 'border-red-500' : ''}`}
               placeholder="Título do Artigo"
               value={title}
