@@ -53,7 +53,7 @@ export async function generateMetadata(
     twitter: {
       card: 'summary_large_image',
       title: article.title,
-      description: article.content.substring(0, 160).replace(/<[^>]*>/g, ''),
+      description: description,
       images: images,
     },
     alternates: {

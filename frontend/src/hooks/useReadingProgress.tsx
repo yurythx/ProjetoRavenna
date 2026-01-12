@@ -35,6 +35,12 @@ interface UseReadingProgressOptions {
     progressThreshold?: number;
 
     /**
+     * Time threshold for callback (seconds)
+     * @default 30
+     */
+    timeThreshold?: number;
+
+    /**
      * Disable visual state updates (progress/timeSpent) if not needed for rendering.
      * Useful when you only need the onProgress callback.
      * @default false

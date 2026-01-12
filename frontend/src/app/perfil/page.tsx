@@ -97,14 +97,14 @@ export default function PerfilPage() {
                         className={`px-6 py-3 font-medium transition-colors border-b-2 whitespace-nowrap flex items-center gap-2 ${activeTab === 'favorites' ? 'border-accent text-accent' : 'border-transparent text-muted-foreground hover:text-foreground'
                             }`}
                     >
-                        <Bookmark className="w-4 h-4" /> Favoritos {favorites?.count > 0 && `(${favorites.count})`}
+                        <Bookmark className="w-4 h-4" /> Favoritos {(favorites?.count ?? 0) > 0 && `(${favorites?.count})`}
                     </button>
                     <button
                         onClick={() => setActiveTab('likes')}
                         className={`px-6 py-3 font-medium transition-colors border-b-2 whitespace-nowrap flex items-center gap-2 ${activeTab === 'likes' ? 'border-accent text-accent' : 'border-transparent text-muted-foreground hover:text-foreground'
                             }`}
                     >
-                        <Heart className="w-4 h-4" /> Curtidas {likes?.count > 0 && `(${likes.count})`}
+                        <Heart className="w-4 h-4" /> Curtidas {(likes?.count ?? 0) > 0 && `(${likes?.count})`}
                     </button>
                 </div>
 

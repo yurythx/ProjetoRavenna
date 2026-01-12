@@ -104,7 +104,7 @@ export function useSearchStats(filters: SearchFilters) {
             if (date_from) params.append('date_from', date_from);
             if (date_to) params.append('date_to', date_to);
 
-            const { data } = await api.get(`/articles/search/stats/?${params.toString()}`);
+            const { data } = await api.get<any>(`/articles/search/stats/?${params.toString()}`);
             return data;
         },
         enabled: !!(query || tags?.length || category),

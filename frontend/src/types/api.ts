@@ -155,6 +155,7 @@ export interface components {
             readonly updated_at: string;
             readonly slug: string;
             title: string;
+            excerpt?: string;
             content: string;
             /** Format: uri */
             banner?: string | null;
@@ -167,6 +168,7 @@ export interface components {
         ArticleRequest: {
             tags?: string[];
             title: string;
+            excerpt?: string;
             content: string;
             /** Format: binary */
             banner?: string | null;
@@ -193,6 +195,7 @@ export interface components {
         PatchedArticleRequest: {
             tags?: string[];
             title?: string;
+            excerpt?: string;
             content?: string;
             /** Format: binary */
             banner?: string | null;

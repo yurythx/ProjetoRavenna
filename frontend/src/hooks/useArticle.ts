@@ -14,15 +14,15 @@ export type Article = components['schemas']['Article'] & {
 };
 
 export function useArticle(slug: string, options?: { initialData?: Article }) {
-  return useQuery<Article>({
+  return useQuery({
     queryKey: ['article', slug],
     queryFn: async () => {
-      const { data } = await api.get(`/articles/posts/${slug}/`);
+      const { data } = await api.get<Article>(`/articles/posts/${slug}/`);
       return data;
     },
     initialData: options?.initialData,
     staleTime: 2 * 60 * 1000,      // 2 minutes
-    cacheTime: 10 * 60 * 1000,     // 10 minutes (keep longer in memory)
+    gcTime: 10 * 60 * 1000,     // 10 minutes (keep longer in memory)
     refetchOnWindowFocus: false,   // Don't refetch on window focus
     enabled: !!slug,               // Only fetch if slug exists
   });

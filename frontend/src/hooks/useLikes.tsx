@@ -2,6 +2,16 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { api } from '@/lib/api';
 import { useAuth } from '@/contexts/AuthContext';
 import { useRouter } from 'next/navigation';
+import { components } from '@/types/api';
+
+type Article = components['schemas']['Article'];
+
+interface PaginatedResponse<T> {
+    count: number;
+    next: string | null;
+    previous: string | null;
+    results: T[];
+}
 
 interface ToggleLikeResponse {
     liked: boolean;
@@ -243,12 +253,12 @@ export function useUserFavorites() {
     return useQuery({
         queryKey: ['favorites'],
         queryFn: async () => {
-            const { data } = await api.get('/articles/favorites/');
+            const { data } = await api.get<PaginatedResponse<Article>>('/articles/favorites/');
             return data;
         },
         enabled: !!token,
         staleTime: 5 * 60 * 1000,      // 5 minutes
-        cacheTime: 10 * 60 * 1000,     // 10 minutes
+        gcTime: 10 * 60 * 1000,     // 10 minutes
         refetchOnWindowFocus: false,
     });
 }
@@ -262,12 +272,12 @@ export function useUserLikes() {
     return useQuery({
         queryKey: ['likes'],
         queryFn: async () => {
-            const { data } = await api.get('/articles/likes/');
+            const { data } = await api.get<PaginatedResponse<Article>>('/articles/likes/');
             return data;
         },
         enabled: !!token,
         staleTime: 5 * 60 * 1000,      // 5 minutes
-        cacheTime: 10 * 60 * 1000,     // 10 minutes
+        gcTime: 10 * 60 * 1000,     // 10 minutes
         refetchOnWindowFocus: false,
     });
 }

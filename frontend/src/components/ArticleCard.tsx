@@ -42,7 +42,7 @@ export function ArticleCard({
     .filter(Boolean) as Tag[] || [];
 
   // Create excerpt from content (first 150 chars)
-  const excerpt = article.content?.substring(0, 150).replace(/<[^>]*>/g, '') + '...' || '';
+  const excerpt = article.excerpt || article.content?.substring(0, 150).replace(/<[^>]*>/g, '') + '...' || '';
 
   // Format date
   const formattedDate = article.created_at

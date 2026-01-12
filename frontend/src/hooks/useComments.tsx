@@ -38,16 +38,16 @@ export function useComments(articleId?: string) {
     const toast = useToast();
 
     // Get comments for article
-    const { data: comments, isLoading, error } = useQuery<Comment[]>({
+    const { data: comments, isLoading, error } = useQuery({
         queryKey: ['comments', articleId],
         queryFn: async () => {
             if (!articleId) return [];
-            const { data } = await api.get(`/articles/comments/?article=${articleId}&parent_only=true`);
+            const { data } = await api.get<Comment[]>(`/articles/comments/?article=${articleId}&parent_only=true`);
             return data;
         },
         enabled: !!articleId,
         staleTime: 1 * 60 * 1000,      // 1 minute (comments update frequently)
-        cacheTime: 5 * 60 * 1000,      // 5 minutes
+        gcTime: 5 * 60 * 1000,      // 5 minutes
         refetchOnWindowFocus: false,   // Don't refetch on focus
     });
 
