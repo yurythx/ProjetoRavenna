@@ -29,6 +29,7 @@ class Tag(BaseUUIDModel, SlugMixin):
 
 class Article(BaseUUIDModel, SlugMixin):
     title = models.CharField(max_length=255)
+    excerpt = models.TextField(max_length=500, blank=True, help_text="Short description shown in lists")
     content = models.TextField()
     category = models.ForeignKey(Category, related_name='articles', on_delete=models.CASCADE)
     tags = models.ManyToManyField(Tag, related_name='articles', blank=True)

@@ -86,8 +86,7 @@ class ArticleSerializer(serializers.ModelSerializer):
     class Meta:
         model = Article
         fields = '__all__'
-        # Includes can_edit and standard fields
-        read_only_fields = ('slug', 'author', 'created_at', 'updated_at', 'can_edit')
+        read_only_fields = ('slug', 'author', 'created_at', 'updated_at')
 
     def validate_title(self, value):
         if len(value) < 5:

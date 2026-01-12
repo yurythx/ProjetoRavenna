@@ -22,6 +22,7 @@ export function ArticleForm({ initial }: { initial?: Article }) {
   const { show } = useToast();
   const queryClient = useQueryClient();
   const [title, setTitle] = useState(initial?.title || '');
+  const [excerpt, setExcerpt] = useState(initial?.excerpt || '');
   const [content, setContent] = useState(initial?.content || '');
   const [category, setCategory] = useState<string>(initial?.category || '');
   const [isPublished, setIsPublished] = useState<boolean>(initial?.is_published || false);
@@ -31,6 +32,7 @@ export function ArticleForm({ initial }: { initial?: Article }) {
   const [loading, setLoading] = useState(false);
   const [previewUrl, setPreviewUrl] = useState<string | null>(initial?.banner || null);
   const [titleError, setTitleError] = useState<string | null>(null);
+  const [excerptError, setExcerptError] = useState<string | null>(null);
   const [contentError, setContentError] = useState<string | null>(null);
   const [bannerError, setBannerError] = useState<string | null>(null);
   const [successData, setSuccessData] = useState<{ open: boolean; slug: string; title: string } | null>(null);
@@ -41,6 +43,7 @@ export function ArticleForm({ initial }: { initial?: Article }) {
   const tagInputRef = useRef<HTMLInputElement>(null);
 
   const titleLen = title.trim().length;
+  const excerptLen = excerpt.trim().length;
   const contentLen = content.trim().length;
   const slugPreview = useMemo(() => slugify(title || ''), [title]);
 
@@ -54,6 +57,7 @@ export function ArticleForm({ initial }: { initial?: Article }) {
       if (!raw) return;
       const d = JSON.parse(raw || '{}');
       setTitle(d.title || '');
+      setExcerpt(d.excerpt || '');
       setContent(d.content || '');
       setCategory(d.category || '');
       setIsPublished(!!d.is_published);
@@ -63,8 +67,8 @@ export function ArticleForm({ initial }: { initial?: Article }) {
 
   useEffect(() => {
     const dirty =
-      (initial && (title !== (initial.title || '') || content !== (initial.content || '') || category !== (initial.category || '') || isPublished !== !!initial.is_published || JSON.stringify(tags) !== JSON.stringify(initial.tags || []))) ||
-      (!initial && (titleLen > 0 || contentLen > 0 || !!category || tags.length > 0 || !!banner));
+      (initial && (title !== (initial.title || '') || excerpt !== (initial.excerpt || '') || content !== (initial.content || '') || category !== (initial.category || '') || isPublished !== !!initial.is_published || JSON.stringify(tags) !== JSON.stringify(initial.tags || []))) ||
+      (!initial && (titleLen > 0 || excerptLen > 0 || contentLen > 0 || !!category || tags.length > 0 || !!banner));
     function handler(e: BeforeUnloadEvent) {
       if (!dirty || loading) return;
       e.preventDefault();
@@ -72,15 +76,15 @@ export function ArticleForm({ initial }: { initial?: Article }) {
     }
     window.addEventListener('beforeunload', handler);
     return () => window.removeEventListener('beforeunload', handler);
-  }, [initial, title, content, category, isPublished, tags, banner, titleLen, contentLen, loading]);
+  }, [initial, title, excerpt, content, category, isPublished, tags, banner, titleLen, excerptLen, contentLen, loading]);
 
   useEffect(() => {
     if (initial) return;
     try {
-      const d = { title, content, category, is_published: isPublished, tags };
+      const d = { title, excerpt, content, category, is_published: isPublished, tags };
       localStorage.setItem('articleDraft', JSON.stringify(d));
     } catch { }
-  }, [title, content, category, isPublished, tags, initial]);
+  }, [title, excerpt, content, category, isPublished, tags, initial]);
 
   useEffect(() => {
     if (!category && cats && cats.length > 0) {
@@ -91,6 +95,14 @@ export function ArticleForm({ initial }: { initial?: Article }) {
   useEffect(() => {
     setTitleError(titleLen < 3 ? 'Título deve ter ao menos 3 caracteres' : null);
   }, [titleLen]);
+
+  useEffect(() => {
+     if (excerptLen > 500) {
+         setExcerptError('Resumo muito longo (máx 500 caracteres)');
+     } else {
+         setExcerptError(null);
+     }
+  }, [excerptLen]);
 
   useEffect(() => {
     setContentError(contentLen < 10 ? 'Conteúdo deve ter ao menos 10 caracteres' : null);
@@ -115,17 +127,18 @@ export function ArticleForm({ initial }: { initial?: Article }) {
 
   const payload = useMemo<ArticleRequest>(() => ({
     title,
+    excerpt,
     content: DOMPurify.sanitize(content || ''),
     category,
     is_published: isPublished,
     tags,
-  }), [title, content, category, isPublished, tags]);
+  }), [title, excerpt, content, category, isPublished, tags]);
 
   async function onSubmit(e: React.FormEvent) {
     e.preventDefault();
     setError(null);
     setLoading(true);
-    if (titleError || contentError || bannerError || !category) {
+    if (titleError || excerptError || contentError || bannerError || !category) {
       setLoading(false);
       setError('Verifique os campos antes de salvar');
       return;
@@ -162,7 +175,7 @@ export function ArticleForm({ initial }: { initial?: Article }) {
 
   function saveDraftExplicit() {
     try {
-      const d = { title, content, category, is_published: isPublished, tags };
+      const d = { title, excerpt, content, category, is_published: isPublished, tags };
       localStorage.setItem('articleDraft', JSON.stringify(d));
       show({ type: 'success', message: 'Rascunho salvo com sucesso' });
     } catch {
@@ -175,7 +188,7 @@ export function ArticleForm({ initial }: { initial?: Article }) {
     const saveCombo = (isMac && e.metaKey && e.key.toLowerCase() === 's') || (!isMac && e.ctrlKey && e.key.toLowerCase() === 's');
     if (saveCombo) {
       e.preventDefault();
-      if (!loading && !titleError && !contentError && !bannerError && !!category) {
+      if (!loading && !titleError && !excerptError && !contentError && !bannerError && !!category) {
         const evt = new Event('submit', { bubbles: true, cancelable: true }) as any;
         onSubmit(evt);
       } else {
@@ -263,7 +276,7 @@ export function ArticleForm({ initial }: { initial?: Article }) {
               <div className="hidden md:flex flex-col gap-2 pt-2 border-t mt-2">
                 <button
                   type="submit"
-                  disabled={loading || !!titleError || !!contentError || !!bannerError || !category}
+                  disabled={loading || !!titleError || !!excerptError || !!contentError || !!bannerError || !category}
                   className="btn btn-primary w-full"
                 >
                   {loading ? 'Salvando…' : (initial ? 'Atualizar Artigo' : 'Publicar Artigo')}
