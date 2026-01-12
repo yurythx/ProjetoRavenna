@@ -93,7 +93,7 @@ export function ArticleForm({ initial }: { initial?: Article }) {
   }, [cats]);
 
   useEffect(() => {
-    setTitleError(titleLen < 3 ? 'Título deve ter ao menos 3 caracteres' : null);
+    setTitleError(titleLen < 5 ? 'Título deve ter ao menos 5 caracteres' : null);
   }, [titleLen]);
 
   useEffect(() => {
@@ -125,13 +125,13 @@ export function ArticleForm({ initial }: { initial?: Article }) {
     return () => URL.revokeObjectURL(url);
   }, [banner, initial]);
 
-  const payload = useMemo<ArticleRequest>(() => ({
+  const payload = useMemo(() => ({
     title,
     excerpt,
     content: DOMPurify.sanitize(content || ''),
     category,
     is_published: isPublished,
-    tags,
+    tag_ids: tags,
   }), [title, excerpt, content, category, isPublished, tags]);
 
   async function onSubmit(e: React.FormEvent) {
