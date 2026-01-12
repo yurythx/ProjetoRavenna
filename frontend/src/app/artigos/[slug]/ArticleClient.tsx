@@ -63,7 +63,7 @@ export default function ArticleClient({ slug, initialData }: { slug: string, ini
     );
 
     // Sticky Header State
-    const [scrolled, setScrolled] = useState(false);
+    // const [scrolled, setScrolled] = useState(false); // Removed: handled by ArticleStickyHeader
     
     // Local like/favorite state to reflect immediate changes
     const [liked, setLiked] = useState<boolean>(!!data?.is_liked);
@@ -81,22 +81,9 @@ export default function ArticleClient({ slug, initialData }: { slug: string, ini
 
     const [toc, setToc] = useState<{ id: string; text: string; level: number }[]>([]);
     const articleRef = useRef<HTMLDivElement | null>(null);
-    const [activeId, setActiveId] = useState<string>('');
-    const [progress, setProgress] = useState<number>(0);
 
-    // Scroll listener for progress bar and sticky header
-    useEffect(() => {
-        const handleScroll = () => {
-            const totalHeight = document.documentElement.scrollHeight - window.innerHeight;
-            const scrollPosition = window.scrollY;
-            const newProgress = totalHeight > 0 ? (scrollPosition / totalHeight) * 100 : 0;
-            setProgress(newProgress);
-            setScrolled(scrollPosition > 100);
-        };
 
-        window.addEventListener('scroll', handleScroll, { passive: true });
-        return () => window.removeEventListener('scroll', handleScroll);
-    }, []);
+    // Scroll listener removed
 
     // Unified TOC and Scroll Spy Logic
     useEffect(() => {
@@ -125,21 +112,11 @@ export default function ArticleClient({ slug, initialData }: { slug: string, ini
             }
         });
 
-        setToc(generatedToc);
-
-        // 2. Setup Intersection Observer for scroll spying
-        const io = new IntersectionObserver(
-            (entries) => {
-                entries.forEach((entry) => {
-                    if (entry.isIntersecting) {
-                        setActiveId(entry.target.id);
-                    }
-                });
-            },
-            { rootMargin: '0px 0px -80% 0px', threshold: 0.1 }
-        );
-
-        headings.forEach((h) => io.observe(h));
+        // Only update TOC if it actually changed to avoid re-renders
+        setToc(prev => {
+            if (JSON.stringify(prev) === JSON.stringify(generatedToc)) return prev;
+            return generatedToc;
+        });
 
         // 3. Click handler for "copy link" feature
         const clickHandler = (e: Event) => {
@@ -157,7 +134,6 @@ export default function ArticleClient({ slug, initialData }: { slug: string, ini
 
         return () => {
             headings.forEach((h) => h.removeEventListener('click', clickHandler));
-            io.disconnect();
         };
     }, [data?.content, show]); 
 

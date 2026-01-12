@@ -236,6 +236,20 @@ export function ArticleForm({ initial }: { initial?: Article }) {
             </div>
           </div>
 
+          <div className="card p-4 md:p-0 md:bg-transparent md:border-none md:shadow-none">
+            <label htmlFor="excerpt" className="block text-sm font-medium mb-1">Resumo / Trecho</label>
+            <textarea
+              id="excerpt"
+              className={`input w-full min-h-[100px] text-base ${excerptError ? 'border-red-500' : ''}`}
+              placeholder="Um breve resumo do artigo que aparecerá nos cards..."
+              value={excerpt}
+              onChange={(e) => setExcerpt(e.target.value)}
+              aria-invalid={!!excerptError}
+            />
+            {excerptError && <p className="text-xs text-red-500 mt-1">{excerptError}</p>}
+            <div className="text-xs text-gray-500 mt-1 text-right">{excerptLen}/500 caracteres</div>
+          </div>
+
           <div className={`${contentError ? 'border-red-200' : ''}`}>
             <TinyEditor value={content} onChange={(v) => setContent(v || '')} height={isMobile ? 450 : 750} />
           </div>
