@@ -54,7 +54,8 @@ class ArticleViewSet(viewsets.ModelViewSet):
             author=request.user if request.user.is_authenticated else None,
             tags=tags,
             is_published=data.get('is_published', False),
-            banner=data.get('banner', None)
+            banner=data.get('banner', None),
+            excerpt=data.get('excerpt', '')
         )
         
         return Response(ArticleSerializer(article).data, status=status.HTTP_201_CREATED)

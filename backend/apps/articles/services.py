@@ -5,7 +5,7 @@ from .models import Article
 # Note: In a real scenario, basic Django validation might not be enough if we have complex rules about "Active Categories".
 # But assuming standard usage, if strict category validation (e.g. check if category is 'active' in a SaaS logic) is needed, it goes here.
 
-def article_create(*, title: str, content: str, category, author, tags=None, banner=None, is_published: bool = False) -> Article:
+def article_create(*, title: str, content: str, category, author, tags=None, banner=None, is_published: bool = False, excerpt: str = '') -> Article:
     # 1. Validation Logic
     # Removed len(title) check - moved to Serializer for better error handling consistency.
     
@@ -20,7 +20,8 @@ def article_create(*, title: str, content: str, category, author, tags=None, ban
             category=category,
             author=author,
             is_published=is_published,
-            banner=banner
+            banner=banner,
+            excerpt=excerpt
         )
         article.save()
         

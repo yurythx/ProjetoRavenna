@@ -22,7 +22,7 @@ class Command(BaseCommand):
             self.stdout.write(self.style.WARNING(f"Superuser '{username}' already exists."))
 
         # 2. Create Categories
-        categories = ['Tecnologia', 'Noticias', 'Filmes', 'Animes']
+        categories = ['Tecnologia', 'Noticias', 'Filmes', 'Animes', 'Programação']
         for cat_name in categories:
             cat, created = Category.objects.get_or_create(
                 name=cat_name,
