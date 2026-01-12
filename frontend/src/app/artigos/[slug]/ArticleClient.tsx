@@ -59,11 +59,12 @@ export default function ArticleClient({ slug, initialData }: { slug: string, ini
                 }
             },
             enabled: !!data?.id,
+            disableVisualUpdates: true,
         }
     );
 
     // Sticky Header State
-    // const [scrolled, setScrolled] = useState(false); // Removed: handled by ArticleStickyHeader
+    const [isMobileTocOpen, setIsMobileTocOpen] = useState(false);
     
     // Local like/favorite state to reflect immediate changes
     const [liked, setLiked] = useState<boolean>(!!data?.is_liked);
@@ -220,14 +221,12 @@ export default function ArticleClient({ slug, initialData }: { slug: string, ini
                 onFavoriteChange={(f) => setFavorited(f)}
                 onShare={onShare}
                 hasToc={toc.length > 0}
-                onToggleMobileToc={() => {
-                    const el = document.getElementById('mobile-toc');
-                    if (el) el.classList.toggle('hidden');
-                }}
+                onToggleMobileToc={() => setIsMobileTocOpen(!isMobileTocOpen)}
             >
                 <MobileTOC 
                     items={toc} 
-                    onClose={() => document.getElementById('mobile-toc')?.classList.add('hidden')} 
+                    isOpen={isMobileTocOpen}
+                    onClose={() => setIsMobileTocOpen(false)} 
                 />
             </ArticleStickyHeader>
 
