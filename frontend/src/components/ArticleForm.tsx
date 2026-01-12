@@ -156,19 +156,24 @@ export function ArticleForm({ initial }: { initial?: Article }) {
       });
       if (banner) form.append('banner', banner);
       if (!initial) {
-        const { data } = await api.post('/articles/posts/', form);
+        const { data } = await api.post('/articles/posts/', form, {
+          headers: { 'Content-Type': 'multipart/form-data' },
+        });
         queryClient.invalidateQueries({ queryKey: ['articles'] });
         try { localStorage.removeItem('articleDraft'); } catch { }
         setSuccessData({ open: true, slug: data.slug, title: 'Artigo publicado com sucesso!' });
       } else {
-        const { data } = await api.put(`/articles/posts/${initial.slug}/`, form);
+        const { data } = await api.put(`/articles/posts/${initial.slug}/`, form, {
+          headers: { 'Content-Type': 'multipart/form-data' },
+        });
         queryClient.invalidateQueries({ queryKey: ['articles'] });
         queryClient.invalidateQueries({ queryKey: ['article', initial.slug] });
         setSuccessData({ open: true, slug: data.slug, title: 'Artigo atualizado com sucesso!' });
       }
     } catch (err: any) {
+      console.error('Submission Error:', err.response?.data);
       setError('Não foi possível salvar o artigo.');
-      show({ type: 'error', message: 'Erro ao salvar o artigo' });
+      show({ type: 'error', message: `Erro ao salvar: ${JSON.stringify(err.response?.data || 'Erro desconhecido')}` });
     } finally {
       setLoading(false);
     }

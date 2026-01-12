@@ -33,6 +33,7 @@ const sanitize = (html: string) => {
 };
 
 export default function ArticleClient({ slug, initialData }: { slug: string, initialData?: Article }) {
+    const articleRef = useRef<HTMLDivElement | null>(null);
     const { data: serverData, isLoading, error } = useArticle(slug, { initialData });
     const data = serverData || initialData;
     const showLoading = isLoading && !data;
@@ -82,63 +83,68 @@ export default function ArticleClient({ slug, initialData }: { slug: string, ini
         }
     }, [data?.id, data?.is_liked, data?.like_count, data?.is_favorited]);
 
-    const [toc, setToc] = useState<{ id: string; text: string; level: number }[]>([]);
-    const articleRef = useRef<HTMLDivElement | null>(null);
+    // Process content to inject IDs and generate TOC
+    const { processedContent, tocItems } = useMemo(() => {
+        if (!data?.content) return { processedContent: '', tocItems: [] };
+        
+        // Server-side safe check
+        if (typeof window === 'undefined') return { processedContent: data.content, tocItems: [] };
 
-
-    // Scroll listener removed
-
-    // Unified TOC and Scroll Spy Logic
-    useEffect(() => {
-        const el = articleRef.current;
-        if (!el || !data?.content) return;
-
-        // 1. Setup IDs and generate TOC data from the actual DOM
-        const headings = el.querySelectorAll('h1,h2,h3,h4,h5,h6');
+        const parser = new DOMParser();
+        const doc = parser.parseFromString(data.content, 'text/html');
+        const headings = doc.querySelectorAll('h1,h2,h3,h4,h5,h6');
         const generatedToc: { id: string; text: string; level: number }[] = [];
 
-        headings.forEach((h) => {
-            const headingEl = h as HTMLElement;
-            const text = headingEl.textContent?.trim() || '';
-            
-            // Generate ID if missing
-            if (!headingEl.id && text) {
-                headingEl.id = slugify(text);
+        headings.forEach((h, index) => {
+            const text = h.textContent?.trim() || '';
+            if (!text) return;
+
+            // Generate stable ID
+            let id = h.id;
+            if (!id) {
+                id = slugify(text);
+                // Ensure uniqueness
+                if (generatedToc.some(item => item.id === id)) {
+                    id = `${id}-${index}`;
+                }
+                h.id = id;
             }
-            
-            if (text && headingEl.id) {
-                generatedToc.push({
-                    id: headingEl.id,
-                    text,
-                    level: parseInt(headingEl.tagName.substring(1), 10)
-                });
-            }
+
+            generatedToc.push({
+                id,
+                text,
+                level: parseInt(h.tagName.substring(1), 10)
+            });
         });
 
-        // Only update TOC if it actually changed to avoid re-renders
-        setToc(prev => {
-            if (JSON.stringify(prev) === JSON.stringify(generatedToc)) return prev;
-            return generatedToc;
-        });
+        return {
+            processedContent: doc.body.innerHTML,
+            tocItems: generatedToc
+        };
+    }, [data?.content]);
 
-        // 3. Click handler for "copy link" feature
-        const clickHandler = (e: Event) => {
-            const target = e.currentTarget as HTMLElement;
-            const id = target.id;
-            if (!id) return;
-            const url = typeof window !== 'undefined' ? `${window.location.origin}${window.location.pathname}#${id}` : `#${id}`;
+    // Click handler for "copy link" feature (delegated)
+    useEffect(() => {
+        const articleEl = articleRef.current;
+        if (!articleEl) return;
+
+        const clickHandler = (e: MouseEvent) => {
+            const target = e.target as HTMLElement;
+            const heading = target.closest('h1,h2,h3,h4,h5,h6');
+            if (!heading || !heading.id) return;
+
+            const url = `${window.location.origin}${window.location.pathname}#${heading.id}`;
             if (navigator.clipboard) {
                 navigator.clipboard.writeText(url).then(() => {
                     show({ type: 'success', message: 'Link da seção copiado' });
                 });
             }
         };
-        headings.forEach((h) => h.addEventListener('click', clickHandler));
 
-        return () => {
-            headings.forEach((h) => h.removeEventListener('click', clickHandler));
-        };
-    }, [data?.content, show]); 
+        articleEl.addEventListener('click', clickHandler);
+        return () => articleEl.removeEventListener('click', clickHandler);
+    }, [show]);
+ 
 
     async function onShare() {
         const url = typeof window !== 'undefined' ? window.location.href : '';
@@ -228,11 +234,11 @@ export default function ArticleClient({ slug, initialData }: { slug: string, ini
                 onLikeChange={(l, c) => { setLiked(l); setLikeCount(c); }}
                 onFavoriteChange={(f) => setFavorited(f)}
                 onShare={onShare}
-                hasToc={toc.length > 0}
+                hasToc={tocItems.length > 0}
                 onToggleMobileToc={() => setIsMobileTocOpen(!isMobileTocOpen)}
             >
                 <MobileTOC 
-                    items={toc} 
+                    items={tocItems} 
                     isOpen={isMobileTocOpen}
                     onClose={() => setIsMobileTocOpen(false)} 
                 />
@@ -363,11 +369,14 @@ export default function ArticleClient({ slug, initialData }: { slug: string, ini
 
                     {/* Article Content */}
                     <div className="max-w-3xl mx-auto">
-                        <article
+                        <div
                             ref={articleRef}
-                            suppressHydrationWarning
-                            className="prose prose-lg prose-slate dark:prose-invert max-w-none overflow-anchor-none"
-                            dangerouslySetInnerHTML={contentHtml}
+                            className="prose prose-lg dark:prose-invert max-w-none 
+                                prose-headings:scroll-mt-24 
+                                prose-a:text-primary prose-a:no-underline hover:prose-a:underline
+                                prose-img:rounded-xl prose-img:shadow-lg prose-img:w-full prose-img:h-auto
+                                [&>iframe]:w-full [&>iframe]:aspect-video [&>iframe]:rounded-xl"
+                            dangerouslySetInnerHTML={{ __html: sanitize(processedContent) }}
                         />
 
                         {/* Tags Footer */}
@@ -447,11 +456,35 @@ export default function ArticleClient({ slug, initialData }: { slug: string, ini
                 </div>
 
                 {/* Sidebar */}
-                <aside className="hidden lg:block space-y-8">
-                    {/* TOC Widget */}
-                    {toc.length > 0 && (
-                        <ArticleTOC items={toc} />
-                    )}
+                <aside className="hidden lg:block">
+                    <div className="sticky top-24 space-y-6">
+                        {tocItems.length > 0 && <ArticleTOC items={tocItems} />}
+                        
+                        {/* Related Articles (Desktop) */}
+                        {sortedRelated.length > 0 && (
+                            <div className="bg-card rounded-xl border border-border p-6 shadow-sm">
+                                <h3 className="font-bold text-sm uppercase tracking-wider text-muted-foreground mb-4">
+                                    Relacionados
+                                </h3>
+                                <div className="space-y-4">
+                                    {sortedRelated.slice(0, 3).map((relatedArticle) => (
+                                        <Link 
+                                            key={relatedArticle.id} 
+                                            href={`/artigos/${relatedArticle.slug}`}
+                                            className="block group"
+                                        >
+                                            <h4 className="text-sm font-medium group-hover:text-primary transition-colors line-clamp-2 mb-1">
+                                                {relatedArticle.title}
+                                            </h4>
+                                            <p className="text-xs text-muted-foreground">
+                                                {new Date(relatedArticle.created_at).toLocaleDateString('pt-BR')}
+                                            </p>
+                                        </Link>
+                                    ))}
+                                </div>
+                            </div>
+                        )}
+                    </div>
                 </aside>
             </div>
 
