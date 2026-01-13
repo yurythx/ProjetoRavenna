@@ -72,7 +72,7 @@ class EntityConfigView(APIView):
             serializer.save()
             
             # Invalidate cache after update
-            cache_key = ENTITY_CONFIG_CACHE_KEY.format(domain=host)
+            cache_key = ENTITY_CONFIG_CACHE_KEY.format(domain=clean_host)
             cache.delete(cache_key)
             
             return Response(serializer.data)

@@ -80,7 +80,6 @@
 }
 
 :root {
-  /* Django Brand Colors */
   /* Django Brand Colors - Now Dynamic */
   --django-green-primary: var(--brand-primary);
   --django-green-dark: var(--brand-secondary);
@@ -92,10 +91,10 @@
   --muted: #E8E8E8;
   --muted-foreground: #5A6C57;
   --border: #D4D4D4;
-  --accent: #44B78B;
-  --accent-hover: #20AA76;
+  --accent: var(--brand-primary);
+  --accent-hover: var(--brand-secondary);
   --card-bg: #FFFFFF;
-  --header-bg: #0C4B33;
+  --header-bg: var(--brand-secondary);
   --header-text: #FFFFFF;
 
   /* Typography */
@@ -113,11 +112,15 @@
   --muted: #252B37;
   --muted-foreground: #8B95A1;
   --border: #3A4453;
-  --accent: #44B78B;
-  --accent-hover: #20AA76;
+  --accent: var(--brand-primary-dark);
+  --accent-hover: var(--brand-secondary-dark);
   --card-bg: #1E2430;
-  --header-bg: #0C4B33;
+  --header-bg: var(--brand-secondary-dark);
   --header-text: #FFFFFF;
+
+  /* Update brand variables to use dark versions if applied to root */
+  --brand-primary: var(--brand-primary-dark);
+  --brand-secondary: var(--brand-secondary-dark);
 }
 
 * {

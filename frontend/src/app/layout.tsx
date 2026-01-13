@@ -39,17 +39,25 @@ export default async function RootLayout({
 }>) {
   const config = await getTenantConfig();
 
-  // Construct CSS variables string
-  const cssVars = config ? {
-    '--brand-primary': config.primary_color,
-    '--brand-secondary': config.secondary_color,
-  } as React.CSSProperties : {};
+  // Construct dynamic CSS variables for light and dark modes
+  const dynamicStyles = config ? `
+    :root {
+      --brand-primary: ${config.primary_color};
+      --brand-secondary: ${config.secondary_color};
+      --brand-primary-dark: ${config.primary_color_dark};
+      --brand-secondary-dark: ${config.secondary_color_dark};
+    }
+  ` : '';
 
   return (
     <html lang="pt-BR" suppressHydrationWarning data-scroll-behavior="smooth">
+      <head>
+        {dynamicStyles && (
+          <style dangerouslySetInnerHTML={{ __html: dynamicStyles }} />
+        )}
+      </head>
       <body
         className={`${fontClass} antialiased min-h-screen flex flex-col`}
-        style={cssVars}
       >
         <ThemeProvider>
           <Providers>
