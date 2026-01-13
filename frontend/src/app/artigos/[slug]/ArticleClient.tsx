@@ -40,13 +40,35 @@ export default function ArticleClient({ slug, initialData }: { slug: string, ini
     const data = serverData || initialData;
     const showLoading = isLoading && !data;
 
-    // ... (toast, router, queryClient hooks)
+    const { show } = useToast();
+    const router = useRouter();
+    const queryClient = useQueryClient();
+    const { data: cats } = useCategories();
+    const { data: tgs } = useTags();
+    const catSlug = cats?.find((c) => c.id === data?.category)?.slug;
+    const { data: related } = useArticles(catSlug ? { category: catSlug, is_published: true, ordering: '-created_at' } : undefined);
+    const sortedRelated = (related || []).slice().sort((a, b) => new Date(a.created_at as any).getTime() - new Date(b.created_at as any).getTime());
+
+    // Analytics: Track view on mount
+    const { mutate: trackView } = useTrackView(data?.id || '');
+
+    // Analytics: Track reading progress
+    const onProgress = useCallback((progress: number, timeSpent: number) => {
+        if (data?.id) {
+            trackView({ reading_progress: progress, time_spent: timeSpent });
+        }
+    }, [data?.id, trackView]);
+
+    const { progress: readingProgress } = useReadingProgress(
+        data?.id || '',
+        {
+            onProgress,
+            enabled: !!data?.id,
+            disableVisualUpdates: true,
+        }
+    );
 
     const canEdit = data?.can_edit || (profile?.id && data?.author && profile.id === data.author);
-
-    // ... (categories, tags, related articles hooks)
-
-    // ... (analytics hooks)
 
     // Sticky Header State
     const [isMobileTocOpen, setIsMobileTocOpen] = useState(false);
@@ -55,7 +77,18 @@ export default function ArticleClient({ slug, initialData }: { slug: string, ini
     const [tocItems, setTocItems] = useState<{ id: string; text: string; level: number }[]>([]);
     const [processedContent, setProcessedContent] = useState('');
 
-    // ... (like/favorite state)
+    // Like & Favorite State
+    const [liked, setLiked] = useState(false);
+    const [likeCount, setLikeCount] = useState(0);
+    const [favorited, setFavorited] = useState(false);
+
+    useEffect(() => {
+        if (data) {
+            setLiked(data.is_liked || false);
+            setLikeCount(data.like_count || 0);
+            setFavorited(data.is_favorited || false);
+        }
+    }, [data]);
 
     // Process content for TOC - Client Side Only to match Hydration
     useEffect(() => {
@@ -189,11 +222,7 @@ export default function ArticleClient({ slug, initialData }: { slug: string, ini
     const rawBanner = data.banner as unknown as string || '';
     const banner = rawBanner && /^https?:\/\//.test(rawBanner) ? `/api/img?url=${encodeURIComponent(rawBanner)}` : rawBanner;
 
-    const contentHtml = useMemo(() => {
-        return {
-            __html: sanitize(data.content || ''),
-        };
-    }, [data.content]);
+
 
     return (
         <div className="container-custom pb-16">
