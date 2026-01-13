@@ -16,10 +16,39 @@ class Command(BaseCommand):
         password = config('SUPERUSER_PASSWORD', default='suporte123')
 
         if not User.objects.filter(username=username).exists():
-            User.objects.create_superuser(username=username, email=email, password=password)
+            User.objects.create_superuser(username=username, email=email, password=password, first_name='Suporte', last_name='Admin')
             self.stdout.write(self.style.SUCCESS(f"Superuser '{username}' created."))
         else:
             self.stdout.write(self.style.WARNING(f"Superuser '{username}' already exists."))
+
+        # 1.5. Create Default Entity (White-Label)
+        from apps.entities.models import Entity
+        
+        entity_domain = config('DEFAULT_ENTITY_DOMAIN', default='localhost')
+        
+        if not Entity.objects.filter(is_active=True).exists():
+            entity = Entity.objects.create(
+                name='Projeto Ravenna',
+                domain=entity_domain,
+                brand_name='Projeto Ravenna',
+                primary_color='#44B78B',
+                secondary_color='#2D3748',
+                primary_color_dark='#44B78B',
+                secondary_color_dark='#0C4B33',
+                footer_text='Todos os direitos reservados.',
+                is_active=True
+            )
+            self.stdout.write(self.style.SUCCESS(f"✅ Default Entity created: {entity.name} ({entity.domain})"))
+        else:
+            entity = Entity.objects.filter(is_active=True).first()
+            # Update existing Entity to have correct domain
+            if not entity.domain or entity.domain == 'localhost':
+                entity.domain = entity_domain
+                entity.brand_name = 'Projeto Ravenna'
+                entity.save()
+                self.stdout.write(self.style.SUCCESS(f"✅ Entity updated: {entity.name} -> domain: {entity.domain}"))
+            else:
+                self.stdout.write(self.style.WARNING(f"Entity already exists: {entity.name} ({entity.domain})"))
 
         # 2. Create Categories
         categories = ['Tecnologia', 'Noticias', 'Filmes', 'Animes', 'Programação']
