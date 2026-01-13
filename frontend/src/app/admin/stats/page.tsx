@@ -199,8 +199,8 @@ export default function StatsPage() {
                 {/* Views by Month */}
                 <div className="card p-6">
                     <h3 className="font-bold text-lg mb-6">Visualizações por Mês</h3>
-                    <div className="h-[300px]">
-                        <ResponsiveContainer width="100%" height="100%">
+                    <div className="h-[300px] w-full">
+                        <ResponsiveContainer width="100%" height={300} minHeight={300}>
                             <LineChart data={stats?.views_by_month}>
                                 <CartesianGrid strokeDasharray="3 3" stroke="var(--border)" />
                                 <XAxis dataKey="month" tick={{ fontSize: 12 }} />
@@ -215,8 +215,8 @@ export default function StatsPage() {
                 {/* Articles by Category */}
                 <div className="card p-6">
                     <h3 className="font-bold text-lg mb-6">Artigos por Categoria</h3>
-                    <div className="h-[300px]">
-                        <ResponsiveContainer width="100%" height="100%">
+                    <div className="h-[300px] w-full">
+                        <ResponsiveContainer width="100%" height={300} minHeight={300}>
                             <PieChart>
                                 <Pie
                                     data={stats?.articles_by_category}
