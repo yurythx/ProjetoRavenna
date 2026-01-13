@@ -9,7 +9,8 @@ import {
     Bell,
     TrendingUp,
     ShieldCheck,
-    ChevronRight
+    ChevronRight,
+    Palette
 } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 import { useEffect } from 'react';
@@ -33,6 +34,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
 
     const navItems = [
         { label: 'Visão Geral', icon: LayoutDashboard, href: '/admin' },
+        { label: 'Identidade Visual', icon: Palette, href: '/admin/branding' },
         { label: 'Estatísticas de Artigos', icon: TrendingUp, href: '/admin/stats' },
         { label: 'Gerenciar Módulos', icon: Settings, href: '/admin/modules' },
         { label: 'Segurança & Acesso', icon: ShieldCheck, href: '/admin/security' },
