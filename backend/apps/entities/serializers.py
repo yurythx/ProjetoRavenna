@@ -10,6 +10,8 @@ class EntityConfigSerializer(serializers.ModelSerializer):
             'domain',
             'primary_color',
             'secondary_color',
+            'primary_color_dark',
+            'secondary_color_dark',
             'logo',
             'favicon',
             'footer_text',

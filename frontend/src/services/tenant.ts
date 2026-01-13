@@ -1,10 +1,13 @@
 
+
 export interface TenantConfig {
     name: string;
     brand_name: string | null;
     domain: string | null;
     primary_color: string;
     secondary_color: string;
+    primary_color_dark: string;
+    secondary_color_dark: string;
     logo: string | null;
     favicon: string | null;
     footer_text: string;

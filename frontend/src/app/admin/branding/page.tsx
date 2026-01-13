@@ -19,6 +19,8 @@ interface EntityBranding {
     domain: string | null;
     primary_color: string;
     secondary_color: string;
+    primary_color_dark: string;
+    secondary_color_dark: string;
     logo: string | null;
     favicon: string | null;
     footer_text: string;
@@ -42,10 +44,77 @@ export default function BrandingManager() {
         domain: '',
         primary_color: '#44B78B',
         secondary_color: '#2D3748',
+        primary_color_dark: '#44B78B',
+        secondary_color_dark: '#0C4B33',
         logo: null,
         favicon: null,
         footer_text: '',
     });
+
+    const colorPresets = [
+        { name: 'Ravenna (Padrão)', primary: '#44B78B', secondary: '#2D3748', primaryDark: '#44B78B', secondaryDark: '#0C4B33' },
+        { name: 'Azul Oceano', primary: '#0ea5e9', secondary: '#0c4a6e', primaryDark: '#38bdf8', secondaryDark: '#082f49' },
+        { name: 'Roxo Elegante', primary: '#8b5cf6', secondary: '#4c1d95', primaryDark: '#a78bfa', secondaryDark: '#2e1065' },
+        { name: 'Laranja Vibrante', primary: '#f97316', secondary: '#7c2d12', primaryDark: '#fb923c', secondaryDark: '#431407' },
+        { name: 'Verde Floresta', primary: '#10b981', secondary: '#064e3b', primaryDark: '#34d399', secondaryDark: '#022c22' },
+    ];
+
+    const applyPreset = (preset: typeof colorPresets[0]) => {
+        setFormData({
+            ...formData,
+            primary_color: preset.primary,
+            secondary_color: preset.secondary,
+            primary_color_dark: preset.primaryDark,
+            secondary_color_dark: preset.secondaryDark,
+        });
+        show({ type: 'success', message: `Tema "${preset.name}" aplicado!` });
+    };
+
+    const exportConfig = () => {
+        const config = {
+            brand_name: formData.brand_name,
+            primary_color: formData.primary_color,
+            secondary_color: formData.secondary_color,
+            footer_text: formData.footer_text,
+            exported_at: new Date().toISOString(),
+        };
+
+        const blob = new Blob([JSON.stringify(config, null, 2)], { type: 'application/json' });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `branding-${formData.brand_name || 'config'}-${Date.now()}.json`;
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        URL.revokeObjectURL(url);
+
+        show({ type: 'success', message: 'Configuração exportada!' });
+    };
+
+    const importConfig = (e: React.ChangeEvent<HTMLInputElement>) => {
+        const file = e.target.files?.[0];
+        if (!file) return;
+
+        const reader = new FileReader();
+        reader.onload = (event) => {
+            try {
+                const imported = JSON.parse(event.target?.result as string);
+                setFormData({
+                    ...formData,
+                    brand_name: imported.brand_name || formData.brand_name,
+                    primary_color: imported.primary_color || formData.primary_color,
+                    secondary_color: imported.secondary_color || formData.secondary_color,
+                    footer_text: imported.footer_text || formData.footer_text,
+                });
+                show({ type: 'success', message: 'Configuração importada com sucesso!' });
+            } catch (error) {
+                show({ type: 'error', message: 'Erro ao importar arquivo. Verifique o formato.' });
+            }
+        };
+        reader.readAsText(file);
+        e.target.value = ''; // Reset input
+    };
 
     const [logoFile, setLogoFile] = useState<File | null>(null);
     const [faviconFile, setFaviconFile] = useState<File | null>(null);
@@ -79,6 +148,8 @@ export default function BrandingManager() {
         data.append('brand_name', formData.brand_name || '');
         data.append('primary_color', formData.primary_color);
         data.append('secondary_color', formData.secondary_color);
+        data.append('primary_color_dark', formData.primary_color_dark);
+        data.append('secondary_color_dark', formData.secondary_color_dark);
         data.append('footer_text', formData.footer_text);
 
         if (logoFile) data.append('logo', logoFile);
@@ -98,9 +169,31 @@ export default function BrandingManager() {
 
     return (
         <div className="space-y-8">
-            <div>
-                <h1 className="text-3xl font-extrabold tracking-tight">Identidade Visual</h1>
-                <p className="text-muted-foreground">Configure logo, cores e nome de marca do sistema.</p>
+            <div className="flex items-center justify-between">
+                <div>
+                    <h1 className="text-3xl font-extrabold tracking-tight">Identidade Visual</h1>
+                    <p className="text-muted-foreground">Configure logo, cores e nome de marca do sistema.</p>
+                </div>
+                <div className="flex gap-2">
+                    <button
+                        type="button"
+                        onClick={exportConfig}
+                        className="btn btn-outline btn-sm flex items-center gap-2"
+                    >
+                        <Upload className="h-4 w-4 rotate-180" />
+                        Exportar
+                    </button>
+                    <label className="btn btn-outline btn-sm flex items-center gap-2 cursor-pointer">
+                        <Upload className="h-4 w-4" />
+                        Importar
+                        <input
+                            type="file"
+                            accept=".json"
+                            onChange={importConfig}
+                            className="hidden"
+                        />
+                    </label>
+                </div>
             </div>
 
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
@@ -118,6 +211,36 @@ export default function BrandingManager() {
                                 placeholder="Projeto Ravenna"
                             />
                             <p className="text-xs text-muted-foreground mt-1">Aparece no cabeçalho e título da aba do navegador</p>
+                        </div>
+
+                        {/* Color Presets */}
+                        <div>
+                            <label className="block text-sm font-semibold mb-3">Paletas de Cores Predefinidas</label>
+                            <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-2">
+                                {colorPresets.map((preset, idx) => (
+                                    <button
+                                        key={idx}
+                                        type="button"
+                                        onClick={() => applyPreset(preset)}
+                                        className="group relative p-2 rounded-lg border border-border hover:border-accent transition-all bg-card hover:shadow-md"
+                                        title={preset.name}
+                                    >
+                                        <div className="flex gap-1 mb-1">
+                                            <div
+                                                className="h-8 flex-1 rounded"
+                                                style={{ backgroundColor: preset.primary }}
+                                            />
+                                            <div
+                                                className="h-8 flex-1 rounded"
+                                                style={{ backgroundColor: preset.secondary }}
+                                            />
+                                        </div>
+                                        <p className="text-[10px] font-medium text-center truncate group-hover:text-accent">
+                                            {preset.name}
+                                        </p>
+                                    </button>
+                                ))}
+                            </div>
                         </div>
 
                         {/* Colors */}
@@ -155,6 +278,46 @@ export default function BrandingManager() {
                                         onChange={(e) => setFormData({ ...formData, secondary_color: e.target.value })}
                                         className="flex-1 px-4 py-2 rounded-lg border border-border bg-background font-mono text-sm"
                                         placeholder="#2D3748"
+                                    />
+                                </div>
+                            </div>
+                        </div>
+
+                        {/* Dark Mode Colors */}
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            <div>
+                                <label className="block text-sm font-semibold mb-2">Cor Primária (Dark Mode)</label>
+                                <div className="flex gap-3 items-center">
+                                    <input
+                                        type="color"
+                                        value={formData.primary_color_dark}
+                                        onChange={(e) => setFormData({ ...formData, primary_color_dark: e.target.value })}
+                                        className="h-12 w-20 rounded-lg cursor-pointer border border-border"
+                                    />
+                                    <input
+                                        type="text"
+                                        value={formData.primary_color_dark}
+                                        onChange={(e) => setFormData({ ...formData, primary_color_dark: e.target.value })}
+                                        className="flex-1 px-4 py-2 rounded-lg border border-border bg-background font-mono text-sm"
+                                        placeholder="#44B78B"
+                                    />
+                                </div>
+                            </div>
+                            <div>
+                                <label className="block text-sm font-semibold mb-2">Cor Secundária (Dark Mode)</label>
+                                <div className="flex gap-3 items-center">
+                                    <input
+                                        type="color"
+                                        value={formData.secondary_color_dark}
+                                        onChange={(e) => setFormData({ ...formData, secondary_color_dark: e.target.value })}
+                                        className="h-12 w-20 rounded-lg cursor-pointer border border-border"
+                                    />
+                                    <input
+                                        type="text"
+                                        value={formData.secondary_color_dark}
+                                        onChange={(e) => setFormData({ ...formData, secondary_color_dark: e.target.value })}
+                                        className="flex-1 px-4 py-2 rounded-lg border border-border bg-background font-mono text-sm"
+                                        placeholder="#0C4B33"
                                     />
                                 </div>
                             </div>
@@ -204,23 +367,38 @@ export default function BrandingManager() {
                             </div>
                         </div>
 
-                        <button
-                            type="submit"
-                            disabled={updateMutation.isPending}
-                            className="btn btn-primary w-full flex items-center justify-center gap-2"
-                        >
-                            {updateMutation.isPending ? (
-                                <>
-                                    <Loader2 className="h-4 w-4 animate-spin" />
-                                    Salvando...
-                                </>
-                            ) : (
-                                <>
-                                    <CheckCircle className="h-4 w-4" />
-                                    Salvar Alterações
-                                </>
-                            )}
-                        </button>
+                        <div className="flex gap-3">
+                            <button
+                                type="button"
+                                onClick={() => {
+                                    // Apply preview by injecting CSS variables temporarily
+                                    document.body.style.setProperty('--brand-primary', formData.primary_color);
+                                    document.body.style.setProperty('--brand-secondary', formData.secondary_color);
+                                    show({ type: 'info', message: 'Preview aplicado! Recarregue para reverter.' });
+                                }}
+                                className="btn btn-outline flex-1 flex items-center justify-center gap-2"
+                            >
+                                <Eye className="h-4 w-4" />
+                                Aplicar Preview
+                            </button>
+                            <button
+                                type="submit"
+                                disabled={updateMutation.isPending}
+                                className="btn btn-primary flex-1 flex items-center justify-center gap-2"
+                            >
+                                {updateMutation.isPending ? (
+                                    <>
+                                        <Loader2 className="h-4 w-4 animate-spin" />
+                                        Salvando...
+                                    </>
+                                ) : (
+                                    <>
+                                        <CheckCircle className="h-4 w-4" />
+                                        Salvar Alterações
+                                    </>
+                                )}
+                            </button>
+                        </div>
                     </form>
                 </div>
 

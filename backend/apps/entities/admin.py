@@ -20,15 +20,20 @@ class EntityAdmin(admin.ModelAdmin):
     """
     Admin configuration for Entity model.
     """
-    list_display = ('name', 'entity_type', 'tax_id', 'slug', 'created_at', 'updated_at')
-    list_filter = ('entity_type', 'created_at', 'updated_at')
-    search_fields = ('name', 'tax_id', 'slug')
+    list_display = ('name', 'domain', 'brand_name', 'entity_type', 'is_active', 'created_at')
+    list_filter = ('entity_type', 'is_active', 'created_at', 'updated_at')
+    search_fields = ('name', 'domain', 'brand_name', 'tax_id', 'slug')
     readonly_fields = ('id', 'slug', 'created_at', 'updated_at')
     ordering = ('name',)
+    list_editable = ('is_active',)
     
     fieldsets = (
         ('Entity Information', {
             'fields': ('name', 'slug', 'entity_type', 'tax_id')
+        }),
+        ('White-Label Configuration', {
+            'fields': ('domain', 'brand_name', 'primary_color', 'secondary_color', 'logo', 'favicon', 'footer_text', 'is_active'),
+            'description': 'Configure branding and domain for this tenant'
         }),
         ('Metadata', {
             'fields': ('id', 'created_at', 'updated_at'),
