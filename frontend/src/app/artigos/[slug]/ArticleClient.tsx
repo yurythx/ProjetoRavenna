@@ -174,8 +174,12 @@ export default function ArticleClient({ slug, initialData }: { slug: string, ini
             });
             show({ type: 'success', message: 'Artigo excluído com sucesso' });
             router.push('/artigos');
-        } catch {
-            show({ type: 'error', message: 'Não foi possível excluir o artigo' });
+        } catch (err: any) {
+            if (err.response?.status === 403) {
+                show({ type: 'error', message: 'Você não tem permissão para excluir este artigo.' });
+            } else {
+                show({ type: 'error', message: 'Não foi possível excluir o artigo. Tente novamente mais tarde.' });
+            }
         }
     }
 
