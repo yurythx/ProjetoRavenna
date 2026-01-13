@@ -353,9 +353,17 @@ export default function ArticleClient({ slug, initialData }: { slug: string, ini
                                 </div>
 
                                 <div className="flex items-center gap-3">
-                                    <div className="w-10 h-10 rounded-full bg-accent/20 flex items-center justify-center text-accent font-bold text-lg">
-                                        {authorName.charAt(0).toUpperCase()}
-                                    </div>
+                                    {data.author_avatar ? (
+                                        <img
+                                            src={data.author_avatar}
+                                            alt={authorName}
+                                            className="w-10 h-10 rounded-full object-cover border border-accent/20"
+                                        />
+                                    ) : (
+                                        <div className="w-10 h-10 rounded-full bg-accent/20 flex items-center justify-center text-accent font-bold text-lg">
+                                            {authorName.charAt(0).toUpperCase()}
+                                        </div>
+                                    )}
                                     <div>
                                         <p className="font-semibold text-foreground">{authorName}</p>
                                         <p className="text-xs">{new Date(data.created_at).toLocaleDateString('pt-BR', { day: 'numeric', month: 'long', year: 'numeric' })}</p>
@@ -407,18 +415,28 @@ export default function ArticleClient({ slug, initialData }: { slug: string, ini
                             </div>
                         </div>
 
+
                         {/* Author Bio Card */}
                         <div className="mt-12 p-8 rounded-2xl bg-muted/30 border border-border flex flex-col md:flex-row gap-6 items-center md:items-start text-center md:text-left">
-                            <div className="w-20 h-20 rounded-full bg-accent/20 flex items-center justify-center text-accent font-bold text-3xl shrink-0">
-                                {authorName.charAt(0).toUpperCase()}
-                            </div>
-                            <div>
+                            {data.author_avatar ? (
+                                <img
+                                    src={data.author_avatar}
+                                    alt={authorName}
+                                    className="w-20 h-20 rounded-full object-cover border-2 border-accent/20 shrink-0"
+                                />
+                            ) : (
+                                <div className="w-20 h-20 rounded-full bg-accent/20 flex items-center justify-center text-accent font-bold text-3xl shrink-0">
+                                    {authorName.charAt(0).toUpperCase()}
+                                </div>
+                            )}
+
+                            <div className="flex-1">
                                 <h3 className="font-bold text-xl mb-2">Sobre {authorName}</h3>
-                                <p className="text-muted-foreground mb-4">
-                                    Redator especialista em tecnologia e inovação no Projeto Ravenna. Apaixonado por compartilhar conhecimento sobre desenvolvimento, infraestrutura e boas práticas.
+                                <p className="text-muted-foreground mb-4 leading-relaxed">
+                                    {data.author_bio || "Este autor ainda não adicionou uma biografia."}
                                 </p>
-                                <Link href={`/artigos?author=${authorName}`} className="text-accent font-medium hover:underline">
-                                    Ver mais artigos deste autor →
+                                <Link href={`/artigos?author=${authorName}`} className="text-accent font-medium hover:underline inline-flex items-center gap-1">
+                                    Ver mais artigos deste autor <span aria-hidden="true">→</span>
                                 </Link>
                             </div>
                         </div>

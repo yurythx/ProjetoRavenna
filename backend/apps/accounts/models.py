@@ -30,6 +30,13 @@ class CustomUser(BaseUUIDModel, AbstractUser):
         help_text='User profile picture (will be resized to 400x400 WEBP)'
     )
 
+    bio = models.TextField(
+        'biography',
+        blank=True,
+        default='',
+        help_text='Short biography for the user profile.'
+    )
+
     USERNAME_FIELD = 'email'
     REQUIRED_FIELDS = ['username']
     

@@ -20,6 +20,7 @@ export default function PerfilPage() {
         username: '',
         first_name: '',
         last_name: '',
+        bio: '',
     });
     const [activeTab, setActiveTab] = useState<'info' | 'favorites' | 'likes'>('info');
 
@@ -40,6 +41,7 @@ export default function PerfilPage() {
                 username: profile.username || '',
                 first_name: profile.first_name || '',
                 last_name: profile.last_name || '',
+                bio: profile.bio || '',
             });
         }
     }, [profile]);
@@ -49,7 +51,7 @@ export default function PerfilPage() {
         updateProfile(formData);
     };
 
-    const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
         setFormData(prev => ({
             ...prev,
             [e.target.name]: e.target.value
@@ -222,6 +224,31 @@ export default function PerfilPage() {
                                     }}
                                     placeholder="Silva"
                                 />
+                            </div>
+
+                            {/* Bio */}
+                            <div>
+                                <label htmlFor="bio" className="block text-sm font-medium mb-2" style={{ color: 'var(--foreground)' }}>
+                                    <User className="w-4 h-4 inline mr-2" aria-hidden="true" />
+                                    Biografia
+                                </label>
+                                <textarea
+                                    id="bio"
+                                    name="bio"
+                                    rows={4}
+                                    value={formData.bio}
+                                    onChange={handleChange}
+                                    className="w-full px-4 py-2 rounded-lg border focus:outline-none focus:ring-2 focus:ring-accent resize-none"
+                                    style={{
+                                        background: 'var(--background)',
+                                        borderColor: 'var(--border)',
+                                        color: 'var(--foreground)'
+                                    }}
+                                    placeholder="Conte um pouco sobre você..."
+                                />
+                                <p className="text-xs mt-1" style={{ color: 'var(--muted-foreground)' }}>
+                                    Essa biografia aparecerá nos seus artigos.
+                                </p>
                             </div>
 
                             {/* Member since */}

@@ -69,6 +69,8 @@ class ArticleSerializer(serializers.ModelSerializer):
     )
     can_edit = serializers.SerializerMethodField()
     author_name = serializers.SerializerMethodField()
+    author_avatar = serializers.SerializerMethodField()
+    author_bio = serializers.SerializerMethodField()
     category_name = serializers.CharField(source='category.name', read_only=True)
     
     # Like and Favorite fields
@@ -105,6 +107,21 @@ class ArticleSerializer(serializers.ModelSerializer):
         if obj.author:
             return obj.author.get_full_name() or obj.author.username
         return "Desconhecido"
+
+    @extend_schema_field(OpenApiTypes.STR)
+    def get_author_avatar(self, obj) -> str | None:
+        if obj.author and obj.author.avatar:
+            request = self.context.get('request')
+            if request:
+                 return request.build_absolute_uri(obj.author.avatar.url)
+            return obj.author.avatar.url
+        return None
+
+    @extend_schema_field(OpenApiTypes.STR)
+    def get_author_bio(self, obj) -> str:
+        if obj.author:
+            return obj.author.bio
+        return ""
     
     @extend_schema_field(OpenApiTypes.INT)
     def get_like_count(self, obj) -> int:

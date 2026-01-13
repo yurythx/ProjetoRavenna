@@ -11,6 +11,8 @@ export type Article = components['schemas']['Article'] & {
   unique_views?: number;
   reading_time?: number;
   engagement_rate?: number;
+  author_bio?: string;
+  author_avatar?: string;
 };
 
 export function useArticle(slug: string, options?: { initialData?: Article }) {

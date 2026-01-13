@@ -5,14 +5,14 @@ class UserProfileSerializer(serializers.ModelSerializer):
     """Serializer for viewing user profile"""
     class Meta:
         model = CustomUser
-        fields = ['id', 'email', 'username', 'first_name', 'last_name', 'avatar', 'date_joined', 'is_staff']
+        fields = ['id', 'email', 'username', 'first_name', 'last_name', 'avatar', 'bio', 'date_joined', 'is_staff']
         read_only_fields = ['id', 'email', 'date_joined', 'is_staff']
 
 class UserProfileUpdateSerializer(serializers.ModelSerializer):
     """Serializer for updating user profile"""
     class Meta:
         model = CustomUser
-        fields = ['username', 'first_name', 'last_name']
+        fields = ['username', 'first_name', 'last_name', 'bio']
         
     def validate_username(self, value):
         """Ensure username is unique if provided"""

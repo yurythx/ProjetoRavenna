@@ -9,6 +9,7 @@ interface UserProfile {
     first_name: string;
     last_name: string;
     avatar: string | null;
+    bio?: string;
     date_joined: string;
 }
 
@@ -16,6 +17,7 @@ interface ProfileUpdateData {
     username?: string;
     first_name?: string;
     last_name?: string;
+    bio?: string;
 }
 
 export function useProfile() {
