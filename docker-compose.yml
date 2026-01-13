@@ -106,6 +106,9 @@ services:
       - NODE_ENV=production
       - PORT=3001
       - NEXT_PUBLIC_API_URL=https://api.projetoravenna.cloud/api/v1
+      # CRITICAL: Internal URL for SSR (server-side rendering)
+      # Frontend container talks to backend container via Docker network
+      - INTERNAL_API_URL=http://backend:8000/api/v1
     depends_on:
       - backend
     healthcheck:
