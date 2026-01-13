@@ -17,21 +17,28 @@ class EntityConfigView(APIView):
     def get(self, request):
         host = request.get_host().split(':')[0]  # Remove port if present
         
+        # Clean host (remove api. or www. prefixes to find the base domain)
+        clean_host = host
+        if host.startswith('api.'):
+            clean_host = host[4:]
+        elif host.startswith('www.'):
+            clean_host = host[4:]
+
         # Check cache first
-        cache_key = ENTITY_CONFIG_CACHE_KEY.format(domain=host)
+        cache_key = ENTITY_CONFIG_CACHE_KEY.format(domain=clean_host)
         cached_data = cache.get(cache_key)
         if cached_data:
             return Response(cached_data)
         
-        # Try to find entity by domain
-        entity = Entity.objects.filter(domain=host, is_active=True).first()
+        # Try to find entity by cleaned domain
+        entity = Entity.objects.filter(domain=clean_host, is_active=True).first()
         
-        # Fallback for development (optional: allow getting the first one if no domain matches)
-        if not entity and (host == 'localhost' or host == '127.0.0.1'):
+        # Fallback for development/internal (host 'backend' is common in Docker)
+        if not entity and (host in ['localhost', '127.0.0.1', 'backend']):
              entity = Entity.objects.filter(is_active=True).first()
 
         if not entity:
-            return Response({"detail": "Entity not found for this domain."}, status=404)
+            return Response({"detail": f"Entity not found for domain: {host} (cleaned: {clean_host})"}, status=404)
 
         serializer = EntityConfigSerializer(entity, context={'request': request})
         
@@ -44,15 +51,21 @@ class EntityConfigView(APIView):
         """Update entity branding (admin only)"""
         host = request.get_host().split(':')[0]
         
+        clean_host = host
+        if host.startswith('api.'):
+            clean_host = host[4:]
+        elif host.startswith('www.'):
+            clean_host = host[4:]
+            
         # Find entity by domain
-        entity = Entity.objects.filter(domain=host, is_active=True).first()
+        entity = Entity.objects.filter(domain=clean_host, is_active=True).first()
         
         # Fallback for development
-        if not entity and (host == 'localhost' or host == '127.0.0.1'):
+        if not entity and (host in ['localhost', '127.0.0.1', 'backend']):
             entity = Entity.objects.filter(is_active=True).first()
 
         if not entity:
-            return Response({"detail": "Entity not found for this domain."}, status=404)
+            return Response({"detail": f"Entity not found for domain: {host} (cleaned: {clean_host})"}, status=404)
 
         serializer = EntityConfigSerializer(entity, data=request.data, partial=True, context={'request': request})
         if serializer.is_valid():
