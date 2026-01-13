@@ -1,5 +1,5 @@
 'use client';
-import { CheckCircle2, Eye, Share2, ArrowRight } from 'lucide-react';
+import { CheckCircle2, Eye, Share2, ArrowRight, FilePlus } from 'lucide-react';
 import { createPortal } from 'react-dom';
 import { useToast } from '@/contexts/ToastContext';
 
@@ -10,6 +10,7 @@ export function SuccessDialog({
   onClose,
   slug,
   confirmLabel,
+  onCreateAnother,
 }: {
   open: boolean;
   title: string;
@@ -17,6 +18,7 @@ export function SuccessDialog({
   onClose: () => void;
   slug?: string;
   confirmLabel?: string;
+  onCreateAnother?: () => void;
 }) {
   const { show } = useToast();
   if (!open) return null;
@@ -44,12 +46,21 @@ export function SuccessDialog({
         <div className="p-4 space-y-2">
           {slug && (
             <>
-              <a
-                href={`/artigos/${slug}`}
-                className="flex items-center justify-center gap-2 w-full py-3 bg-green-600 hover:bg-green-700 text-white rounded-xl font-medium transition-colors shadow-lg shadow-green-600/20"
-              >
-                <Eye className="w-4 h-4" /> Ver Artigo <ArrowRight className="w-4 h-4" />
-              </a>
+              {onCreateAnother ? (
+                <button
+                  onClick={onCreateAnother}
+                  className="flex items-center justify-center gap-2 w-full py-3 bg-green-600 hover:bg-green-700 text-white rounded-xl font-medium transition-colors shadow-lg shadow-green-600/20"
+                >
+                  <FilePlus className="w-4 h-4" /> Criar outro artigo
+                </button>
+              ) : (
+                <a
+                  href={`/artigos/${slug}`}
+                  className="flex items-center justify-center gap-2 w-full py-3 bg-green-600 hover:bg-green-700 text-white rounded-xl font-medium transition-colors shadow-lg shadow-green-600/20"
+                >
+                  <Eye className="w-4 h-4" /> Ver Artigo <ArrowRight className="w-4 h-4" />
+                </a>
+              )}
 
               <button
                 onClick={handleShare}

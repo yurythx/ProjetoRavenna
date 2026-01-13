@@ -98,11 +98,11 @@ export function ArticleForm({ initial }: { initial?: Article }) {
   }, [titleLen]);
 
   useEffect(() => {
-     if (excerptLen > 500) {
-         setExcerptError('Resumo muito longo (máx 500 caracteres)');
-     } else {
-         setExcerptError(null);
-     }
+    if (excerptLen > 500) {
+      setExcerptError('Resumo muito longo (máx 500 caracteres)');
+    } else {
+      setExcerptError(null);
+    }
   }, [excerptLen]);
 
   useEffect(() => {
@@ -461,6 +461,19 @@ export function ArticleForm({ initial }: { initial?: Article }) {
         slug={isPublished ? successData?.slug : undefined}
         description={isPublished ? "Seu artigo já está disponível para todos os leitores." : "Seu rascunho foi salvo com sucesso."}
         confirmLabel={isPublished ? "Ir para o artigo" : "Continuar editando"}
+        onCreateAnother={isPublished ? () => {
+          setTitle('');
+          setExcerpt('');
+          setContent('');
+          setCategory(cats && cats.length > 0 ? cats[0].id : '');
+          setIsPublished(false);
+          setTags([]);
+          setBanner(null);
+          setPreviewUrl(null);
+          setSuccessData(null);
+          try { localStorage.removeItem('articleDraft'); } catch { }
+          window.scrollTo({ top: 0, behavior: 'smooth' });
+        } : undefined}
         onClose={() => {
           setSuccessData(null);
           if (isPublished && successData?.slug) {
