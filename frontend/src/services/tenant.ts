@@ -15,7 +15,7 @@ const API_URL = process.env.INTERNAL_API_URL || 'http://localhost:8000/api/v1';
 
 export async function getTenantConfig(): Promise<TenantConfig | null> {
     const { headers } = await import('next/headers');
-    const headersList = headers();
+    const headersList = await headers();
     const host = headersList.get('host') || 'localhost';
 
     try {
