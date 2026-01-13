@@ -28,7 +28,7 @@ export async function getTenantConfig(): Promise<TenantConfig | null> {
                 'Host': host,
                 'Content-Type': 'application/json',
             },
-            next: { revalidate: 10 }, // Cache for 10 seconds
+            cache: 'no-store', // Always fetch fresh data for SSR
         });
 
         if (!res.ok) {

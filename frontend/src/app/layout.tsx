@@ -5,6 +5,7 @@ import { Header } from "@/components/Header";
 import { ModuleAlert } from "@/components/ModuleAlert";
 import { ToastContainer } from "@/components/ToastContainer";
 import { ThemeProvider } from "@/contexts/ThemeContext";
+import { DynamicBranding } from "@/components/DynamicBranding";
 import { getTenantConfig } from "@/services/tenant";
 
 // Usando fontes do sistema para evitar dependência de Google Fonts
@@ -39,28 +40,14 @@ export default async function RootLayout({
 }>) {
   const config = await getTenantConfig();
 
-  // Construct dynamic CSS variables for light and dark modes
-  const dynamicStyles = config ? `
-    :root {
-      --brand-primary: ${config.primary_color};
-      --brand-secondary: ${config.secondary_color};
-      --brand-primary-dark: ${config.primary_color_dark};
-      --brand-secondary-dark: ${config.secondary_color_dark};
-    }
-  ` : '';
-
   return (
     <html lang="pt-BR" suppressHydrationWarning data-scroll-behavior="smooth">
-      <head>
-        {dynamicStyles && (
-          <style dangerouslySetInnerHTML={{ __html: dynamicStyles }} />
-        )}
-      </head>
       <body
         className={`${fontClass} antialiased min-h-screen flex flex-col`}
       >
         <ThemeProvider>
           <Providers>
+            <DynamicBranding />
             <ToastContainer />
             <ModuleAlert />
             <Header logoUrl={config?.logo || undefined} brandName={config?.brand_name || undefined} />
