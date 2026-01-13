@@ -5,27 +5,26 @@ import { Header } from "@/components/Header";
 import { ModuleAlert } from "@/components/ModuleAlert";
 import { ToastContainer } from "@/components/ToastContainer";
 import { ThemeProvider } from "@/contexts/ThemeContext";
+import { getTenantConfig } from "@/services/tenant";
 
 // Usando fontes do sistema para evitar dependência de Google Fonts
-// Isso permite build offline e é mais rápido
 const fontClass = "font-sans";
 
-export const metadata: Metadata = {
-  title: {
-    default: "Projeto Ravenna | Gestão Inteligente",
-    template: "%s | Projeto Ravenna"
-  },
-  description: "Projeto Ravenna - Ecossistema completo de gestão e serviços digitais integrados em projetoravenna.cloud.",
-  keywords: ["ravenna", "projeto ravenna", "gestão", "módulos", "serviços", "cloud"],
-  authors: [{ name: "Projeto Ravenna" }],
-  formatDetection: { telephone: false },
-  openGraph: {
-    type: "website",
-    locale: "pt_BR",
-    siteName: "Projeto Ravenna",
-    url: "https://projetoravenna.cloud"
-  },
-};
+export async function generateMetadata(): Promise<Metadata> {
+  const config = await getTenantConfig();
+
+  const title = config?.brand_name || "Projeto Ravenna";
+  const description = config?.footer_text || "Gestão Inteligente";
+
+  return {
+    title: {
+      default: `${title} | Gestão Inteligente`,
+      template: `%s | ${title}`
+    },
+    description: description,
+    icons: config?.favicon ? [{ rel: "icon", url: config.favicon }] : undefined,
+  };
+}
 
 export const viewport: Viewport = {
   width: "device-width",
@@ -33,26 +32,37 @@ export const viewport: Viewport = {
   themeColor: "#0ea5e9"
 };
 
-export default function RootLayout({
+export default async function RootLayout({
   children,
 }: Readonly<{
   children: React.ReactNode;
 }>) {
+  const config = await getTenantConfig();
+
+  // Construct CSS variables string
+  const cssVars = config ? {
+    '--brand-primary': config.primary_color,
+    '--brand-secondary': config.secondary_color,
+  } as React.CSSProperties : {};
+
   return (
     <html lang="pt-BR" suppressHydrationWarning data-scroll-behavior="smooth">
-      <body className={`${fontClass} antialiased min-h-screen flex flex-col`}>
+      <body
+        className={`${fontClass} antialiased min-h-screen flex flex-col`}
+        style={cssVars}
+      >
         <ThemeProvider>
           <Providers>
             <ToastContainer />
             <ModuleAlert />
-            <Header />
+            <Header logoUrl={config?.logo || undefined} brandName={config?.brand_name || undefined} />
             <main className="flex-1">
               {children}
             </main>
             <footer className="border-t border-border mt-16">
               <div className="container-custom py-8">
                 <p className="text-center text-sm" style={{ color: 'var(--muted-foreground)' }}>
-                  © {new Date().getFullYear()} Projeto Ravenna. Todos os direitos reservados.
+                  © {new Date().getFullYear()} {config?.brand_name || "Projeto Ravenna"}. {config?.footer_text}
                 </p>
               </div>
             </footer>

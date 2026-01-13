@@ -12,8 +12,21 @@ class Entity(BaseUUIDModel, SlugMixin):
     entity_type = models.CharField(max_length=2, choices=ORDER_TYPE_CHOICES, default='PF')
     tax_id = models.CharField(max_length=50, blank=True, null=True, help_text="CPF or CNPJ")
     
+    # White-Label Fields
+    domain = models.CharField("Domínio/Subdomínio", max_length=255, unique=True, null=True, blank=True)
+    brand_name = models.CharField("Nome da Marca", max_length=100, null=True, blank=True)
+    primary_color = models.CharField("Cor Primária", max_length=7, default="#44B78B")
+    secondary_color = models.CharField("Cor Secundária", max_length=7, default="#2D3748")
+    logo = models.ImageField(upload_to='tenants/logos/', null=True, blank=True)
+    favicon = models.ImageField(upload_to='tenants/favicons/', null=True, blank=True)
+    
+    footer_text = models.TextField(blank=True, default='')
+    social_links = models.JSONField(default=dict, blank=True)
+    
+    is_active = models.BooleanField(default=True)
+    
     def __str__(self):
-        return self.name
+        return f"{self.name} ({self.domain})"
 
 class Address(BaseUUIDModel):
     content_type = models.ForeignKey(ContentType, on_delete=models.CASCADE)

@@ -1,9 +1,15 @@
 @import "tailwindcss";
 
 @theme {
-  --color-django-green-primary: #44B78B;
-  --color-django-green-dark: #0C4B33;
-  --color-django-green-link: #20AA76;
+  /* Fallbacks - will be overwritten by TenantProvider */
+  --brand-primary: #44B78B;
+  --brand-secondary: #0C4B33;
+
+  /* Map internal variables to brand variables */
+  --color-django-green-primary: var(--brand-primary);
+  --color-django-green-dark: var(--brand-secondary);
+  --color-django-green-link: var(--brand-primary);
+  /* Or calculate a shade */
 
   --color-background: var(--background);
   --color-foreground: var(--foreground);
@@ -22,20 +28,49 @@
   --animate-slide-down: slide-down 0.3s ease-out;
 
   @keyframes fade-in {
-    from { opacity: 0; }
-    to { opacity: 1; }
+    from {
+      opacity: 0;
+    }
+
+    to {
+      opacity: 1;
+    }
   }
+
   @keyframes slide-up {
-    from { transform: translateY(20px); opacity: 0; }
-    to { transform: translateY(0); opacity: 1; }
+    from {
+      transform: translateY(20px);
+      opacity: 0;
+    }
+
+    to {
+      transform: translateY(0);
+      opacity: 1;
+    }
   }
+
   @keyframes scale-in {
-    from { transform: scale(0.95); opacity: 0; }
-    to { transform: scale(1); opacity: 1; }
+    from {
+      transform: scale(0.95);
+      opacity: 0;
+    }
+
+    to {
+      transform: scale(1);
+      opacity: 1;
+    }
   }
+
   @keyframes slide-down {
-    from { transform: translateY(-10px); opacity: 0; }
-    to { transform: translateY(0); opacity: 1; }
+    from {
+      transform: translateY(-10px);
+      opacity: 0;
+    }
+
+    to {
+      transform: translateY(0);
+      opacity: 1;
+    }
   }
 }
 
@@ -46,9 +81,10 @@
 
 :root {
   /* Django Brand Colors */
-  --django-green-primary: #44B78B;
-  --django-green-dark: #0C4B33;
-  --django-green-link: #20AA76;
+  /* Django Brand Colors - Now Dynamic */
+  --django-green-primary: var(--brand-primary);
+  --django-green-dark: var(--brand-secondary);
+  --django-green-link: var(--brand-primary);
 
   /* Light Mode Colors (Django Style) */
   --background: #F8F8F8;

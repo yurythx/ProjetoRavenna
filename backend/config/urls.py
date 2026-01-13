@@ -42,6 +42,7 @@ urlpatterns = [
     # Modules
     # The middleware will check if these modules are active.
     path('api/v1/articles/', include('apps.articles.urls')),
+    path('api/v1/entities/', include('apps.entities.urls')),
     
     # Documentation
     path('api/schema/', SpectacularAPIView.as_view(), name='schema'),
