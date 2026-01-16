@@ -1,9 +1,9 @@
 @import "tailwindcss";
 
 @theme {
-  /* Fallbacks - will be overwritten by TenantProvider */
-  --brand-primary: #44B78B;
-  --brand-secondary: #0C4B33;
+  /* Fallbacks - will be overwritten by TenantProvider or Server Injection */
+  --brand-primary: var(--brand-primary, #44B78B);
+  --brand-secondary: var(--brand-secondary, #0C4B33);
 
   /* Map internal variables to brand variables */
   --color-django-green-primary: var(--brand-primary);
@@ -106,7 +106,7 @@
 }
 
 /* Dark Mode (Django Style) */
-[data-theme="dark"] {
+:root.dark {
   --background: #181D27;
   --foreground: #C1CAD2;
   --muted: #252B37;

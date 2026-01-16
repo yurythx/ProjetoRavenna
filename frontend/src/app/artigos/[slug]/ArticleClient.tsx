@@ -21,7 +21,7 @@ import { FavoriteButton } from '@/components/FavoriteButton';
 import ViewCounter from '@/components/ViewCounter';
 import ReadingTime from '@/components/ReadingTime';
 import ArticleStats from '@/components/ArticleStats';
-import { useTrackView } from '@/hooks/useAnalytics';
+import { useTrackView, useArticleStats } from '@/hooks/useAnalytics';
 import { useReadingProgress } from '@/hooks/useReadingProgress';
 
 import { ArticleScrollProgress } from '@/components/ArticleScrollProgress';
@@ -69,6 +69,7 @@ export default function ArticleClient({ slug, initialData }: { slug: string, ini
     );
 
     const canEdit = data?.can_edit || (profile?.id && data?.author && profile.id === data.author);
+    const { data: liveStats } = useArticleStats(data?.id || '', !!data?.id);
 
     // Sticky Header State
     const [isMobileTocOpen, setIsMobileTocOpen] = useState(false);
@@ -311,15 +312,15 @@ export default function ArticleClient({ slug, initialData }: { slug: string, ini
                             </div>
 
                             {/* Article Stats */}
-                            {data.view_count !== undefined && (
+                            {(data.view_count !== undefined || liveStats) && (
                                 <div className="mb-6">
                                     <ArticleStats
-                                        viewCount={data.view_count}
-                                        uniqueViews={data.unique_views || 0}
-                                        readingTime={data.reading_time || 5}
-                                        engagementRate={data.engagement_rate || 0}
-                                        likeCount={likeCount}
-                                        commentCount={0}
+                                        viewCount={liveStats?.view_count ?? (data.view_count as number)}
+                                        uniqueViews={liveStats?.unique_views ?? (data.unique_views || 0)}
+                                        readingTime={liveStats?.reading_time ?? (data.reading_time || 5)}
+                                        engagementRate={liveStats?.engagement_rate ?? (data.engagement_rate || 0)}
+                                        likeCount={liveStats?.like_count ?? likeCount}
+                                        commentCount={liveStats?.comment_count ?? 0}
                                         layout="horizontal"
                                         variant="full"
                                     />

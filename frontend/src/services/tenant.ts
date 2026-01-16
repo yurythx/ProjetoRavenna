@@ -31,10 +31,7 @@ export async function getTenantConfig(): Promise<TenantConfig | null> {
             cache: 'no-store', // Always fetch fresh data for SSR
         });
 
-        if (!res.ok) {
-            console.warn(`[Tenant] Failed to fetch config for host ${host}: ${res.status}`);
-            return null;
-        }
+        if (!res.ok) return null;
 
         return res.json();
     } catch (error) {

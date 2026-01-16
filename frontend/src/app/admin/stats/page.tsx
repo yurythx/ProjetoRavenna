@@ -1,7 +1,6 @@
 'use client';
 
-import { useQuery } from '@tanstack/react-query';
-import { api } from '@/lib/api';
+import { useDashboardStats } from '@/hooks/useDashboardStats';
 import {
     BarChart3,
     TrendingUp,
@@ -17,83 +16,28 @@ import {
     Line,
     BarChart,
     Bar,
-    PieChart,
-    Pie,
-    Cell,
     XAxis,
     YAxis,
     CartesianGrid,
     Tooltip,
     ResponsiveContainer,
-    Legend
 } from 'recharts';
-import { useState } from 'react';
-
-interface StatsData {
-    overview: {
-        total_articles: number;
-        total_views: number;
-        total_authors: number;
-        avg_engagement: number;
-    };
-    articles_by_category: Array<{ category: string; count: number }>;
-    views_by_month: Array<{ month: string; views: number }>;
-    top_articles: Array<{ title: string; views: number; slug: string }>;
-    top_authors: Array<{ name: string; articles: number; total_views: number }>;
-}
-
-const COLORS = ['#0ea5e9', '#8b5cf6', '#10b981', '#f59e0b', '#ef4444', '#ec4899'];
+import { useMemo } from 'react';
 
 export default function StatsPage() {
-    const [timeRange, setTimeRange] = useState('30');
-
-    const { data: stats, isLoading } = useQuery<StatsData>({
-        queryKey: ['advanced-stats', timeRange],
-        queryFn: async () => {
-            // Mock data - replace with real API call
-            return {
-                overview: {
-                    total_articles: 45,
-                    total_views: 12543,
-                    total_authors: 8,
-                    avg_engagement: 67.5
-                },
-                articles_by_category: [
-                    { category: 'Tecnologia', count: 15 },
-                    { category: 'Negócios', count: 12 },
-                    { category: 'Lifestyle', count: 8 },
-                    { category: 'Educação', count: 6 },
-                    { category: 'Saúde', count: 4 },
-                ],
-                views_by_month: [
-                    { month: 'Jan', views: 890 },
-                    { month: 'Fev', views: 1240 },
-                    { month: 'Mar', views: 1567 },
-                    { month: 'Abr', views: 1890 },
-                    { month: 'Mai', views: 2234 },
-                    { month: 'Jun', views: 2543 },
-                ],
-                top_articles: [
-                    { title: 'Introdução ao Next.js 14', views: 2340, slug: 'intro-nextjs' },
-                    { title: 'Python para Iniciantes', views: 1890, slug: 'python-beginners' },
-                    { title: 'Design Patterns em React', views: 1654, slug: 'react-patterns' },
-                    { title: 'Node.js Best Practices', views: 1432, slug: 'nodejs-practices' },
-                    { title: 'TypeScript Avançado', views: 1234, slug: 'typescript-advanced' },
-                ],
-                top_authors: [
-                    { name: 'João Silva', articles: 12, total_views: 5430 },
-                    { name: 'Maria Santos', articles: 10, total_views: 4890 },
-                    { name: 'Pedro Costa', articles: 8, total_views: 3200 },
-                    { name: 'Ana Oliveira', articles: 7, total_views: 2980 },
-                    { name: 'Lucas Pereira', articles: 5, total_views: 2100 },
-                ],
-            };
-        },
-    });
+    const { data, isLoading } = useDashboardStats();
+    const viewsChart = useMemo(() => data?.charts.views_by_day || [], [data]);
+    const articlesChart = useMemo(() => data?.charts.articles_by_day || [], [data]);
+    const usersChart = useMemo(() => data?.charts.users_by_day || [], [data]);
 
     const exportData = () => {
-        const csv = 'Category,Count\n' +
-            stats?.articles_by_category.map(item => `${item.category},${item.count}`).join('\n');
+        const header = ['date', 'views', 'articles', 'users'];
+        const rows = (viewsChart || []).map((v: any) => {
+            const a = (articlesChart || []).find((x: any) => x.date === v.date)?.count || 0;
+            const u = (usersChart || []).find((x: any) => x.date === v.date)?.count || 0;
+            return [v.date, v.count, a, u];
+        });
+        const csv = [header, ...rows].map(r => r.join(',')).join('\n');
 
         const blob = new Blob([csv], { type: 'text/csv' });
         const url = URL.createObjectURL(blob);
@@ -127,16 +71,7 @@ export default function StatsPage() {
                     <p className="text-muted-foreground">Análise detalhada de desempenho e métricas de conteúdo</p>
                 </div>
                 <div className="flex gap-2">
-                    <select
-                        value={timeRange}
-                        onChange={(e) => setTimeRange(e.target.value)}
-                        className="px-4 py-2 rounded-lg border border-border bg-background text-sm"
-                    >
-                        <option value="7">Últimos 7 dias</option>
-                        <option value="30">Últimos 30 dias</option>
-                        <option value="90">Últimos 90 dias</option>
-                        <option value="365">Último ano</option>
-                    </select>
+                   
                     <button
                         onClick={exportData}
                         className="btn btn-outline btn-sm flex items-center gap-2"
@@ -156,7 +91,7 @@ export default function StatsPage() {
                         </div>
                         <TrendingUp className="h-4 w-4 text-emerald-500" />
                     </div>
-                    <h3 className="text-3xl font-bold">{stats?.overview.total_articles}</h3>
+                    <h3 className="text-3xl font-bold">{data?.kpis.total_articles}</h3>
                     <p className="text-sm text-muted-foreground mt-1">Total de Artigos</p>
                 </div>
 
@@ -167,7 +102,7 @@ export default function StatsPage() {
                         </div>
                         <TrendingUp className="h-4 w-4 text-emerald-500" />
                     </div>
-                    <h3 className="text-3xl font-bold">{stats?.overview.total_views.toLocaleString()}</h3>
+                    <h3 className="text-3xl font-bold">{(data?.kpis.total_views || 0).toLocaleString()}</h3>
                     <p className="text-sm text-muted-foreground mt-1">Total de Visualizações</p>
                 </div>
 
@@ -178,8 +113,8 @@ export default function StatsPage() {
                         </div>
                         <TrendingUp className="h-4 w-4 text-emerald-500" />
                     </div>
-                    <h3 className="text-3xl font-bold">{stats?.overview.total_authors}</h3>
-                    <p className="text-sm text-muted-foreground mt-1">Autores Ativos</p>
+                    <h3 className="text-3xl font-bold">{data ? (data.kpis.total_users || 0) : 0}</h3>
+                    <p className="text-sm text-muted-foreground mt-1">Usuários</p>
                 </div>
 
                 <div className="card p-6 hover:border-amber-500/50 transition-all">
@@ -189,8 +124,8 @@ export default function StatsPage() {
                         </div>
                         <TrendingUp className="h-4 w-4 text-emerald-500" />
                     </div>
-                    <h3 className="text-3xl font-bold">{stats?.overview.avg_engagement}%</h3>
-                    <p className="text-sm text-muted-foreground mt-1">Engajamento Médio</p>
+                    <h3 className="text-3xl font-bold">{data ? `${(data.kpis.avg_reading_time || 0)} min` : '0 min'}</h3>
+                    <p className="text-sm text-muted-foreground mt-1">Tempo médio de leitura</p>
                 </div>
             </div>
 
@@ -198,15 +133,15 @@ export default function StatsPage() {
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
                 {/* Views by Month */}
                 <div className="card p-6">
-                    <h3 className="font-bold text-lg mb-6">Visualizações por Mês</h3>
+                    <h3 className="font-bold text-lg mb-6">Visualizações por Dia</h3>
                     <div className="h-[300px] w-full">
                         <ResponsiveContainer width="100%" height={300} minHeight={300}>
-                            <LineChart data={stats?.views_by_month}>
+                            <LineChart data={viewsChart}>
                                 <CartesianGrid strokeDasharray="3 3" stroke="var(--border)" />
-                                <XAxis dataKey="month" tick={{ fontSize: 12 }} />
+                                <XAxis dataKey="date" tick={{ fontSize: 12 }} />
                                 <YAxis tick={{ fontSize: 12 }} />
                                 <Tooltip contentStyle={{ background: 'var(--card)', border: '1px solid var(--border)', borderRadius: '8px' }} />
-                                <Line type="monotone" dataKey="views" stroke="#0ea5e9" strokeWidth={2} dot={{ r: 4 }} />
+                                <Line type="monotone" dataKey="count" stroke="#0ea5e9" strokeWidth={2} dot={{ r: 4 }} />
                             </LineChart>
                         </ResponsiveContainer>
                     </div>
@@ -214,26 +149,16 @@ export default function StatsPage() {
 
                 {/* Articles by Category */}
                 <div className="card p-6">
-                    <h3 className="font-bold text-lg mb-6">Artigos por Categoria</h3>
+                    <h3 className="font-bold text-lg mb-6">Artigos por Dia</h3>
                     <div className="h-[300px] w-full">
                         <ResponsiveContainer width="100%" height={300} minHeight={300}>
-                            <PieChart>
-                                <Pie
-                                    data={stats?.articles_by_category}
-                                    dataKey="count"
-                                    nameKey="category"
-                                    cx="50%"
-                                    cy="50%"
-                                    outerRadius={100}
-                                    label
-                                >
-                                    {stats?.articles_by_category.map((_, index) => (
-                                        <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
-                                    ))}
-                                </Pie>
-                                <Tooltip />
-                                <Legend />
-                            </PieChart>
+                            <BarChart data={articlesChart}>
+                                <CartesianGrid strokeDasharray="3 3" stroke="var(--border)" />
+                                <XAxis dataKey="date" tick={{ fontSize: 12 }} />
+                                <YAxis tick={{ fontSize: 12 }} />
+                                <Tooltip contentStyle={{ background: 'var(--card)', border: '1px solid var(--border)', borderRadius: '8px' }} />
+                                <Bar dataKey="count" fill="#8b5cf6" radius={[8, 8, 0, 0]} />
+                            </BarChart>
                         </ResponsiveContainer>
                     </div>
                 </div>
@@ -245,7 +170,7 @@ export default function StatsPage() {
                 <div className="card p-6">
                     <h3 className="font-bold text-lg mb-4">Artigos Mais Visualizados</h3>
                     <div className="space-y-3">
-                        {stats?.top_articles.map((article, idx) => (
+                        {data?.top_articles.map((article, idx) => (
                             <div key={idx} className="flex items-center justify-between p-3 rounded-lg hover:bg-muted transition-colors">
                                 <div className="flex-1 min-w-0">
                                     <p className="font-medium truncate">{article.title}</p>
@@ -260,27 +185,19 @@ export default function StatsPage() {
                     </div>
                 </div>
 
-                {/* Top Authors */}
+                {/* Users by Day */}
                 <div className="card p-6">
-                    <h3 className="font-bold text-lg mb-4">Top Autores</h3>
-                    <div className="space-y-3">
-                        {stats?.top_authors.map((author, idx) => (
-                            <div key={idx} className="flex items-center justify-between p-3 rounded-lg hover:bg-muted transition-colors">
-                                <div className="flex items-center gap-3">
-                                    <div className="w-8 h-8 rounded-full bg-accent/20 flex items-center justify-center shrink-0">
-                                        <span className="text-sm font-bold text-accent">{idx + 1}</span>
-                                    </div>
-                                    <div>
-                                        <p className="font-medium">{author.name}</p>
-                                        <p className="text-xs text-muted-foreground">{author.articles} artigos</p>
-                                    </div>
-                                </div>
-                                <div className="text-right">
-                                    <p className="font-bold">{author.total_views.toLocaleString()}</p>
-                                    <p className="text-xs text-muted-foreground">visualizações</p>
-                                </div>
-                            </div>
-                        ))}
+                    <h3 className="font-bold text-lg mb-4">Novos Usuários por Dia</h3>
+                    <div className="h-[250px] w-full">
+                        <ResponsiveContainer width="100%" height="100%">
+                            <LineChart data={usersChart}>
+                                <CartesianGrid strokeDasharray="3 3" stroke="var(--border)" />
+                                <XAxis dataKey="date" tick={{ fontSize: 12 }} />
+                                <YAxis tick={{ fontSize: 12 }} />
+                                <Tooltip contentStyle={{ background: 'var(--card)', border: '1px solid var(--border)', borderRadius: '8px' }} />
+                                <Line type="monotone" dataKey="count" stroke="#10b981" strokeWidth={2} dot={{ r: 3 }} />
+                            </LineChart>
+                        </ResponsiveContainer>
                     </div>
                 </div>
             </div>

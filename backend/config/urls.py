@@ -14,11 +14,16 @@ from apps.core.notification_views import NotificationViewSet
 from apps.core.module_views import AppModuleViewSet
 from apps.core.views import health_check
 from rest_framework.routers import DefaultRouter
+from apps.accounts.profile_views import AdminUserViewSet
+from apps.accounts.profile_views import GroupViewSet, PermissionViewSet
 
 # Create router for viewsets
 router = DefaultRouter()
 router.register(r'notifications', NotificationViewSet, basename='notifications')
 router.register(r'modules', AppModuleViewSet, basename='modules')
+router.register(r'users', AdminUserViewSet, basename='users')
+router.register(r'auth/groups', GroupViewSet, basename='auth-groups')
+router.register(r'auth/permissions', PermissionViewSet, basename='auth-permissions')
 
 urlpatterns = [
     path("admin/", admin.site.urls),

@@ -30,7 +30,7 @@ export function ArticleScrollProgress() {
     }, []);
 
     return (
-        <div className="fixed top-0 left-0 w-full h-1 z-[70] bg-transparent pointer-events-none">
+        <div className="fixed top-0 left-0 w-full h-1 z-40 bg-transparent pointer-events-none">
             <div 
                 ref={barRef}
                 className="h-full bg-accent origin-left will-change-transform"

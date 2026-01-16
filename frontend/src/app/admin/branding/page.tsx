@@ -67,7 +67,6 @@ export default function BrandingManager() {
             primary_color_dark: preset.primaryDark,
             secondary_color_dark: preset.secondaryDark,
         });
-        show({ type: 'success', message: `Tema "${preset.name}" aplicado!` });
     };
 
     const exportConfig = () => {
@@ -134,6 +133,7 @@ export default function BrandingManager() {
         },
         onSuccess: () => {
             queryClient.invalidateQueries({ queryKey: ['entity-config'] });
+            queryClient.invalidateQueries({ queryKey: ['tenant-branding'] });
             show({ type: 'success', message: 'Branding atualizado com sucesso! Recarregue a página para ver as mudanças.' });
         },
         onError: (error: any) => {
@@ -371,10 +371,11 @@ export default function BrandingManager() {
                             <button
                                 type="button"
                                 onClick={() => {
-                                    // Apply preview by injecting CSS variables temporarily
-                                    document.body.style.setProperty('--brand-primary', formData.primary_color);
-                                    document.body.style.setProperty('--brand-secondary', formData.secondary_color);
-                                    show({ type: 'info', message: 'Preview aplicado! Recarregue para reverter.' });
+                                    document.documentElement.style.setProperty('--brand-primary', formData.primary_color);
+                                    document.documentElement.style.setProperty('--brand-secondary', formData.secondary_color);
+                                    document.documentElement.style.setProperty('--brand-primary-dark', formData.primary_color_dark);
+                                    document.documentElement.style.setProperty('--brand-secondary-dark', formData.secondary_color_dark);
+                                    show({ type: 'info', message: 'Preview aplicado.' });
                                 }}
                                 className="btn btn-outline flex-1 flex items-center justify-center gap-2"
                             >

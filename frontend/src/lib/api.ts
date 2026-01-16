@@ -1,7 +1,7 @@
 import axios from 'axios';
 
 const isServer = typeof window === 'undefined';
-const baseURL = isServer
+let baseURL = isServer
   ? (process.env.INTERNAL_API_URL || process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000/api/v1')
   : (process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000/api/v1');
 
@@ -41,15 +41,20 @@ api.interceptors.response.use(
     const code = error.response?.data?.code;
     const originalRequest = error.config || {};
 
-    // Log error for debugging
+    // Log error for debugging (textual to avoid empty object in console)
     if (!isServer && process.env.NODE_ENV === 'development') {
-      console.error('[API Error]', {
-        url: originalRequest.url,
-        method: originalRequest.method,
-        status,
-        message: error.message,
-        code: error.code,
-      });
+      const url = (originalRequest as any)?.url || '';
+      const method = (originalRequest as any)?.method || '';
+      const msg = error?.message || '';
+      const errCode = error?.code || '';
+      const body = error.response?.data;
+      let bodyStr = '';
+      try {
+        bodyStr = body ? JSON.stringify(body) : '';
+      } catch {
+        bodyStr = '';
+      }
+      console.error(`[API Error] ${status ?? ''} ${method} ${url} ${msg} ${errCode} ${bodyStr}`);
     }
 
     // Handle module disabled (403)
@@ -57,6 +62,30 @@ api.interceptors.response.use(
       const moduleName = error.response?.data?.module || 'unknown';
       if (typeof window !== 'undefined') {
         window.dispatchEvent(new CustomEvent('module-disabled', { detail: { module: moduleName } }));
+      }
+    }
+
+    // Fallback base path from /api/v1 -> /api if backend uses legacy prefix
+    if (
+      status === 404 &&
+      typeof window !== 'undefined' &&
+      (originalRequest as any)?.url &&
+      api.defaults.baseURL?.endsWith('/api/v1')
+    ) {
+      const urlStr = String((originalRequest as any).url);
+      const bodyText = (() => {
+        try {
+          return JSON.stringify(error.response?.data || '');
+        } catch {
+          return '';
+        }
+      })();
+      if (urlStr.includes('/entities/config/') || bodyText.includes('Page not found')) {
+        const newBase = api.defaults.baseURL!.replace('/api/v1', '/api');
+        api.defaults.baseURL = newBase;
+        baseURL = newBase;
+        (originalRequest as any)._retryBase = true;
+        return api.request(originalRequest);
       }
     }
 

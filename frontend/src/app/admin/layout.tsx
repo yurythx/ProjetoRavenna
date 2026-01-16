@@ -22,7 +22,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
 
     useEffect(() => {
         if (!isLoading && (!token || !user?.is_staff)) {
-            router.push('/');
+            router.replace('/');
         }
     }, [user, token, isLoading, router]);
 
@@ -31,6 +31,8 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
             <div className="w-8 h-8 border-4 border-accent border-t-transparent rounded-full animate-spin" />
         </div>
     );
+
+    if (!token || !user?.is_staff) return null;
 
     const navItems = [
         { label: 'Visão Geral', icon: LayoutDashboard, href: '/admin' },
@@ -43,7 +45,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
     return (
         <div className="min-h-screen bg-muted/20 flex flex-col md:flex-row">
             {/* Sidebar */}
-            <aside className="w-full md:w-64 bg-card border-b md:border-b-0 md:border-r border-border flex flex-col sticky top-0 h-auto md:h-screen z-50">
+            <aside className="w-full md:w-64 bg-card border-b md:border-b-0 md:border-r border-border flex flex-col md:sticky md:top-16 h-auto md:h-[calc(100vh-4rem)] z-40">
                 <div className="p-6 border-b border-border flex items-center gap-3">
                     <div className="w-8 h-8 bg-accent rounded-lg flex items-center justify-center text-white font-bold">
                         R

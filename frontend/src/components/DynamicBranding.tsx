@@ -2,6 +2,7 @@
 
 import { useQuery } from '@tanstack/react-query';
 import { useEffect } from 'react';
+import { api } from '@/lib/api';
 
 interface BrandingConfig {
     primary_color: string;
@@ -14,15 +15,10 @@ export function DynamicBranding() {
     const { data } = useQuery({
         queryKey: ['tenant-branding'],
         queryFn: async (): Promise<BrandingConfig | null> => {
-            const res = await fetch('/api/v1/entities/config/', {
-                headers: { 'Content-Type': 'application/json' },
-                cache: 'no-store', // Always fetch fresh data
-            });
-            if (!res.ok) return null;
-            return res.json();
+            const res = await api.get('/entities/config/');
+            return res.data ?? null;
         },
-        refetchInterval: 5000, // Refetch every 5 seconds
-        staleTime: 0, // Always consider data stale
+        staleTime: 5 * 60 * 1000,
     });
 
     useEffect(() => {

@@ -23,13 +23,15 @@ export function ToastProvider({ children }: { children: React.ReactNode }) {
   const [toasts, setToasts] = useState<Toast[]>([]);
 
   const show = useCallback((t: Omit<Toast, 'id'>) => {
+    const exists = toasts.some((x) => x.message === t.message && x.type === t.type);
+    if (exists) return;
     const id = uid();
     const toast = { ...t, id };
-    setToasts((list) => [...list, toast]);
+    setToasts((list) => [...list.slice(-4), toast]);
     setTimeout(() => {
       setToasts((list) => list.filter((x) => x.id !== id));
     }, 5000);
-  }, []);
+  }, [toasts]);
 
   const remove = useCallback((id: string) => {
     setToasts((list) => list.filter((x) => x.id !== id));

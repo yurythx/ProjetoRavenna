@@ -107,7 +107,7 @@ export function MobileTOC({ items, onClose, isOpen }: MobileTOCProps) {
     }, [items]);
 
     return (
-        <div id="mobile-toc" className={`${isOpen ? '' : 'hidden'} absolute top-full left-0 right-0 bg-background border-b border-border p-6 shadow-2xl lg:hidden max-h-[60vh] overflow-y-auto z-50`}>
+        <div id="mobile-toc" className={`${isOpen ? '' : 'hidden'} absolute top-full left-0 right-0 bg-background border-b border-border p-6 shadow-2xl lg:hidden max_h-[60vh] overflow-y-auto z-40`}>
             <div className="flex items-center justify-between mb-4">
                 <h5 className="font-bold text-xs uppercase tracking-wider text-muted-foreground">
                     Neste artigo
