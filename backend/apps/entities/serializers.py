@@ -16,4 +16,9 @@ class EntityConfigSerializer(serializers.ModelSerializer):
             'favicon',
             'footer_text',
             'social_links',
+            'default_theme',
+            'default_language',
+            'email_from_name',
+            'email_from_address',
+            'onboarding_completed',
         ]

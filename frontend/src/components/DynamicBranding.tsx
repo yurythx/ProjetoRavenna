@@ -9,6 +9,7 @@ interface BrandingConfig {
     secondary_color: string;
     primary_color_dark: string;
     secondary_color_dark: string;
+    default_theme: string | null;
 }
 
 export function DynamicBranding() {

@@ -1,5 +1,4 @@
 
-
 export interface TenantConfig {
     name: string;
     brand_name: string | null;
@@ -12,6 +11,8 @@ export interface TenantConfig {
     favicon: string | null;
     footer_text: string;
     social_links: Record<string, string>;
+    default_theme: 'light' | 'dark' | null;
+    default_language: string | null;
 }
 
 const API_URL = process.env.INTERNAL_API_URL || 'http://localhost:8000/api/v1';

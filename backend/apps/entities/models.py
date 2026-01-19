@@ -11,6 +11,17 @@ class Entity(BaseUUIDModel, SlugMixin):
         ('PJ', 'Pessoa Jurídica'),
     )
     
+    DEFAULT_THEME_CHOICES = (
+        ('light', 'Claro'),
+        ('dark', 'Escuro'),
+    )
+    
+    DEFAULT_LANGUAGE_CHOICES = (
+        ('pt-br', 'Português (Brasil)'),
+        ('en', 'English'),
+        ('es', 'Español'),
+    )
+    
     hex_color_validator = RegexValidator(
         regex=r'^#([A-Fa-f0-9]{6}|[A-Fa-f0-9]{3})$',
         message='Enter a valid hex color code (e.g., #FFFFFF or #FFF)'
@@ -51,10 +62,32 @@ class Entity(BaseUUIDModel, SlugMixin):
     )
     logo = models.ImageField(upload_to='tenants/logos/', null=True, blank=True)
     favicon = models.ImageField(upload_to='tenants/favicons/', null=True, blank=True)
+    default_theme = models.CharField(
+        "Tema Padrão", 
+        max_length=5, 
+        choices=DEFAULT_THEME_CHOICES, 
+        default='light'
+    )
+    default_language = models.CharField(
+        "Idioma Padrão",
+        max_length=10,
+        choices=DEFAULT_LANGUAGE_CHOICES,
+        default='pt-br'
+    )
     
     footer_text = models.TextField(blank=True, default='')
     social_links = models.JSONField(default=dict, blank=True)
     
+    # SMTP Configuration
+    smtp_host = models.CharField("SMTP Host", max_length=255, null=True, blank=True)
+    smtp_port = models.IntegerField("SMTP Port", null=True, blank=True)
+    smtp_user = models.CharField("SMTP User", max_length=255, null=True, blank=True)
+    smtp_password = models.CharField("SMTP Password", max_length=255, null=True, blank=True, help_text="Will be stored as plain text for now, consider encryption later.")
+    smtp_use_tls = models.BooleanField("Use TLS", default=True)
+    email_from_address = models.EmailField("Email From Address", null=True, blank=True)
+    email_from_name = models.CharField("Email From Name", max_length=255, null=True, blank=True)
+    
+    onboarding_completed = models.BooleanField(default=False)
     is_active = models.BooleanField(default=True)
     
     def clean(self):

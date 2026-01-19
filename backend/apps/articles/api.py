@@ -160,7 +160,8 @@ class UploadImageView(APIView):
             ext = '.jpg' # Fallback
             
         filename = f"{uuid.uuid4()}{ext}"
-        path = default_storage.save(f'articles/uploads/{filename}', ContentFile(file.read()))
+        tenant_id = getattr(request, 'tenant_id', 'shared')
+        path = default_storage.save(f'tenant_{tenant_id}/articles/uploads/{filename}', ContentFile(file.read()))
         
         # Use storage.url() to get the correct URL (works with both local and MinIO)
         url = default_storage.url(path)

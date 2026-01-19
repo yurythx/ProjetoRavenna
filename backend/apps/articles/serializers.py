@@ -35,7 +35,8 @@ class CategorySerializer(serializers.ModelSerializer):
     
     class Meta:
         model = Category
-        fields = '__all__'
+        fields = ['id', 'name', 'slug', 'description', 'article_count', 'created_at', 'updated_at']
+        read_only_fields = ['id', 'slug', 'created_at', 'updated_at', 'article_count']
 
 class TagSerializer(serializers.ModelSerializer):
     article_count = serializers.IntegerField(read_only=True, default=0)
@@ -87,7 +88,13 @@ class ArticleSerializer(serializers.ModelSerializer):
     
     class Meta:
         model = Article
-        fields = '__all__'
+        fields = [
+            'id', 'title', 'slug', 'excerpt', 'content', 'category', 'category_name', 
+            'tags', 'tag_ids', 'author', 'author_name', 'author_avatar', 'author_bio',
+            'banner', 'is_published', 'can_edit', 'like_count', 'is_liked', 
+            'favorite_count', 'is_favorited', 'view_count', 'unique_views', 
+            'reading_time', 'engagement_rate', 'created_at', 'updated_at'
+        ]
         read_only_fields = ('slug', 'author', 'created_at', 'updated_at')
 
     def validate_title(self, value):

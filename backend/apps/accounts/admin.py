@@ -1,8 +1,12 @@
 from django.contrib import admin
 from django.contrib.auth.admin import UserAdmin as BaseUserAdmin
 from django.utils.translation import gettext_lazy as _
-from .models import CustomUser
+from .models import CustomUser, TenantMembership
 
+
+class TenantMembershipInline(admin.TabularInline):
+    model = TenantMembership
+    extra = 1
 
 @admin.register(CustomUser)
 class CustomUserAdmin(BaseUserAdmin):
@@ -18,9 +22,11 @@ class CustomUserAdmin(BaseUserAdmin):
     # Display ID in readonly mode (UUID)
     readonly_fields = ('id', 'date_joined', 'last_login', 'created_at', 'updated_at')
     
+    inlines = [TenantMembershipInline]
+
     fieldsets = (
         (None, {'fields': ('email', 'username', 'password')}),
-        (_('Personal info'), {'fields': ('first_name', 'last_name')}),
+        (_('Personal info'), {'fields': ('first_name', 'last_name', 'avatar', 'bio')}),
         (_('Permissions'), {
             'fields': ('is_active', 'is_staff', 'is_superuser', 'groups', 'user_permissions'),
         }),
@@ -52,3 +58,10 @@ class CustomUserAdmin(BaseUserAdmin):
         updated = queryset.update(is_active=False)
         self.message_user(request, f'{updated} user(s) were successfully deactivated.')
     deactivate_users.short_description = "Deactivate selected users"
+
+@admin.register(TenantMembership)
+class TenantMembershipAdmin(admin.ModelAdmin):
+    list_display = ('user', 'tenant', 'role', 'created_at')
+    list_filter = ('role', 'tenant', 'created_at')
+    search_fields = ('user__email', 'user__username', 'tenant__brand_name')
+    readonly_fields = ('id', 'created_at', 'updated_at')

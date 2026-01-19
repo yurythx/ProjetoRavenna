@@ -51,3 +51,21 @@ class CustomUser(BaseUUIDModel, AbstractUser):
 
     def __str__(self):
         return self.email
+
+class TenantMembership(BaseUUIDModel):
+    class Role(models.TextChoices):
+        OWNER = 'OWNER', 'Owner'
+        EDITOR = 'EDITOR', 'Editor'
+        MEMBER = 'MEMBER', 'Member'
+
+    user = models.ForeignKey(CustomUser, on_delete=models.CASCADE, related_name='memberships')
+    tenant = models.ForeignKey('entities.Entity', on_delete=models.CASCADE, related_name='memberships')
+    role = models.CharField(max_length=20, choices=Role.choices, default=Role.MEMBER)
+
+    class Meta:
+        unique_together = ('user', 'tenant')
+        verbose_name = 'Tenant Membership'
+        verbose_name_plural = 'Tenant Memberships'
+
+    def __str__(self):
+        return f"{self.user.email} - {self.tenant.brand_name} ({self.get_role_display()})"

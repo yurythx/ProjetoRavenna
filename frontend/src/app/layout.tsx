@@ -27,6 +27,21 @@ export async function generateMetadata(): Promise<Metadata> {
     description: description,
     icons: config?.favicon ? [{ rel: "icon", url: config.favicon }] : undefined,
     metadataBase: new URL(siteUrl),
+    openGraph: {
+      title: title,
+      description: description,
+      url: siteUrl,
+      siteName: title,
+      locale: config?.default_language || 'pt_BR',
+      type: 'website',
+      images: config?.logo ? [{ url: config.logo }] : [],
+    },
+    twitter: {
+      card: 'summary_large_image',
+      title: title,
+      description: description,
+      images: config?.logo ? [config.logo] : [],
+    },
   };
 }
 
@@ -44,9 +59,12 @@ export default async function RootLayout({
   const config = await getTenantConfig();
   const cookieStore = await cookies();
   const themeCookie = cookieStore.get('theme')?.value;
-  const initialThemeClass = themeCookie === 'dark' ? 'dark' : themeCookie === 'light' ? '' : '';
+
+  // Resolve initial theme: Cookie > Tenant Default > System (fallback)
+  const initialThemeClass = themeCookie || config?.default_theme || '';
+
   return (
-    <html lang="pt-BR" suppressHydrationWarning data-scroll-behavior="smooth" className={initialThemeClass}>
+    <html lang={config?.default_language || "pt-BR"} suppressHydrationWarning data-scroll-behavior="smooth" className={initialThemeClass}>
       <head>
         <style dangerouslySetInnerHTML={{
           __html: `
@@ -55,10 +73,6 @@ export default async function RootLayout({
               ${config?.secondary_color ? `--brand-secondary: ${config.secondary_color};` : ''}
               ${config?.primary_color_dark ? `--brand-primary-dark: ${config.primary_color_dark};` : ''}
               ${config?.secondary_color_dark ? `--brand-secondary-dark: ${config.secondary_color_dark};` : ''}
-              
-              /* Alias for backward compatibility if needed */
-              --django-green-primary: var(--brand-primary);
-              --django-green-dark: var(--brand-secondary);
             }
           `
         }} />

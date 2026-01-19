@@ -62,7 +62,7 @@ export function Header({ logoUrl, brandName }: HeaderProps) {
               <img src={logoUrl} alt={displayName} className="h-8 object-contain" />
             ) : (
               <div className="p-1.5 rounded-lg bg-white/10 group-hover:bg-white/20 transition-colors">
-                <BookOpen className="h-6 w-6 text-[var(--django-green-primary)]" />
+                <BookOpen className="h-6 w-6 text-[var(--brand-primary)]" />
               </div>
             )}
             <div className="flex flex-col">
@@ -79,8 +79,8 @@ export function Header({ logoUrl, brandName }: HeaderProps) {
           <nav className="hidden md:flex items-center gap-8">
             <Link
               href="/artigos"
-              className={`text-sm font-medium transition-colors hover:text-[var(--django-green-primary)] ${pathname === '/artigos' ? 'text-[var(--django-green-primary)]' : ''}`}
-              style={{ color: pathname === '/artigos' ? 'var(--django-green-primary)' : 'var(--header-text)' }}
+              className={`text-sm font-medium transition-colors hover:text-[var(--brand-primary)] ${pathname === '/artigos' ? 'text-[var(--brand-primary)]' : ''}`}
+              style={{ color: pathname === '/artigos' ? 'var(--brand-primary)' : 'var(--header-text)' }}
             >
               Artigos
             </Link>
@@ -105,7 +105,7 @@ export function Header({ logoUrl, brandName }: HeaderProps) {
                   className="flex items-center gap-2 p-1 rounded-full hover:bg-white/5 transition-all border border-transparent hover:border-white/10"
                   aria-label="Menu do usuário"
                 >
-                  <div className="w-8 h-8 rounded-full bg-[var(--django-green-primary)] flex items-center justify-center text-white font-bold text-xs ring-2 ring-transparent group-hover:ring-[var(--django-green-primary)]/30 transition-all">
+                  <div className="w-8 h-8 rounded-full bg-[var(--brand-primary)] flex items-center justify-center text-white font-bold text-xs ring-2 ring-transparent group-hover:ring-[var(--brand-primary)]/30 transition-all">
                     {user?.first_name?.charAt(0).toUpperCase() || user?.username?.charAt(0).toUpperCase() || 'U'}
                   </div>
                   <Menu className="h-4 w-4 opacity-40 text-[var(--header-text)]" />
@@ -116,7 +116,7 @@ export function Header({ logoUrl, brandName }: HeaderProps) {
                   <div className="absolute right-0 mt-3 w-64 rounded-2xl bg-white dark:bg-[#1E2430] border border-border shadow-[0_10px_40px_-10px_rgba(0,0,0,0.3)] dark:shadow-[0_10px_40px_-10px_rgba(0,0,0,0.7)] animate-in fade-in zoom-in duration-150 z-[60] overflow-hidden">
                     <div className="p-4 border-b border-border bg-[#F8F8F8] dark:bg-[#252B37]">
                       <div className="flex items-center gap-3 mb-2">
-                        <div className="w-10 h-10 rounded-full bg-[var(--django-green-primary)] flex items-center justify-center text-white font-bold text-sm shadow-sm ring-2 ring-white/10">
+                        <div className="w-10 h-10 rounded-full bg-[var(--brand-primary)] flex items-center justify-center text-white font-bold text-sm shadow-sm ring-2 ring-white/10">
                           {user?.first_name?.charAt(0).toUpperCase() || user?.username?.charAt(0).toUpperCase() || 'U'}
                         </div>
                         <div className="flex flex-col min-w-0">
@@ -193,7 +193,7 @@ export function Header({ logoUrl, brandName }: HeaderProps) {
               !pathname?.startsWith('/auth/login') && (
                 <Link
                   href="/auth/login"
-                  className="btn btn-primary btn-sm px-5 rounded-full font-bold shadow-lg shadow-[var(--django-green-primary)]/20"
+                  className="btn btn-primary btn-sm px-5 rounded-full font-bold shadow-lg shadow-[var(--brand-primary)]/20"
                 >
                   Entrar
                 </Link>
@@ -225,7 +225,7 @@ export function Header({ logoUrl, brandName }: HeaderProps) {
             {token && (
               <div className="px-4 mb-6 py-4 rounded-2xl bg-[#F8F8F8] dark:bg-[#252B37] border border-border">
                 <div className="flex items-center gap-3">
-                  <div className="w-12 h-12 rounded-full bg-[var(--django-green-primary)] flex items-center justify-center text-white font-bold text-lg shadow-sm">
+                  <div className="w-12 h-12 rounded-full bg-[var(--brand-primary)] flex items-center justify-center text-white font-bold text-lg shadow-sm">
                     {user?.first_name?.charAt(0).toUpperCase() || user?.username?.charAt(0).toUpperCase() || 'U'}
                   </div>
                   <div className="flex flex-col min-w-0">
@@ -316,7 +316,7 @@ export function Header({ logoUrl, brandName }: HeaderProps) {
                 <div className="mt-6 px-4">
                   <Link
                     href="/auth/login"
-                    className="btn btn-primary w-full flex items-center justify-center gap-2 py-4 rounded-2xl font-bold shadow-lg shadow-[var(--django-green-primary)]/20"
+                    className="btn btn-primary w-full flex items-center justify-center gap-2 py-4 rounded-2xl font-bold shadow-lg shadow-[var(--brand-primary)]/20"
                     onClick={() => setMobileMenuOpen(false)}
                   >
                     <LogIn className="h-5 w-5" />

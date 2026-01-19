@@ -53,7 +53,7 @@ export default function ServiceTemplate(props: ServiceTemplateProps) {
                     <Link
                         href="/#servicos"
                         className="inline-flex items-center gap-2 text-sm mb-6 hover:underline"
-                        style={{ color: 'var(--django-green-primary)' }}
+                        style={{ color: 'var(--brand-primary)' }}
                     >
                         <ArrowLeft className="w-4 h-4" />
                         Voltar para Serviços
@@ -81,7 +81,7 @@ export default function ServiceTemplate(props: ServiceTemplateProps) {
                                     <span
                                         className="text-xs px-3 py-1 rounded-full font-semibold"
                                         style={{
-                                            background: 'var(--django-green-primary)',
+                                            background: 'var(--brand-primary)',
                                             color: 'white'
                                         }}
                                     >
@@ -287,9 +287,9 @@ export default function ServiceTemplate(props: ServiceTemplateProps) {
                                     <Link
                                         href={url}
                                         className="btn btn-primary w-full flex items-center justify-center gap-2"
-                                        style={{ background: color }}
+                                        style={{ color: 'var(--brand-primary)' }}
                                     >
-                                        Acessar {title}
+                                        Sobre o serviço
                                         <ExternalLink className="w-4 h-4" />
                                     </Link>
                                 ) : (

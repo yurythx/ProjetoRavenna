@@ -10,12 +10,24 @@ interface DashboardStats {
         new_users_30d: number;
         new_articles_30d: number;
         new_comments_30d: number;
+        total_views: number;
+        unique_views: number;
+        avg_reading_time: number;
+        new_views_30d: number;
     };
     charts: {
+        views_by_day: Array<{ date: string; count: number }>;
         articles_by_day: Array<{ date: string; count: number }>;
         users_by_day: Array<{ date: string; count: number }>;
         comments_by_day: Array<{ date: string; count: number }>;
     };
+    top_articles: Array<{
+        id: string;
+        title: string;
+        slug: string;
+        views: number;
+        engagement: number;
+    }>;
     top_authors: Array<{
         author__email: string;
         author__first_name: string;

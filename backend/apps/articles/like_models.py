@@ -1,5 +1,5 @@
 from django.db import models
-from apps.core.models import BaseUUIDModel
+from apps.core.models import BaseUUIDModel, TenantManager
 
 
 class ArticleLike(BaseUUIDModel):
@@ -7,6 +7,7 @@ class ArticleLike(BaseUUIDModel):
     Tracks article likes by users.
     One user can like an article only once.
     """
+    tenant = models.ForeignKey('entities.Entity', on_delete=models.CASCADE, related_name='article_likes', null=True, blank=True)
     article = models.ForeignKey(
         'Article', 
         on_delete=models.CASCADE, 
@@ -18,6 +19,8 @@ class ArticleLike(BaseUUIDModel):
         related_name='article_likes'
     )
     
+    objects = TenantManager()
+
     class Meta:
         unique_together = [['article', 'user']]
         ordering = ['-created_at']
@@ -37,6 +40,7 @@ class ArticleFavorite(BaseUUIDModel):
     Tracks favorited/bookmarked articles by users.
     One user can favorite an article only once.
     """
+    tenant = models.ForeignKey('entities.Entity', on_delete=models.CASCADE, related_name='article_favorites', null=True, blank=True)
     article = models.ForeignKey(
         'Article', 
         on_delete=models.CASCADE, 
@@ -48,6 +52,8 @@ class ArticleFavorite(BaseUUIDModel):
         related_name='article_favorites'
     )
     
+    objects = TenantManager()
+
     class Meta:
         unique_together = [['article', 'user']]
         ordering = ['-created_at']

@@ -13,6 +13,7 @@ from apps.core.stats_views import DashboardStatsView
 from apps.core.notification_views import NotificationViewSet
 from apps.core.module_views import AppModuleViewSet
 from apps.core.views import health_check
+from apps.core import sitemap_views
 from rest_framework.routers import DefaultRouter
 from apps.accounts.profile_views import AdminUserViewSet
 from apps.accounts.profile_views import GroupViewSet, PermissionViewSet
@@ -30,6 +31,7 @@ urlpatterns = [
     
     # Health check endpoint (for Docker health checks and monitoring)
     path("health/", health_check, name='health_check'),
+    path("sitemap.xml", sitemap_views.tenant_sitemap, name='tenant_sitemap'),
 
     # Authentication
     path('api/v1/auth/token/', TokenObtainPairView.as_view(), name='token_obtain_pair'),

@@ -193,13 +193,13 @@ export default function Home() {
                 </div>
               </div>
 
-              <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full" style={{ background: 'var(--django-green-primary)', color: 'white' }}>
+              <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full" style={{ background: 'var(--brand-primary)', color: 'white' }}>
                 <Sparkles className="h-4 w-4" />
                 <span className="text-sm font-medium">Infraestrutura Profissional</span>
               </div>
 
               <h1 className="heading-1 max-w-3xl mx-auto">
-                Projeto <span style={{ color: 'var(--django-green-primary)' }}>Ravenna</span>
+                Projeto <span style={{ color: 'var(--brand-primary)' }}>Ravenna</span>
               </h1>
 
               <div className="text-xl font-medium mb-4" style={{ color: 'var(--foreground)' }}>
@@ -213,15 +213,15 @@ export default function Home() {
 
               <div className="grid md:grid-cols-3 gap-6 mt-12 max-w-3xl mx-auto">
                 <div className="p-6 rounded-lg" style={{ background: 'var(--card-bg)', border: '1px solid var(--border)' }}>
-                  <div className="text-5xl font-bold mb-2" style={{ color: 'var(--django-green-primary)' }}>12</div>
+                  <div className="text-5xl font-bold mb-2" style={{ color: 'var(--brand-primary)' }}>12</div>
                   <div className="font-semibold text-lg">Serviços Ativos</div>
                 </div>
                 <div className="p-6 rounded-lg" style={{ background: 'var(--card-bg)', border: '1px solid var(--border)' }}>
-                  <div className="text-5xl font-bold mb-2" style={{ color: 'var(--django-green-primary)' }}>100%</div>
+                  <div className="text-5xl font-bold mb-2" style={{ color: 'var(--brand-primary)' }}>100%</div>
                   <div className="font-semibold text-lg">Auto-hospedado</div>
                 </div>
                 <div className="p-6 rounded-lg" style={{ background: 'var(--card-bg)', border: '1px solid var(--border)' }}>
-                  <div className="text-5xl font-bold mb-2" style={{ color: 'var(--django-green-primary)' }}>24/7</div>
+                  <div className="text-5xl font-bold mb-2" style={{ color: 'var(--brand-primary)' }}>24/7</div>
                   <div className="font-semibold text-lg">Disponibilidade</div>
                 </div>
               </div>
@@ -238,8 +238,8 @@ export default function Home() {
             </div>
           </div>
 
-          <div className="absolute top-20 left-10 w-72 h-72 rounded-full opacity-20 blur-3xl" style={{ background: 'var(--django-green-primary)' }} />
-          <div className="absolute bottom-20 right-10 w-96 h-96 rounded-full opacity-20 blur-3xl" style={{ background: 'var(--django-green-link)' }} />
+          <div className="absolute top-20 left-10 w-72 h-72 rounded-full opacity-20 blur-3xl" style={{ background: 'var(--brand-primary)' }} />
+          <div className="absolute bottom-20 right-10 w-96 h-96 rounded-full opacity-20 blur-3xl" style={{ background: 'var(--brand-primary)' }} />
         </section>
 
         {/* Services Grid */}
@@ -268,7 +268,7 @@ export default function Home() {
                   <div className="flex items-center gap-3 mb-3">
                     <h3 className="heading-3 mb-0">{service.title}</h3>
                     {service.badge && (
-                      <span className="badge text-[10px] px-2 py-1 rounded-full font-semibold" style={{ background: 'var(--django-green-primary)', color: 'white' }}>
+                      <span className="badge text-[10px] px-2 py-1 rounded-full font-semibold" style={{ background: 'var(--brand-primary)', color: 'white' }}>
                         {service.badge}
                       </span>
                     )}
@@ -300,7 +300,7 @@ export default function Home() {
                     <Link
                       href={`/servicos/${service.slug}`}
                       className="flex items-center text-sm font-semibold hover:underline transition-all"
-                      style={{ color: 'var(--django-green-primary)' }}
+                      style={{ color: 'var(--brand-primary)' }}
                     >
                       Sobre o serviço
                       <ArrowRight className="w-4 h-4 ml-1" />

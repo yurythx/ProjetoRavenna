@@ -1,6 +1,18 @@
 import uuid
 from django.db import models
 from django.utils.text import slugify
+from apps.core.tenant_context import get_current_tenant_id
+
+class TenantQuerySet(models.QuerySet):
+    def for_tenant(self):
+        tenant_id = get_current_tenant_id()
+        if tenant_id:
+            return self.filter(tenant_id=tenant_id)
+        return self
+
+class TenantManager(models.Manager):
+    def get_queryset(self):
+        return TenantQuerySet(self.model, using=self._db).for_tenant()
 
 class BaseUUIDModel(models.Model):
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
@@ -25,7 +37,6 @@ class SlugMixin(models.Model):
                 counter = 1
                 
                 # Check for collisions excluding current instance
-                # We need to access the class of the instance dynamically to check the DB
                 ModelClass = self.__class__
                 
                 while ModelClass.objects.filter(slug=unique_slug).exclude(pk=self.pk).exists():
@@ -37,7 +48,6 @@ class SlugMixin(models.Model):
 
 class AppModule(BaseUUIDModel, SlugMixin):
     name = models.CharField(max_length=100, help_text="Module name (e.g. Articles)")
-    # slug will be generated from name
     display_name = models.CharField(max_length=100)
     is_active = models.BooleanField(default=True)
     is_system_module = models.BooleanField(default=False)
@@ -45,7 +55,6 @@ class AppModule(BaseUUIDModel, SlugMixin):
 
     def __str__(self):
         return self.display_name
-
 
 class Notification(BaseUUIDModel):
     """
@@ -57,29 +66,39 @@ class Notification(BaseUUIDModel):
         ('ARTICLE_PUBLISHED', 'Artigo Publicado'),
         ('SYSTEM', 'Sistema'),
     )
-    
+
+    tenant = models.ForeignKey('entities.Entity', on_delete=models.CASCADE, related_name='notifications', null=True, blank=True)
     recipient = models.ForeignKey('accounts.CustomUser', on_delete=models.CASCADE, related_name='notifications')
-    sender = models.ForeignKey('accounts.CustomUser', on_delete=models.CASCADE, null=True, blank=True, related_name='sent_notifications')
-    notification_type = models.CharField(max_length=20, choices=TYPES)
+    type = models.CharField(max_length=20, choices=TYPES)
     title = models.CharField(max_length=255)
     message = models.TextField()
-    link = models.CharField(max_length=500, blank=True)
     is_read = models.BooleanField(default=False)
-    read_at = models.DateTimeField(null=True, blank=True)
     
+    target_id = models.UUIDField(null=True, blank=True)
+    target_type = models.CharField(max_length=50, blank=True)
+
+    objects = TenantManager()
+
     class Meta:
         ordering = ['-created_at']
-        indexes = [
-            models.Index(fields=['recipient', '-created_at']),
-            models.Index(fields=['recipient', 'is_read']),
-        ]
-    
+
     def __str__(self):
-        return f"{self.notification_type} for {self.recipient.email}"
+        return f"{self.type} for {self.recipient.email}"
     
     def mark_as_read(self):
         if not self.is_read:
-            from django.utils import timezone
             self.is_read = True
-            self.read_at = timezone.now()
-            self.save(update_fields=['is_read', 'read_at'])
+            self.save()
+
+class TenantModule(BaseUUIDModel):
+    tenant = models.ForeignKey('entities.Entity', on_delete=models.CASCADE, related_name='tenant_modules')
+    module = models.ForeignKey(AppModule, on_delete=models.CASCADE, related_name='tenant_modules')
+    is_active = models.BooleanField(default=True)
+
+    class Meta:
+        unique_together = ('tenant', 'module')
+        verbose_name = 'Tenant Module'
+        verbose_name_plural = 'Tenant Modules'
+
+    def __str__(self):
+        return f"{self.tenant.brand_name} - {self.module.name} ({'Active' if self.is_active else 'Inactive'})"

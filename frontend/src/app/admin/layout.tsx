@@ -14,19 +14,32 @@ import {
 } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 import { useEffect } from 'react';
+import { useQuery } from '@tanstack/react-query';
+import { api } from '@/lib/api';
+import { OnboardingWizard } from '@/components/OnboardingWizard';
 
 export default function AdminLayout({ children }: { children: React.ReactNode }) {
-    const { user, token, isLoading } = useAuth();
+    const { user, token, isLoading: authLoading } = useAuth();
+
+    const { data: config, isLoading: configLoading } = useQuery({
+        queryKey: ['tenant-config'],
+        queryFn: async () => {
+            const res = await api.get('/entities/config/');
+            return res.data;
+        },
+        enabled: !!token && !!user?.is_staff
+    });
+
     const pathname = usePathname();
     const router = useRouter();
 
     useEffect(() => {
-        if (!isLoading && (!token || !user?.is_staff)) {
+        if (!authLoading && (!token || !user?.is_staff)) {
             router.replace('/');
         }
-    }, [user, token, isLoading, router]);
+    }, [user, token, authLoading, router]);
 
-    if (isLoading) return (
+    if (authLoading || configLoading) return (
         <div className="flex items-center justify-center min-h-screen">
             <div className="w-8 h-8 border-4 border-accent border-t-transparent rounded-full animate-spin" />
         </div>
@@ -91,6 +104,9 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
                     {children}
                 </div>
             </main>
+
+            {/* Onboarding Wizard */}
+            {!config?.onboarding_completed && <OnboardingWizard config={config} />}
         </div>
     );
 }

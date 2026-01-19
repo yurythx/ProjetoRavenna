@@ -1,35 +1,27 @@
-"""
-Analytics models for tracking article views and reading sessions.
-
-Privacy-conscious design:
-- No raw IP addresses stored (only SHA256 hashes)
-- Respects Do Not Track (DNT) browser settings
-- Session-based tracking for anonymous users
-- GDPR-compliant data handling
-"""
-
 import uuid
 from django.db import models
 from django.conf import settings
 from django.utils import timezone
+from apps.core.models import TenantManager
 
 
 class ArticleView(models.Model):
     """
     Tracks individual article views with privacy-conscious approach.
-    
-    Features:
-    - Unique view detection via session_id
-    - IP hash for deduplication without storing actual IPs
-    - Reading progress tracking (0-100%)
-    - Time spent tracking
-    - Optional user association
     """
     
     id = models.UUIDField(
         primary_key=True,
         default=uuid.uuid4,
         editable=False
+    )
+    
+    tenant = models.ForeignKey(
+        'entities.Entity',
+        on_delete=models.CASCADE,
+        related_name='article_views',
+        null=True,
+        blank=True
     )
     
     # Relationships
@@ -46,7 +38,7 @@ class ArticleView(models.Model):
         related_name='article_views'
     )
     
-    # Session tracking (for anonymous users and deduplication)
+    # Session tracking
     session_id = models.CharField(
         max_length=255,
         db_index=True,
@@ -86,25 +78,16 @@ class ArticleView(models.Model):
     )
     updated_at = models.DateTimeField(auto_now=True)
     
+    objects = TenantManager()
+
     class Meta:
         db_table = 'article_views'
         ordering = ['-created_at']
         indexes = [
-            # For fast article view queries
-            models.Index(
-                fields=['article', 'created_at'],
-                name='av_article_created_idx'
-            ),
-            # For deduplication checks
-            models.Index(
-                fields=['session_id', 'article'],
-                name='av_session_article_idx'
-            ),
-            # For user view history
-            models.Index(
-                fields=['user', 'created_at'],
-                name='av_user_created_idx'
-            ),
+            models.Index(fields=['article', 'created_at'], name='av_article_created_idx'),
+            models.Index(fields=['session_id', 'article'], name='av_session_article_idx'),
+            models.Index(fields=['user', 'created_at'], name='av_user_created_idx'),
+            models.Index(fields=['tenant', 'created_at'], name='av_tenant_created_idx'),
         ]
         verbose_name = 'Article View'
         verbose_name_plural = 'Article Views'
@@ -115,30 +98,30 @@ class ArticleView(models.Model):
     
     @property
     def is_anonymous(self):
-        """Check if this is an anonymous view."""
         return self.user is None
     
     @property
     def completed_reading(self):
-        """Check if user read >80% of the article."""
         return self.reading_progress >= 80
 
 
 class ReadingSession(models.Model):
     """
     Tracks detailed reading sessions for engaged users.
-    
-    Features:
-    - Start/end time tracking
-    - Duration calculation
-    - Engagement metrics (scrolled to bottom, interactions)
-    - One-to-one relationship with ArticleView
     """
     
     id = models.UUIDField(
         primary_key=True,
         default=uuid.uuid4,
         editable=False
+    )
+    
+    tenant = models.ForeignKey(
+        'entities.Entity',
+        on_delete=models.CASCADE,
+        related_name='reading_sessions',
+        null=True,
+        blank=True
     )
     
     # Relationship to ArticleView
@@ -170,6 +153,8 @@ class ReadingSession(models.Model):
         help_text="Number of interactions (clicks, likes, comments)"
     )
     
+    objects = TenantManager()
+
     class Meta:
         db_table = 'reading_sessions'
         ordering = ['-started_at']
@@ -180,7 +165,6 @@ class ReadingSession(models.Model):
         return f"Session for {self.article_view} - {self.duration_seconds}s"
     
     def end_session(self):
-        """End the reading session and calculate duration."""
         if not self.ended_at:
             self.ended_at = timezone.now()
             self.duration_seconds = int((self.ended_at - self.started_at).total_seconds())
@@ -188,15 +172,10 @@ class ReadingSession(models.Model):
     
     @property
     def is_active(self):
-        """Check if session is still active."""
         return self.ended_at is None
     
     @property
     def is_engaged(self):
-        """
-        Check if this was an engaged session.
-        Criteria: >30s duration OR scrolled to bottom OR had interactions
-        """
         return (
             self.duration_seconds > 30 or
             self.scrolled_to_bottom or

@@ -5,12 +5,6 @@
   --brand-primary: var(--brand-primary, #44B78B);
   --brand-secondary: var(--brand-secondary, #0C4B33);
 
-  /* Map internal variables to brand variables */
-  --color-django-green-primary: var(--brand-primary);
-  --color-django-green-dark: var(--brand-secondary);
-  --color-django-green-link: var(--brand-primary);
-  /* Or calculate a shade */
-
   --color-background: var(--background);
   --color-foreground: var(--foreground);
   --color-muted: var(--muted);
@@ -80,12 +74,9 @@
 }
 
 :root {
-  /* Django Brand Colors - Now Dynamic */
-  --django-green-primary: var(--brand-primary);
-  --django-green-dark: var(--brand-secondary);
-  --django-green-link: var(--brand-primary);
+  /* Brand variables are injected via layout.tsx or DynamicBranding.tsx */
 
-  /* Light Mode Colors (Django Style) */
+  /* Light Mode Colors */
   --background: #F8F8F8;
   --foreground: #0C3C26;
   --muted: #E8E8E8;
@@ -112,15 +103,11 @@
   --muted: #252B37;
   --muted-foreground: #8B95A1;
   --border: #3A4453;
-  --accent: var(--brand-primary-dark);
-  --accent-hover: var(--brand-secondary-dark);
+  --accent: var(--brand-primary-dark, #44B78B);
+  --accent-hover: var(--brand-secondary-dark, #0C4B33);
   --card-bg: #1E2430;
-  --header-bg: var(--brand-secondary-dark);
+  --header-bg: var(--brand-secondary-dark, #0C4B33);
   --header-text: #FFFFFF;
-
-  /* Update brand variables to use dark versions if applied to root */
-  --brand-primary: var(--brand-primary-dark);
-  --brand-secondary: var(--brand-secondary-dark);
 }
 
 * {
@@ -149,7 +136,7 @@ body {
   position: absolute;
   top: -40px;
   left: 0;
-  background: var(--django-green-primary);
+  background: var(--brand-primary);
   color: white;
   padding: 0.75rem 1.5rem;
   text-decoration: none;
@@ -161,13 +148,13 @@ body {
 
 .skip-link:focus {
   top: 0;
-  outline: 3px solid var(--django-green-link);
+  outline: 3px solid var(--brand-primary);
   outline-offset: 2px;
 }
 
 /* Enhanced focus indicators for keyboard navigation */
 *:focus {
-  outline: 2px solid var(--django-green-primary);
+  outline: 2px solid var(--brand-primary);
   outline-offset: 2px;
 }
 
@@ -176,7 +163,7 @@ body {
 }
 
 *:focus-visible {
-  outline: 2px solid var(--django-green-primary);
+  outline: 2px solid var(--brand-primary);
   outline-offset: 2px;
   border-radius: 0.25rem;
 }
@@ -256,12 +243,12 @@ a.btn:focus-visible {
 }
 
 .btn-primary {
-  background-color: var(--django-green-primary);
+  background-color: var(--brand-primary);
   color: white;
 }
 
 .btn-primary:hover {
-  background-color: var(--django-green-link);
+  background-color: var(--brand-secondary);
 }
 
 .btn-outline {
