@@ -4,13 +4,15 @@ import { useState, useEffect } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { api } from '@/lib/api';
 import { useToast } from '@/contexts/ToastContext';
+import { ColorPickerGroup } from '@/components/ColorPickerGroup';
 import {
     Palette,
     Upload,
     CheckCircle,
     AlertCircle,
     Loader2,
-    Eye
+    Eye,
+    RotateCcw
 } from 'lucide-react';
 
 interface EntityBranding {
@@ -26,7 +28,10 @@ interface EntityBranding {
     footer_text: string;
 }
 
+import { useTranslations } from 'next-intl';
+
 export default function BrandingManager() {
+    const t = useTranslations('Admin');
     const { show } = useToast();
     const queryClient = useQueryClient();
 
@@ -52,7 +57,7 @@ export default function BrandingManager() {
     });
 
     const colorPresets = [
-        { name: 'Ravenna (Padrão)', primary: '#44B78B', secondary: '#2D3748', primaryDark: '#44B78B', secondaryDark: '#0C4B33' },
+        { name: `Ravenna (${t('statusActive')})`, primary: '#44B78B', secondary: '#2D3748', primaryDark: '#44B78B', secondaryDark: '#0C4B33' },
         { name: 'Azul Oceano', primary: '#0ea5e9', secondary: '#0c4a6e', primaryDark: '#38bdf8', secondaryDark: '#082f49' },
         { name: 'Roxo Elegante', primary: '#8b5cf6', secondary: '#4c1d95', primaryDark: '#a78bfa', secondaryDark: '#2e1065' },
         { name: 'Laranja Vibrante', primary: '#f97316', secondary: '#7c2d12', primaryDark: '#fb923c', secondaryDark: '#431407' },
@@ -88,7 +93,7 @@ export default function BrandingManager() {
         document.body.removeChild(a);
         URL.revokeObjectURL(url);
 
-        show({ type: 'success', message: 'Configuração exportada!' });
+        show({ type: 'success', message: t('exportSuccess') });
     };
 
     const importConfig = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -106,9 +111,9 @@ export default function BrandingManager() {
                     secondary_color: imported.secondary_color || formData.secondary_color,
                     footer_text: imported.footer_text || formData.footer_text,
                 });
-                show({ type: 'success', message: 'Configuração importada com sucesso!' });
+                show({ type: 'success', message: t('importSuccess') });
             } catch (error) {
-                show({ type: 'error', message: 'Erro ao importar arquivo. Verifique o formato.' });
+                show({ type: 'error', message: t('importError') });
             }
         };
         reader.readAsText(file);
@@ -134,10 +139,10 @@ export default function BrandingManager() {
         onSuccess: () => {
             queryClient.invalidateQueries({ queryKey: ['entity-config'] });
             queryClient.invalidateQueries({ queryKey: ['tenant-branding'] });
-            show({ type: 'success', message: 'Branding atualizado com sucesso! Recarregue a página para ver as mudanças.' });
+            show({ type: 'success', message: t('updateSuccess') });
         },
         onError: (error: any) => {
-            show({ type: 'error', message: error.response?.data?.detail || 'Erro ao atualizar branding' });
+            show({ type: 'error', message: error.response?.data?.detail || t('updateError') });
         }
     });
 
@@ -171,8 +176,8 @@ export default function BrandingManager() {
         <div className="space-y-8">
             <div className="flex items-center justify-between">
                 <div>
-                    <h1 className="text-3xl font-extrabold tracking-tight">Identidade Visual</h1>
-                    <p className="text-muted-foreground">Configure logo, cores e nome de marca do sistema.</p>
+                    <h1 className="text-3xl font-extrabold tracking-tight">{t('branding')}</h1>
+                    <p className="text-muted-foreground">{t('brandingSubtitle')}</p>
                 </div>
                 <div className="flex gap-2">
                     <button
@@ -181,11 +186,11 @@ export default function BrandingManager() {
                         className="btn btn-outline btn-sm flex items-center gap-2"
                     >
                         <Upload className="h-4 w-4 rotate-180" />
-                        Exportar
+                        {t('export')}
                     </button>
                     <label className="btn btn-outline btn-sm flex items-center gap-2 cursor-pointer">
                         <Upload className="h-4 w-4" />
-                        Importar
+                        {t('import')}
                         <input
                             type="file"
                             accept=".json"
@@ -202,20 +207,20 @@ export default function BrandingManager() {
                     <form onSubmit={handleSubmit} className="space-y-6">
                         {/* Brand Name */}
                         <div>
-                            <label className="block text-sm font-semibold mb-2">Nome da Marca</label>
+                            <label className="block text-sm font-semibold mb-2">{t('brandName')}</label>
                             <input
                                 type="text"
                                 value={formData.brand_name || ''}
                                 onChange={(e) => setFormData({ ...formData, brand_name: e.target.value })}
                                 className="w-full px-4 py-2 rounded-lg border border-border bg-background focus:ring-2 focus:ring-accent outline-none"
-                                placeholder="Projeto Ravenna"
+                                placeholder={t('brandNamePlaceholder')}
                             />
-                            <p className="text-xs text-muted-foreground mt-1">Aparece no cabeçalho e título da aba do navegador</p>
+                            <p className="text-xs text-muted-foreground mt-1">{t('brandNameDesc')}</p>
                         </div>
 
                         {/* Color Presets */}
                         <div>
-                            <label className="block text-sm font-semibold mb-3">Paletas de Cores Predefinidas</label>
+                            <label className="block text-sm font-semibold mb-3">{t('colorPresets')}</label>
                             <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-2">
                                 {colorPresets.map((preset, idx) => (
                                     <button
@@ -244,103 +249,61 @@ export default function BrandingManager() {
                         </div>
 
                         {/* Colors */}
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                            <div>
-                                <label className="block text-sm font-semibold mb-2">Cor Primária</label>
-                                <div className="flex gap-3 items-center">
-                                    <input
-                                        type="color"
-                                        value={formData.primary_color}
-                                        onChange={(e) => setFormData({ ...formData, primary_color: e.target.value })}
-                                        className="h-12 w-20 rounded-lg cursor-pointer border border-border"
-                                    />
-                                    <input
-                                        type="text"
-                                        value={formData.primary_color}
-                                        onChange={(e) => setFormData({ ...formData, primary_color: e.target.value })}
-                                        className="flex-1 px-4 py-2 rounded-lg border border-border bg-background font-mono text-sm"
-                                        placeholder="#44B78B"
-                                    />
-                                </div>
+                        <div className="space-y-6">
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                <ColorPickerGroup
+                                    label={t('primaryColor')}
+                                    value={formData.primary_color}
+                                    onChange={(value) => setFormData({ ...formData, primary_color: value })}
+                                    defaultValue="#44B78B"
+                                    placeholder="#44B78B"
+                                />
+                                <ColorPickerGroup
+                                    label={t('secondaryColor')}
+                                    value={formData.secondary_color}
+                                    onChange={(value) => setFormData({ ...formData, secondary_color: value })}
+                                    defaultValue="#2D3748"
+                                    placeholder="#2D3748"
+                                />
                             </div>
-                            <div>
-                                <label className="block text-sm font-semibold mb-2">Cor Secundária</label>
-                                <div className="flex gap-3 items-center">
-                                    <input
-                                        type="color"
-                                        value={formData.secondary_color}
-                                        onChange={(e) => setFormData({ ...formData, secondary_color: e.target.value })}
-                                        className="h-12 w-20 rounded-lg cursor-pointer border border-border"
-                                    />
-                                    <input
-                                        type="text"
-                                        value={formData.secondary_color}
-                                        onChange={(e) => setFormData({ ...formData, secondary_color: e.target.value })}
-                                        className="flex-1 px-4 py-2 rounded-lg border border-border bg-background font-mono text-sm"
-                                        placeholder="#2D3748"
-                                    />
-                                </div>
-                            </div>
-                        </div>
 
-                        {/* Dark Mode Colors */}
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                            <div>
-                                <label className="block text-sm font-semibold mb-2">Cor Primária (Dark Mode)</label>
-                                <div className="flex gap-3 items-center">
-                                    <input
-                                        type="color"
-                                        value={formData.primary_color_dark}
-                                        onChange={(e) => setFormData({ ...formData, primary_color_dark: e.target.value })}
-                                        className="h-12 w-20 rounded-lg cursor-pointer border border-border"
-                                    />
-                                    <input
-                                        type="text"
-                                        value={formData.primary_color_dark}
-                                        onChange={(e) => setFormData({ ...formData, primary_color_dark: e.target.value })}
-                                        className="flex-1 px-4 py-2 rounded-lg border border-border bg-background font-mono text-sm"
-                                        placeholder="#44B78B"
-                                    />
-                                </div>
-                            </div>
-                            <div>
-                                <label className="block text-sm font-semibold mb-2">Cor Secundária (Dark Mode)</label>
-                                <div className="flex gap-3 items-center">
-                                    <input
-                                        type="color"
-                                        value={formData.secondary_color_dark}
-                                        onChange={(e) => setFormData({ ...formData, secondary_color_dark: e.target.value })}
-                                        className="h-12 w-20 rounded-lg cursor-pointer border border-border"
-                                    />
-                                    <input
-                                        type="text"
-                                        value={formData.secondary_color_dark}
-                                        onChange={(e) => setFormData({ ...formData, secondary_color_dark: e.target.value })}
-                                        className="flex-1 px-4 py-2 rounded-lg border border-border bg-background font-mono text-sm"
-                                        placeholder="#0C4B33"
-                                    />
-                                </div>
+                            {/* Dark Mode Colors */}
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                <ColorPickerGroup
+                                    label={t('primaryColorDark')}
+                                    value={formData.primary_color_dark}
+                                    onChange={(value) => setFormData({ ...formData, primary_color_dark: value })}
+                                    defaultValue="#44B78B"
+                                    placeholder="#44B78B"
+                                />
+                                <ColorPickerGroup
+                                    label={t('secondaryColorDark')}
+                                    value={formData.secondary_color_dark}
+                                    onChange={(value) => setFormData({ ...formData, secondary_color_dark: value })}
+                                    defaultValue="#0C4B33"
+                                    placeholder="#0C4B33"
+                                />
                             </div>
                         </div>
 
                         {/* Footer Text */}
                         <div>
-                            <label className="block text-sm font-semibold mb-2">Texto do Rodapé</label>
+                            <label className="block text-sm font-semibold mb-2">{t('footerText')}</label>
                             <textarea
                                 value={formData.footer_text}
                                 onChange={(e) => setFormData({ ...formData, footer_text: e.target.value })}
                                 className="w-full px-4 py-2 rounded-lg border border-border bg-background focus:ring-2 focus:ring-accent outline-none resize-none"
                                 rows={3}
-                                placeholder="Todos os direitos reservados."
+                                placeholder={t('footerPlaceholder')}
                             />
                         </div>
 
                         {/* Logo Upload */}
                         <div>
-                            <label className="block text-sm font-semibold mb-2">Logo</label>
+                            <label className="block text-sm font-semibold mb-2">{t('logo')}</label>
                             <div className="flex flex-col gap-2">
                                 {formData.logo && !logoFile && (
-                                    <img src={formData.logo} alt="Logo atual" className="h-12 object-contain bg-muted p-2 rounded" />
+                                    <img src={formData.logo} alt="Logo" className="h-12 object-contain bg-muted p-2 rounded" />
                                 )}
                                 <input
                                     type="file"
@@ -353,10 +316,10 @@ export default function BrandingManager() {
 
                         {/* Favicon Upload */}
                         <div>
-                            <label className="block text-sm font-semibold mb-2">Favicon</label>
+                            <label className="block text-sm font-semibold mb-2">{t('favicon')}</label>
                             <div className="flex flex-col gap-2">
                                 {formData.favicon && !faviconFile && (
-                                    <img src={formData.favicon} alt="Favicon atual" className="h-8 w-8 object-contain bg-muted p-1 rounded" />
+                                    <img src={formData.favicon} alt="Favicon" className="h-8 w-8 object-contain bg-muted p-1 rounded" />
                                 )}
                                 <input
                                     type="file"
@@ -371,16 +334,35 @@ export default function BrandingManager() {
                             <button
                                 type="button"
                                 onClick={() => {
+                                    if (confirm(t('resetBrandColorsConfirm'))) {
+                                        setFormData({
+                                            ...formData,
+                                            primary_color: '#44B78B',
+                                            secondary_color: '#2D3748',
+                                            primary_color_dark: '#44B78B',
+                                            secondary_color_dark: '#0C4B33'
+                                        });
+                                        show({ type: 'success', message: t('colorsResetSuccess') });
+                                    }
+                                }}
+                                className="btn btn-outline flex-1 flex items-center justify-center gap-2"
+                            >
+                                <RotateCcw className="h-4 w-4" />
+                                {t('resetBrandColors')}
+                            </button>
+                            <button
+                                type="button"
+                                onClick={() => {
                                     document.documentElement.style.setProperty('--brand-primary', formData.primary_color);
                                     document.documentElement.style.setProperty('--brand-secondary', formData.secondary_color);
                                     document.documentElement.style.setProperty('--brand-primary-dark', formData.primary_color_dark);
                                     document.documentElement.style.setProperty('--brand-secondary-dark', formData.secondary_color_dark);
-                                    show({ type: 'info', message: 'Preview aplicado.' });
+                                    show({ type: 'info', message: t('previewApplied') });
                                 }}
                                 className="btn btn-outline flex-1 flex items-center justify-center gap-2"
                             >
                                 <Eye className="h-4 w-4" />
-                                Aplicar Preview
+                                {t('applyPreview')}
                             </button>
                             <button
                                 type="submit"
@@ -390,12 +372,12 @@ export default function BrandingManager() {
                                 {updateMutation.isPending ? (
                                     <>
                                         <Loader2 className="h-4 w-4 animate-spin" />
-                                        Salvando...
+                                        {t('saving')}
                                     </>
                                 ) : (
                                     <>
                                         <CheckCircle className="h-4 w-4" />
-                                        Salvar Alterações
+                                        {t('saveChanges')}
                                     </>
                                 )}
                             </button>
@@ -407,37 +389,37 @@ export default function BrandingManager() {
                 <div className="card p-6 space-y-4">
                     <div className="flex items-center gap-2 mb-4">
                         <Eye className="h-5 w-5 text-accent" />
-                        <h3 className="font-bold">Preview</h3>
+                        <h3 className="font-bold">{t('preview')}</h3>
                     </div>
 
                     <div className="space-y-4">
                         {/* Color Preview */}
                         <div>
-                            <p className="text-xs font-medium mb-2 text-muted-foreground">Cores</p>
+                            <p className="text-xs font-medium mb-2 text-muted-foreground">{t('previewColors')}</p>
                             <div className="flex gap-2">
                                 <div
                                     className="h-16 flex-1 rounded-lg border border-border flex items-center justify-center text-white text-xs font-bold"
                                     style={{ backgroundColor: formData.primary_color }}
                                 >
-                                    Primária
+                                    {t('previewPrimary')}
                                 </div>
                                 <div
                                     className="h-16 flex-1 rounded-lg border border-border flex items-center justify-center text-white text-xs font-bold"
                                     style={{ backgroundColor: formData.secondary_color }}
                                 >
-                                    Secundária
+                                    {t('previewSecondary')}
                                 </div>
                             </div>
                         </div>
 
                         {/* Button Preview */}
                         <div>
-                            <p className="text-xs font-medium mb-2 text-muted-foreground">Botões</p>
+                            <p className="text-xs font-medium mb-2 text-muted-foreground">{t('previewButtons')}</p>
                             <button
                                 className="px-4 py-2 rounded-lg text-white font-medium w-full"
                                 style={{ backgroundColor: formData.primary_color }}
                             >
-                                Botão Primário
+                                {t('previewPrimaryBtn')}
                             </button>
                         </div>
 
@@ -446,7 +428,7 @@ export default function BrandingManager() {
                             <div className="flex items-start gap-2">
                                 <AlertCircle className="h-4 w-4 text-blue-500 shrink-0 mt-0.5" />
                                 <p className="text-xs text-blue-500/80">
-                                    As mudanças serão aplicadas imediatamente após salvar. Pode ser necessário recarregar a página.
+                                    {t('previewNotice')}
                                 </p>
                             </div>
                         </div>

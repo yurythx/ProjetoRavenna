@@ -4,14 +4,18 @@ import { useState, useEffect } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { useProfile } from '@/hooks/useProfile';
 import { AvatarUpload } from '@/components/AvatarUpload';
-import { User, Mail, AtSign, Calendar, Save, ArrowLeft, Bookmark, Heart, Grid } from 'lucide-react';
+import { User, Mail, AtSign, Calendar, Save, ArrowLeft, Bookmark, Heart, Grid, Palette, Monitor, Sun, Moon, RotateCcw } from 'lucide-react';
+import { ColorPickerGroup } from '@/components/ColorPickerGroup';
 import { useUserFavorites, useUserLikes } from '@/hooks/useLikes';
 import { ArticleCard } from '@/components/ArticleCard';
 import { SkeletonCard } from '@/components/SkeletonCard';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
+import { useTranslations, useLocale } from 'next-intl';
 
 export default function PerfilPage() {
+    const t = useTranslations('Profile');
+    const locale = useLocale();
     const { token, isLoading: authLoading } = useAuth();
     const router = useRouter();
     const { profile, isLoading, updateProfile, isUpdating, uploadAvatar, isUploadingAvatar } = useProfile();
@@ -21,6 +25,11 @@ export default function PerfilPage() {
         first_name: '',
         last_name: '',
         bio: '',
+        theme_preference: 'system' as 'light' | 'dark' | 'system',
+        primary_color: '',
+        secondary_color: '',
+        primary_color_dark: '',
+        secondary_color_dark: '',
     });
     const [activeTab, setActiveTab] = useState<'info' | 'favorites' | 'likes'>('info');
 
@@ -42,6 +51,11 @@ export default function PerfilPage() {
                 first_name: profile.first_name || '',
                 last_name: profile.last_name || '',
                 bio: profile.bio || '',
+                theme_preference: profile.theme_preference || 'system',
+                primary_color: profile.primary_color || '',
+                secondary_color: profile.secondary_color || '',
+                primary_color_dark: profile.primary_color_dark || '',
+                secondary_color_dark: profile.secondary_color_dark || '',
             });
         }
     }, [profile]);
@@ -77,10 +91,10 @@ export default function PerfilPage() {
                 <div className="flex items-center gap-4 mb-8">
                     <div>
                         <h1 className="text-3xl font-bold" style={{ color: 'var(--foreground)' }}>
-                            Meu Perfil
+                            {t('title')}
                         </h1>
                         <p style={{ color: 'var(--muted-foreground)' }}>
-                            Gerencie suas interações e informações
+                            {t('subtitle')}
                         </p>
                     </div>
                 </div>
@@ -92,21 +106,21 @@ export default function PerfilPage() {
                         className={`px-6 py-3 font-medium transition-colors border-b-2 whitespace-nowrap flex items-center gap-2 ${activeTab === 'info' ? 'border-accent text-accent' : 'border-transparent text-muted-foreground hover:text-foreground'
                             }`}
                     >
-                        <User className="w-4 h-4" /> Perfil
+                        <User className="w-4 h-4" /> {t('tabProfile')}
                     </button>
                     <button
                         onClick={() => setActiveTab('favorites')}
                         className={`px-6 py-3 font-medium transition-colors border-b-2 whitespace-nowrap flex items-center gap-2 ${activeTab === 'favorites' ? 'border-accent text-accent' : 'border-transparent text-muted-foreground hover:text-foreground'
                             }`}
                     >
-                        <Bookmark className="w-4 h-4" /> Favoritos {(favorites?.count ?? 0) > 0 && `(${favorites?.count})`}
+                        <Bookmark className="w-4 h-4" /> {t('tabFavorites')} {(favorites?.count ?? 0) > 0 && `(${favorites?.count})`}
                     </button>
                     <button
                         onClick={() => setActiveTab('likes')}
                         className={`px-6 py-3 font-medium transition-colors border-b-2 whitespace-nowrap flex items-center gap-2 ${activeTab === 'likes' ? 'border-accent text-accent' : 'border-transparent text-muted-foreground hover:text-foreground'
                             }`}
                     >
-                        <Heart className="w-4 h-4" /> Curtidas {(likes?.count ?? 0) > 0 && `(${likes?.count})`}
+                        <Heart className="w-4 h-4" /> {t('tabLikes')} {(likes?.count ?? 0) > 0 && `(${likes?.count})`}
                     </button>
                 </div>
 
@@ -119,7 +133,7 @@ export default function PerfilPage() {
                         {/* Avatar Upload */}
                         <div className="mb-8">
                             <h2 className="text-lg font-semibold mb-4" style={{ color: 'var(--foreground)' }}>
-                                Foto de Perfil
+                                {t('profilePicture')}
                             </h2>
                             <AvatarUpload
                                 currentAvatar={profile.avatar}
@@ -134,14 +148,14 @@ export default function PerfilPage() {
                         {/* Profile Form */}
                         <form onSubmit={handleSubmit} className="space-y-6">
                             <h2 className="text-lg font-semibold" style={{ color: 'var(--foreground)' }}>
-                                Informações Pessoais
+                                {t('personalInfo')}
                             </h2>
 
                             {/* Email (read-only) */}
                             <div>
                                 <label htmlFor="email" className="block text-sm font-medium mb-2" style={{ color: 'var(--foreground)' }}>
                                     <Mail className="w-4 h-4 inline mr-2" aria-hidden="true" />
-                                    E-mail
+                                    {t('email')}
                                 </label>
                                 <input
                                     id="email"
@@ -156,7 +170,7 @@ export default function PerfilPage() {
                                     }}
                                 />
                                 <p className="text-xs mt-1" style={{ color: 'var(--muted-foreground)' }}>
-                                    O e-mail não pode ser alterado
+                                    {t('emailNote')}
                                 </p>
                             </div>
 
@@ -164,7 +178,7 @@ export default function PerfilPage() {
                             <div>
                                 <label htmlFor="username" className="block text-sm font-medium mb-2" style={{ color: 'var(--foreground)' }}>
                                     <AtSign className="w-4 h-4 inline mr-2" aria-hidden="true" />
-                                    Nome de usuário
+                                    {t('username')}
                                 </label>
                                 <input
                                     id="username"
@@ -178,7 +192,7 @@ export default function PerfilPage() {
                                         borderColor: 'var(--border)',
                                         color: 'var(--foreground)'
                                     }}
-                                    placeholder="seu_usuario"
+                                    placeholder={t('usernamePlaceholder')}
                                 />
                             </div>
 
@@ -186,7 +200,7 @@ export default function PerfilPage() {
                             <div>
                                 <label htmlFor="first_name" className="block text-sm font-medium mb-2" style={{ color: 'var(--foreground)' }}>
                                     <User className="w-4 h-4 inline mr-2" aria-hidden="true" />
-                                    Primeiro Nome
+                                    {t('firstName')}
                                 </label>
                                 <input
                                     id="first_name"
@@ -200,7 +214,7 @@ export default function PerfilPage() {
                                         borderColor: 'var(--border)',
                                         color: 'var(--foreground)'
                                     }}
-                                    placeholder="João"
+                                    placeholder={t('firstNamePlaceholder')}
                                 />
                             </div>
 
@@ -208,7 +222,7 @@ export default function PerfilPage() {
                             <div>
                                 <label htmlFor="last_name" className="block text-sm font-medium mb-2" style={{ color: 'var(--foreground)' }}>
                                     <User className="w-4 h-4 inline mr-2" aria-hidden="true" />
-                                    Sobrenome
+                                    {t('lastName')}
                                 </label>
                                 <input
                                     id="last_name"
@@ -222,7 +236,7 @@ export default function PerfilPage() {
                                         borderColor: 'var(--border)',
                                         color: 'var(--foreground)'
                                     }}
-                                    placeholder="Silva"
+                                    placeholder={t('lastNamePlaceholder')}
                                 />
                             </div>
 
@@ -230,7 +244,7 @@ export default function PerfilPage() {
                             <div>
                                 <label htmlFor="bio" className="block text-sm font-medium mb-2" style={{ color: 'var(--foreground)' }}>
                                     <User className="w-4 h-4 inline mr-2" aria-hidden="true" />
-                                    Biografia
+                                    {t('bio')}
                                 </label>
                                 <textarea
                                     id="bio"
@@ -244,21 +258,129 @@ export default function PerfilPage() {
                                         borderColor: 'var(--border)',
                                         color: 'var(--foreground)'
                                     }}
-                                    placeholder="Conte um pouco sobre você..."
+                                    placeholder={t('bioPlaceholder')}
                                 />
                                 <p className="text-xs mt-1" style={{ color: 'var(--muted-foreground)' }}>
-                                    Essa biografia aparecerá nos seus artigos.
+                                    {t('bioNote')}
                                 </p>
+                            </div>
+
+                            {/* visual preferences */}
+                            <div className="pt-8 space-y-6">
+                                <h2 className="text-lg font-semibold flex items-center gap-2" style={{ color: 'var(--foreground)' }}>
+                                    <Palette className="w-5 h-5 text-accent" /> {t('visualCustomization')}
+                                </h2>
+
+                                {/* Theme Preference */}
+                                <div>
+                                    <label className="block text-sm font-medium mb-3" style={{ color: 'var(--foreground)' }}>
+                                        {t('themePreference')}
+                                    </label>
+                                    <div className="grid grid-cols-3 gap-3">
+                                        {[
+                                            { id: 'light', label: t('themeLight'), icon: Sun },
+                                            { id: 'dark', label: t('themeDark'), icon: Moon },
+                                            { id: 'system', label: t('themeSystem'), icon: Monitor },
+                                        ].map((t) => (
+                                            <button
+                                                key={t.id}
+                                                type="button"
+                                                onClick={() => setFormData(prev => ({ ...prev, theme_preference: t.id as any }))}
+                                                className={`flex flex-col items-center gap-2 p-3 rounded-xl border-2 transition-all ${formData.theme_preference === t.id
+                                                    ? 'border-accent bg-accent/5'
+                                                    : 'border-border bg-background hover:bg-muted/50'
+                                                    }`}
+                                            >
+                                                <t.icon className={`w-5 h-5 ${formData.theme_preference === t.id ? 'text-accent' : 'text-muted-foreground'}`} />
+                                                <span className={`text-xs font-medium ${formData.theme_preference === t.id ? 'text-accent' : 'text-foreground'}`}>
+                                                    {t.label}
+                                                </span>
+                                            </button>
+                                        ))}
+                                    </div>
+                                </div>
+
+                                {/* Colors - Light Mode */}
+                                <div className="space-y-4">
+                                    <h3 className="text-sm font-semibold text-foreground flex items-center gap-2">
+                                        <Sun className="w-4 h-4 text-amber-500" />
+                                        Cores - Modo Claro
+                                    </h3>
+                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                        <ColorPickerGroup
+                                            label={t('primaryColor')}
+                                            value={formData.primary_color}
+                                            onChange={(value) => setFormData(prev => ({ ...prev, primary_color: value }))}
+                                            defaultValue="#44B78B"
+                                            placeholder="#44B78B"
+                                            helpText={t('systemDefaultNote')}
+                                        />
+                                        <ColorPickerGroup
+                                            label={t('secondaryColor')}
+                                            value={formData.secondary_color}
+                                            onChange={(value) => setFormData(prev => ({ ...prev, secondary_color: value }))}
+                                            defaultValue="#2D3748"
+                                            placeholder="#2D3748"
+                                            helpText={t('systemDefaultNote')}
+                                        />
+                                    </div>
+                                </div>
+
+                                {/* Colors - Dark Mode */}
+                                <div className="space-y-4">
+                                    <h3 className="text-sm font-semibold text-foreground flex items-center gap-2">
+                                        <Moon className="w-4 h-4 text-blue-500" />
+                                        Cores - Modo Escuro
+                                    </h3>
+                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                        <ColorPickerGroup
+                                            label={t('primaryColorDark')}
+                                            value={formData.primary_color_dark}
+                                            onChange={(value) => setFormData(prev => ({ ...prev, primary_color_dark: value }))}
+                                            defaultValue="#44B78B"
+                                            placeholder="#44B78B"
+                                            helpText={t('systemDefaultNote')}
+                                        />
+                                        <ColorPickerGroup
+                                            label={t('secondaryColorDark')}
+                                            value={formData.secondary_color_dark}
+                                            onChange={(value) => setFormData(prev => ({ ...prev, secondary_color_dark: value }))}
+                                            defaultValue="#0C4B33"
+                                            placeholder="#0C4B33"
+                                            helpText={t('systemDefaultNote')}
+                                        />
+                                    </div>
+                                </div>
+
+                                {/* Reset Button */}
+                                <button
+                                    type="button"
+                                    onClick={() => {
+                                        if (confirm(t('resetColorsConfirm'))) {
+                                            setFormData(prev => ({
+                                                ...prev,
+                                                primary_color: '',
+                                                secondary_color: '',
+                                                primary_color_dark: '',
+                                                secondary_color_dark: ''
+                                            }));
+                                        }
+                                    }}
+                                    className="btn btn-outline w-full flex items-center justify-center gap-2"
+                                >
+                                    <RotateCcw className="w-4 h-4" />
+                                    {t('resetColors')}
+                                </button>
                             </div>
 
                             {/* Member since */}
                             <div className="pt-4">
                                 <label className="block text-sm font-medium mb-1" style={{ color: 'var(--foreground)' }}>
                                     <Calendar className="w-4 h-4 inline mr-2" aria-hidden="true" />
-                                    Membro desde
+                                    {t('memberSince')}
                                 </label>
                                 <p style={{ color: 'var(--muted-foreground)' }}>
-                                    {new Date(profile.date_joined).toLocaleDateString('pt-BR', {
+                                    {new Date(profile.date_joined).toLocaleDateString(locale, {
                                         day: '2-digit',
                                         month: 'long',
                                         year: 'numeric'
@@ -275,12 +397,12 @@ export default function PerfilPage() {
                                 {isUpdating ? (
                                     <>
                                         <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
-                                        Salvando...
+                                        {t('saving')}
                                     </>
                                 ) : (
                                     <>
                                         <Save className="w-4 h-4" aria-hidden="true" />
-                                        Salvar Alterações
+                                        {t('saveChanges')}
                                     </>
                                 )}
                             </button>
@@ -299,9 +421,9 @@ export default function PerfilPage() {
                         ) : !favorites?.results?.length ? (
                             <div className="text-center py-12 card p-8">
                                 <Bookmark className="w-12 h-12 mx-auto mb-4 text-muted-foreground opacity-20" />
-                                <h3 className="text-xl font-semibold mb-2">Nenhum favorito</h3>
-                                <p className="text-muted-foreground mb-6">Você ainda não salvou nenhum artigo para ler depois.</p>
-                                <Link href="/artigos" className="btn btn-primary inline-flex">Explorar Artigos</Link>
+                                <h3 className="text-xl font-semibold mb-2">{t('noFavorites')}</h3>
+                                <p className="text-muted-foreground mb-6">{t('noFavoritesDesc')}</p>
+                                <Link href="/artigos" className="btn btn-primary inline-flex">{t('exploreArticles')}</Link>
                             </div>
                         ) : (
                             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
@@ -324,9 +446,9 @@ export default function PerfilPage() {
                         ) : !likes?.results?.length ? (
                             <div className="text-center py-12 card p-8">
                                 <Heart className="w-12 h-12 mx-auto mb-4 text-muted-foreground opacity-20" />
-                                <h3 className="text-xl font-semibold mb-2">Nenhuma curtida</h3>
-                                <p className="text-muted-foreground mb-6">Você ainda não curtiu nenhum artigo.</p>
-                                <Link href="/artigos" className="btn btn-primary inline-flex">Explorar Artigos</Link>
+                                <h3 className="text-xl font-semibold mb-2">{t('noLikes')}</h3>
+                                <p className="text-muted-foreground mb-6">{t('noLikesDesc')}</p>
+                                <Link href="/artigos" className="btn btn-primary inline-flex">{t('exploreArticles')}</Link>
                             </div>
                         ) : (
                             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
