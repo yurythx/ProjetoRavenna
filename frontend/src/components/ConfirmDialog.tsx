@@ -1,5 +1,7 @@
 'use client';
 import { createPortal } from 'react-dom';
+import { useTranslations } from 'next-intl';
+
 export function ConfirmDialog({
   open,
   title,
@@ -13,6 +15,9 @@ export function ConfirmDialog({
   onConfirm: () => void;
   onCancel: () => void;
 }) {
+  const t = useTranslations('Dialogs');
+  const tc = useTranslations('Common');
+
   if (!open) return null;
   return createPortal(
     <div role="dialog" aria-modal="true" className="fixed inset-0 z-[100] flex items-center justify-center animate-fade-in">
@@ -21,8 +26,8 @@ export function ConfirmDialog({
         <h2 className="text-lg font-semibold">{title}</h2>
         {description && <p className="text-sm text-gray-600 mt-1">{description}</p>}
         <div className="mt-4 flex justify-end gap-2">
-          <button className="px-3 py-1 rounded border" onClick={onCancel}>Cancelar</button>
-          <button className="px-3 py-1 rounded bg-red-600 text-white" onClick={onConfirm}>Confirmar</button>
+          <button className="px-3 py-1 rounded border" onClick={onCancel}>{tc('cancel')}</button>
+          <button className="px-3 py-1 rounded bg-red-600 text-white" onClick={onConfirm}>{t('confirm')}</button>
         </div>
       </div>
     </div>,

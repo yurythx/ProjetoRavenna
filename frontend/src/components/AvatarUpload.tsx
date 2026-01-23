@@ -4,6 +4,7 @@ import { useState, useRef } from 'react';
 import { Upload, User, X } from 'lucide-react';
 import Image from 'next/image';
 import { ImageCropper } from './ImageCropper';
+import { useTranslations } from 'next-intl';
 
 interface AvatarUploadProps {
     currentAvatar?: string | null;
@@ -12,6 +13,7 @@ interface AvatarUploadProps {
 }
 
 export function AvatarUpload({ currentAvatar, onUpload, isUploading }: AvatarUploadProps) {
+    const t = useTranslations('Image');
     const [preview, setPreview] = useState<string | null>(currentAvatar || null);
     const [isDragging, setIsDragging] = useState(false);
     const fileInputRef = useRef<HTMLInputElement>(null);
@@ -19,13 +21,13 @@ export function AvatarUpload({ currentAvatar, onUpload, isUploading }: AvatarUpl
     const handleFileSelect = (file: File) => {
         // Validate file type
         if (!file.type.startsWith('image/')) {
-            alert('Por favor, selecione uma imagem válida');
+            alert(t('invalidImage'));
             return;
         }
 
         // Validate file size (max 5MB)
         if (file.size > 5 * 1024 * 1024) {
-            alert('A imagem deve ter no máximo 5MB');
+            alert(t('maxSize5MB'));
             return;
         }
 
@@ -88,7 +90,7 @@ export function AvatarUpload({ currentAvatar, onUpload, isUploading }: AvatarUpl
                     {preview ? (
                         <Image
                             src={preview}
-                            alt="Avatar"
+                            alt={t('avatarAlt')}
                             width={128}
                             height={128}
                             className="object-cover w-full h-full"
@@ -102,7 +104,7 @@ export function AvatarUpload({ currentAvatar, onUpload, isUploading }: AvatarUpl
                     <button
                         onClick={handleRemove}
                         className="absolute top-0 right-0 p-1 rounded-full bg-red-500 text-white hover:bg-red-600 transition-colors"
-                        aria-label="Remover foto"
+                        aria-label={t('removeAvatar')}
                     >
                         <X className="w-4 h-4" />
                     </button>
@@ -131,7 +133,7 @@ export function AvatarUpload({ currentAvatar, onUpload, isUploading }: AvatarUpl
                 style={{ background: isDragging ? 'rgba(var(--accent-rgb, 68,183,139), 0.1)' : undefined }}
                 role="button"
                 tabIndex={0}
-                aria-label="Upload de avatar"
+                aria-label={t('uploadAvatar')}
             >
                 <input
                     ref={fileInputRef}
@@ -145,10 +147,10 @@ export function AvatarUpload({ currentAvatar, onUpload, isUploading }: AvatarUpl
                 <div className="flex flex-col items-center gap-2 text-center">
                     <Upload className="w-8 h-8" style={{ color: 'var(--muted-foreground)' }} aria-hidden="true" />
                     <p className="text-sm font-medium" style={{ color: 'var(--foreground)' }}>
-                        Clique ou arraste uma imagem
+                        {t('clickOrDrag')}
                     </p>
                     <p className="text-xs" style={{ color: 'var(--muted-foreground)' }}>
-                        PNG, JPG ou WEBP (máx. 5MB)
+                        {t('formatsAllowed')}
                     </p>
                 </div>
             </div>

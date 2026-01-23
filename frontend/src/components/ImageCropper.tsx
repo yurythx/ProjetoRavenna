@@ -3,6 +3,7 @@
 import { useState, useCallback } from 'react';
 import Cropper, { Area } from 'react-easy-crop';
 import { X, RotateCw, ZoomIn, ZoomOut, Check } from 'lucide-react';
+import { useTranslations } from 'next-intl';
 
 interface ImageCropperProps {
     image: string;
@@ -11,6 +12,8 @@ interface ImageCropperProps {
 }
 
 export function ImageCropper({ image, onCropComplete, onCancel }: ImageCropperProps) {
+    const t = useTranslations('Image');
+    const tc = useTranslations('Common');
     const [crop, setCrop] = useState({ x: 0, y: 0 });
     const [zoom, setZoom] = useState(1);
     const [rotation, setRotation] = useState(0);
@@ -96,12 +99,12 @@ export function ImageCropper({ image, onCropComplete, onCancel }: ImageCropperPr
                     style={{ borderColor: 'var(--border)' }}
                 >
                     <h3 className="text-lg font-semibold" style={{ color: 'var(--foreground)' }}>
-                        Ajustar Foto
+                        {t('adjustPhoto')}
                     </h3>
                     <button
                         onClick={onCancel}
                         className="p-2 rounded-lg hover:bg-muted transition-colors"
-                        aria-label="Fechar"
+                        aria-label={tc('cancel')}
                     >
                         <X className="w-5 h-5" style={{ color: 'var(--foreground)' }} />
                     </button>
@@ -130,7 +133,7 @@ export function ImageCropper({ image, onCropComplete, onCancel }: ImageCropperPr
                         <div className="flex items-center justify-between mb-2">
                             <label className="text-sm font-medium" style={{ color: 'var(--foreground)' }}>
                                 <ZoomIn className="w-4 h-4 inline mr-1" aria-hidden="true" />
-                                Zoom
+                                {t('zoom')}
                             </label>
                             <span className="text-sm" style={{ color: 'var(--muted-foreground)' }}>
                                 {Math.round(zoom * 100)}%
@@ -144,7 +147,7 @@ export function ImageCropper({ image, onCropComplete, onCancel }: ImageCropperPr
                             value={zoom}
                             onChange={(e) => setZoom(Number(e.target.value))}
                             className="w-full"
-                            aria-label="Controle de zoom"
+                            aria-label={t('zoomControl')}
                         />
                     </div>
 
@@ -153,7 +156,7 @@ export function ImageCropper({ image, onCropComplete, onCancel }: ImageCropperPr
                         <div className="flex items-center justify-between mb-2">
                             <label className="text-sm font-medium" style={{ color: 'var(--foreground)' }}>
                                 <RotateCw className="w-4 h-4 inline mr-1" aria-hidden="true" />
-                                Rotação
+                                {t('rotation')}
                             </label>
                             <span className="text-sm" style={{ color: 'var(--muted-foreground)' }}>
                                 {rotation}°
@@ -167,7 +170,7 @@ export function ImageCropper({ image, onCropComplete, onCancel }: ImageCropperPr
                             value={rotation}
                             onChange={(e) => setRotation(Number(e.target.value))}
                             className="w-full"
-                            aria-label="Controle de rotação"
+                            aria-label={t('rotationControl')}
                         />
                     </div>
 
@@ -177,14 +180,14 @@ export function ImageCropper({ image, onCropComplete, onCancel }: ImageCropperPr
                             onClick={onCancel}
                             className="btn btn-outline flex-1"
                         >
-                            Cancelar
+                            {tc('cancel')}
                         </button>
                         <button
                             onClick={handleSave}
                             className="btn btn-primary flex-1 flex items-center justify-center gap-2"
                         >
                             <Check className="w-4 h-4" aria-hidden="true" />
-                            Aplicar
+                            {t('apply')}
                         </button>
                     </div>
                 </div>

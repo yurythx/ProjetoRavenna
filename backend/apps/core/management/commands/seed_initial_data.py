@@ -1,6 +1,7 @@
 from django.core.management.base import BaseCommand
 from django.contrib.auth import get_user_model
 from apps.articles.models import Category, Tag
+from apps.core.models import AppModule
 from decouple import config
 
 class Command(BaseCommand):
@@ -49,6 +50,34 @@ class Command(BaseCommand):
                 self.stdout.write(self.style.SUCCESS(f"✅ Entity updated: {entity.name} -> domain: {entity.domain}"))
             else:
                 self.stdout.write(self.style.WARNING(f"Entity already exists: {entity.name} ({entity.domain})"))
+
+        # 1.6. Create App Modules
+        modules_data = [
+            {'name': 'articles', 'display_name': 'Artigos', 'is_system_module': False},
+            {'name': 'entities', 'display_name': 'Entidades', 'is_system_module': True},
+            {'name': 'accounts', 'display_name': 'Contas', 'is_system_module': True},
+        ]
+
+        for mod_data in modules_data:
+            mod, created = AppModule.objects.get_or_create(
+                slug=mod_data['name'],
+                defaults={
+                    'name': mod_data['name'],
+                    'display_name': mod_data['display_name'],
+                    'is_active': True,
+                    'is_system_module': mod_data['is_system_module']
+                }
+            )
+            if created:
+                self.stdout.write(self.style.SUCCESS(f"Module '{mod_data['display_name']}' created."))
+            else:
+                # Ensure it is active if it already exists
+                if not mod.is_active:
+                    mod.is_active = True
+                    mod.save()
+                    self.stdout.write(self.style.SUCCESS(f"Module '{mod_data['display_name']}' activated."))
+                else:
+                    self.stdout.write(self.style.WARNING(f"Module '{mod_data['display_name']}' already exists and is active."))
 
         # 2. Create Categories
         categories = ['Tecnologia', 'Noticias', 'Filmes', 'Animes', 'Programação']

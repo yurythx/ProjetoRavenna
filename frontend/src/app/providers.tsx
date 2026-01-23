@@ -9,14 +9,14 @@ import { ThemeProvider } from '@/contexts/ThemeContext';
 export default function Providers({ children }: { children: ReactNode }) {
   const [queryClient] = useState(() => new QueryClient());
   return (
-    <ThemeProvider>
-      <QueryClientProvider client={queryClient}>
-        <AuthProvider>
+    <QueryClientProvider client={queryClient}>
+      <AuthProvider>
+        <ThemeProvider>
           <ModuleProvider>
             <ToastProvider>{children}</ToastProvider>
           </ModuleProvider>
-        </AuthProvider>
-      </QueryClientProvider>
-    </ThemeProvider>
+        </ThemeProvider>
+      </AuthProvider>
+    </QueryClientProvider>
   );
 }

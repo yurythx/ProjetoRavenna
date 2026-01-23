@@ -4,6 +4,7 @@ import { useRouter } from 'next/navigation';
 import { Search, X, Loader2 } from 'lucide-react';
 import { useSearchAutocomplete } from '@/hooks/useSearch';
 import { useDebounce } from '@/hooks/useDebounce';
+import { useTranslations } from 'next-intl';
 
 interface SearchBarProps {
     placeholder?: string;
@@ -13,11 +14,12 @@ interface SearchBarProps {
 }
 
 export function SearchBar({
-    placeholder = 'Buscar artigos...',
+    placeholder,
     autoFocus = false,
     onSearch,
     className = ''
 }: SearchBarProps) {
+    const t = useTranslations('Header');
     const router = useRouter();
     const [query, setQuery] = useState('');
     const [showAutocomplete, setShowAutocomplete] = useState(false);
@@ -111,8 +113,6 @@ export function SearchBar({
         return () => document.removeEventListener('mousedown', handleClickOutside);
     }, []);
 
-    // Keyboard shortcut removed per request
-
     return (
         <div className={`relative ${className}`}>
             <div className="relative">
@@ -128,10 +128,10 @@ export function SearchBar({
                     }}
                     onFocus={() => setShowAutocomplete(true)}
                     onKeyDown={handleKeyDown}
-                    placeholder={placeholder}
+                    placeholder={placeholder || t('searchPlaceholder')}
                     autoFocus={autoFocus}
                     className="input pl-10 pr-12 w-full"
-                    aria-label="Buscar artigos"
+                    aria-label={t('searchPlaceholder')}
                     aria-autocomplete="list"
                     aria-controls="search-autocomplete"
                     aria-expanded={showAutocomplete && results.length > 0}
@@ -141,7 +141,7 @@ export function SearchBar({
                     <button
                         onClick={handleClear}
                         className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 transition-colors"
-                        aria-label="Limpar busca"
+                        aria-label={t('clearSearch')}
                     >
                         <X className="h-5 w-5" />
                     </button>
@@ -186,12 +186,10 @@ export function SearchBar({
                         onClick={() => handleSearch()}
                         className="w-full text-left px-4 py-3 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors text-sm text-accent font-medium"
                     >
-                        Ver todos os resultados para &quot;{query}&quot;
+                        {t('viewAllResults', { query })}
                     </button>
                 </div>
             )}
-
-            {/* Keyboard hint removed */}
         </div>
     );
 }

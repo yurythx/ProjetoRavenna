@@ -12,6 +12,7 @@ import {
     ArrowUpRight,
     ArrowDownRight
 } from 'lucide-react';
+import { useTranslations, useLocale } from 'next-intl';
 import {
     LineChart,
     Line,
@@ -49,6 +50,8 @@ interface DashboardData {
 }
 
 export default function AdminDashboard() {
+    const t = useTranslations('Dashboard');
+    const locale = useLocale();
     const { data, isLoading } = useQuery<DashboardData>({
         queryKey: ['admin-stats'],
         queryFn: async () => {
@@ -67,17 +70,17 @@ export default function AdminDashboard() {
     </div>;
 
     const kpis = [
-        { label: 'Leitores Totais', value: data?.kpis.total_users, icon: Users, color: 'text-blue-500', bg: 'bg-blue-500/10' },
-        { label: 'Artigos Publicados', value: data?.kpis.total_articles, icon: BookOpen, color: 'text-purple-500', bg: 'bg-purple-500/10' },
-        { label: 'Visualizações', value: data?.kpis.total_views, icon: Eye, color: 'text-amber-500', bg: 'bg-amber-500/10' },
-        { label: 'Engajamento Médio', value: `${data?.kpis.avg_engagement}%`, icon: MousePointer2, color: 'text-emerald-500', bg: 'bg-emerald-500/10' },
+        { label: t('totalReaders'), value: data?.kpis.total_users, icon: Users, color: 'text-blue-500', bg: 'bg-blue-500/10' },
+        { label: t('publishedArticles'), value: data?.kpis.total_articles, icon: BookOpen, color: 'text-purple-500', bg: 'bg-purple-500/10' },
+        { label: t('views'), value: data?.kpis.total_views, icon: Eye, color: 'text-amber-500', bg: 'bg-amber-500/10' },
+        { label: t('avgEngagement'), value: `${data?.kpis.avg_engagement}%`, icon: MousePointer2, color: 'text-emerald-500', bg: 'bg-emerald-500/10' },
     ];
 
     return (
         <div className="space-y-8 animate-fade-in">
             <div>
-                <h1 className="text-3xl font-extrabold tracking-tight">Dashboard Administrativo</h1>
-                <p className="text-muted-foreground">Bem-vindo de volta. Aqui está o desempenho da sua plataforma.</p>
+                <h1 className="text-3xl font-extrabold tracking-tight">{t('title')}</h1>
+                <p className="text-muted-foreground">{t('subtitle')}</p>
             </div>
 
             {/* KPI Grid */}
@@ -104,8 +107,8 @@ export default function AdminDashboard() {
                 <div className="card p-6 min-h-[400px]">
                     <div className="flex items-center justify-between mb-8">
                         <h3 className="font-bold text-lg flex items-center gap-2">
-                            Visualizações Diárias
-                            <span className="text-xs font-normal text-muted-foreground bg-muted px-2 py-0.5 rounded-full">30 dias</span>
+                            {t('dailyViews')}
+                            <span className="text-xs font-normal text-muted-foreground bg-muted px-2 py-0.5 rounded-full">{t('days30')}</span>
                         </h3>
                     </div>
                     <div className="h-[300px] w-full">
@@ -123,7 +126,7 @@ export default function AdminDashboard() {
                                     axisLine={false}
                                     tickLine={false}
                                     tick={{ fontSize: 12, fill: 'var(--muted-foreground)' }}
-                                    tickFormatter={(val) => new Date(val).toLocaleDateString('pt-BR', { day: 'numeric', month: 'short' })}
+                                    tickFormatter={(val) => new Date(val).toLocaleDateString(locale, { day: 'numeric', month: 'short' })}
                                 />
                                 <YAxis axisLine={false} tickLine={false} tick={{ fontSize: 12, fill: 'var(--muted-foreground)' }} />
                                 <Tooltip
@@ -137,14 +140,14 @@ export default function AdminDashboard() {
 
                 {/* Top Articles */}
                 <div className="card p-6 space-y-6">
-                    <h3 className="font-bold text-lg">Conteúdos em Alta</h3>
+                    <h3 className="font-bold text-lg">{t('trendingContent')}</h3>
                     <div className="space-y-4">
                         {data?.top_articles.map((art, i) => (
                             <div key={i} className="flex items-center justify-between p-3 rounded-xl hover:bg-muted transition-colors border border-transparent hover:border-border">
                                 <div className="min-w-0 flex-1 pr-4">
                                     <p className="font-medium text-sm truncate">{art.title}</p>
                                     <div className="flex items-center gap-2 mt-1">
-                                        <span className="text-[10px] text-muted-foreground bg-muted px-1.5 py-0.5 rounded uppercase">Engajamento: {art.engagement}%</span>
+                                        <span className="text-[10px] text-muted-foreground bg-muted px-1.5 py-0.5 rounded uppercase">{t('engagement')}: {art.engagement}%</span>
                                     </div>
                                 </div>
                                 <div className="text-right">

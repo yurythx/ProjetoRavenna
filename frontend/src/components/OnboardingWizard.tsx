@@ -5,6 +5,8 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { Rocket, Palette, Globe, CheckCircle, ChevronRight, ChevronLeft, Upload } from 'lucide-react';
 import { api } from '@/lib/api';
 import { useQueryClient } from '@tanstack/react-query';
+import { useTranslations } from 'next-intl';
+import { Mail, Shield } from 'lucide-react';
 
 interface OnboardingWizardProps {
     config: any;
@@ -18,7 +20,16 @@ export function OnboardingWizard({ config }: OnboardingWizardProps) {
         secondary_color: config?.secondary_color || '#1f2937',
         default_theme: config?.default_theme || 'light',
         default_language: config?.default_language || 'pt-br',
+        smtp_host: config?.smtp_host || '',
+        smtp_port: config?.smtp_port || 587,
+        smtp_user: config?.smtp_user || '',
+        smtp_password: config?.smtp_password || '',
+        smtp_use_tls: config?.smtp_use_tls ?? true,
+        email_from_address: config?.email_from_address || '',
+        email_from_name: config?.email_from_name || '',
     });
+    const t = useTranslations('Onboarding');
+    const tc = useTranslations('Common');
     const [isVisible, setIsVisible] = useState(!config?.onboarding_completed);
     const queryClient = useQueryClient();
 
@@ -42,32 +53,32 @@ export function OnboardingWizard({ config }: OnboardingWizardProps) {
 
     const steps = [
         {
-            title: "Bem-vindo ao Ravenna",
-            desc: "Vamos configurar a identidade do seu portal em segundos.",
+            title: t('stepWelcome'),
+            desc: t('stepWelcomeDesc'),
             icon: Rocket,
             content: (
                 <div className="space-y-4 pt-4">
                     <div>
-                        <label className="block text-sm font-medium mb-1">Nome da Marca</label>
+                        <label className="block text-sm font-medium mb-1">{t('brandName')}</label>
                         <input
                             type="text"
                             className="w-full p-2 border rounded-lg bg-background"
                             value={formData.brand_name}
                             onChange={(e) => setFormData({ ...formData, brand_name: e.target.value })}
-                            placeholder="Ex: Minha Empresa"
+                            placeholder={t('brandPlaceholder')}
                         />
                     </div>
                 </div>
             )
         },
         {
-            title: "Cores da Marca",
-            desc: "Escolha as cores que definem seu portal.",
+            title: t('stepAppearance'),
+            desc: t('stepAppearanceDesc'),
             icon: Palette,
             content: (
                 <div className="grid grid-cols-2 gap-4 pt-4">
                     <div>
-                        <label className="block text-sm font-medium mb-1">Cor Primária</label>
+                        <label className="block text-sm font-medium mb-1">{t('primaryColor')}</label>
                         <div className="flex gap-2">
                             <input
                                 type="color"
@@ -84,7 +95,7 @@ export function OnboardingWizard({ config }: OnboardingWizardProps) {
                         </div>
                     </div>
                     <div>
-                        <label className="block text-sm font-medium mb-1">Cor Secundária</label>
+                        <label className="block text-sm font-medium mb-1">{t('secondaryColor')}</label>
                         <div className="flex gap-2">
                             <input
                                 type="color"
@@ -104,25 +115,25 @@ export function OnboardingWizard({ config }: OnboardingWizardProps) {
             )
         },
         {
-            title: "Preferências Globais",
-            desc: "Configure o idioma e o visual padrão.",
+            title: t('stepRegion'),
+            desc: t('stepRegionDesc'),
             icon: Globe,
             content: (
                 <div className="space-y-4 pt-4">
                     <div className="grid grid-cols-2 gap-4">
                         <div>
-                            <label className="block text-sm font-medium mb-1">Tema Padrão</label>
+                            <label className="block text-sm font-medium mb-1">{t('defaultTheme')}</label>
                             <select
                                 className="w-full p-2 border rounded-lg bg-background"
                                 value={formData.default_theme}
                                 onChange={(e) => setFormData({ ...formData, default_theme: e.target.value })}
                             >
-                                <option value="light">Claro</option>
-                                <option value="dark">Escuro</option>
+                                <option value="light">{t('themeLight')}</option>
+                                <option value="dark">{t('themeDark')}</option>
                             </select>
                         </div>
                         <div>
-                            <label className="block text-sm font-medium mb-1">Idioma</label>
+                            <label className="block text-sm font-medium mb-1">{t('language')}</label>
                             <select
                                 className="w-full p-2 border rounded-lg bg-background"
                                 value={formData.default_language}
@@ -132,6 +143,90 @@ export function OnboardingWizard({ config }: OnboardingWizardProps) {
                                 <option value="en">English</option>
                                 <option value="es">Español</option>
                             </select>
+                        </div>
+                    </div>
+                </div>
+            )
+        },
+        {
+            title: t('stepCommunication'),
+            desc: t('stepCommunicationDesc'),
+            icon: Mail,
+            content: (
+                <div className="space-y-4 pt-4 h-[300px] overflow-y-auto pr-2 scrollbar-thin">
+                    <div className="grid grid-cols-2 gap-4">
+                        <div className="col-span-2">
+                            <label className="block text-sm font-medium mb-1">{t('smtpHost')}</label>
+                            <input
+                                type="text"
+                                className="w-full p-2 border rounded-lg bg-background"
+                                value={formData.smtp_host}
+                                onChange={(e) => setFormData({ ...formData, smtp_host: e.target.value })}
+                                placeholder={t('smtpHostPlaceholder')}
+                            />
+                        </div>
+                        <div>
+                            <label className="block text-sm font-medium mb-1">{t('smtpPort')}</label>
+                            <input
+                                type="number"
+                                className="w-full p-2 border rounded-lg bg-background"
+                                value={formData.smtp_port}
+                                onChange={(e) => setFormData({ ...formData, smtp_port: parseInt(e.target.value) })}
+                            />
+                        </div>
+                        <div className="flex items-end pb-3">
+                            <label className="flex items-center gap-2 cursor-pointer">
+                                <input
+                                    type="checkbox"
+                                    checked={formData.smtp_use_tls}
+                                    onChange={(e) => setFormData({ ...formData, smtp_use_tls: e.target.checked })}
+                                    className="w-4 h-4 rounded border-gray-300 text-brand-primary focus:ring-brand-primary"
+                                />
+                                <span className="text-sm">{t('smtpUseTls')}</span>
+                            </label>
+                        </div>
+                    </div>
+                    <div className="grid grid-cols-2 gap-4">
+                        <div>
+                            <label className="block text-sm font-medium mb-1">{t('smtpUser')}</label>
+                            <input
+                                type="text"
+                                className="w-full p-2 border rounded-lg bg-background"
+                                value={formData.smtp_user}
+                                onChange={(e) => setFormData({ ...formData, smtp_user: e.target.value })}
+                            />
+                        </div>
+                        <div>
+                            <label className="block text-sm font-medium mb-1">{t('smtpPassword')}</label>
+                            <input
+                                type="password"
+                                className="w-full p-2 border rounded-lg bg-background"
+                                value={formData.smtp_password}
+                                onChange={(e) => setFormData({ ...formData, smtp_password: e.target.value })}
+                            />
+                        </div>
+                    </div>
+                    <div className="border-t pt-4 mt-4">
+                        <p className="text-xs font-bold text-muted-foreground uppercase mb-2">{t('senderIdentity')}</p>
+                        <div className="grid grid-cols-2 gap-4">
+                            <div>
+                                <label className="block text-sm font-medium mb-1">{t('senderEmail')}</label>
+                                <input
+                                    type="email"
+                                    className="w-full p-2 border rounded-lg bg-background"
+                                    value={formData.email_from_address}
+                                    onChange={(e) => setFormData({ ...formData, email_from_address: e.target.value })}
+                                />
+                            </div>
+                            <div>
+                                <label className="block text-sm font-medium mb-1">{t('senderName')}</label>
+                                <input
+                                    type="text"
+                                    className="w-full p-2 border rounded-lg bg-background"
+                                    value={formData.email_from_name}
+                                    onChange={(e) => setFormData({ ...formData, email_from_name: e.target.value })}
+                                />
+                            </div>
                         </div>
                     </div>
                 </div>
@@ -160,7 +255,7 @@ export function OnboardingWizard({ config }: OnboardingWizardProps) {
                         </div>
                     </div>
                     <div className="text-xs font-medium text-muted-foreground">
-                        Passo {step} de {steps.length}
+                        {t('stepCounter', { current: step, total: steps.length })}
                     </div>
                 </div>
 
@@ -195,7 +290,7 @@ export function OnboardingWizard({ config }: OnboardingWizardProps) {
                             onClick={handlePrev}
                             className="flex items-center gap-2 text-sm font-medium hover:text-brand-primary transition-colors"
                         >
-                            <ChevronLeft size={18} /> Voltar
+                            <ChevronLeft size={18} /> {tc('back')}
                         </button>
                     ) : (
                         <div></div>
@@ -206,14 +301,14 @@ export function OnboardingWizard({ config }: OnboardingWizardProps) {
                             onClick={handleNext}
                             className="flex items-center gap-2 px-6 py-2.5 bg-brand-primary text-white rounded-xl font-bold hover:opacity-90 transition-all shadow-lg shadow-brand-primary/20"
                         >
-                            Próximo <ChevronRight size={18} />
+                            {tc('next')} <ChevronRight size={18} />
                         </button>
                     ) : (
                         <button
                             onClick={handleFinish}
                             className="flex items-center gap-2 px-6 py-2.5 bg-brand-primary text-white rounded-xl font-bold hover:opacity-90 transition-all shadow-lg shadow-brand-primary/20"
                         >
-                            Finalizar Setup <CheckCircle size={18} />
+                            {t('finish')} <CheckCircle size={18} />
                         </button>
                     )}
                 </div>

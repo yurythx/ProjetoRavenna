@@ -6,6 +6,7 @@
  */
 
 import { Clock } from 'lucide-react';
+import { useTranslations } from 'next-intl';
 
 interface ReadingTimeProps {
     /**
@@ -37,6 +38,7 @@ export default function ReadingTime({
     className = '',
     fullText = false,
 }: ReadingTimeProps) {
+    const t = useTranslations('ArticleDetail');
     const sizeClasses = {
         sm: 'text-xs gap-1',
         md: 'text-sm gap-1.5',
@@ -51,15 +53,15 @@ export default function ReadingTime({
 
     const getText = () => {
         if (fullText) {
-            return `${minutes} ${minutes === 1 ? 'minuto' : 'minutos'} de leitura`;
+            return t('minutesOfReading', { minutes });
         }
-        return `${minutes} min`;
+        return `${minutes} ${t('minutes')}`;
     };
 
     return (
         <div
             className={`flex items-center text-gray-600 dark:text-gray-400 ${sizeClasses[size]} ${className}`}
-            title={`Tempo estimado de leitura: ${minutes} ${minutes === 1 ? 'minuto' : 'minutos'}`}
+            title={t('readingTimeTooltip', { minutes })}
         >
             <Clock size={iconSizes[size]} className="flex-shrink-0" />
             <span className="font-medium">{getText()}</span>

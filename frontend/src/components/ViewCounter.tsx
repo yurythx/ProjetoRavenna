@@ -7,6 +7,7 @@
 
 import { Eye } from 'lucide-react';
 import { formatCompactNumber } from '@/lib/formatters';
+import { useTranslations, useLocale } from 'next-intl';
 
 interface ViewCounterProps {
     /**
@@ -38,6 +39,8 @@ export default function ViewCounter({
     className = '',
     showLabel = false,
 }: ViewCounterProps) {
+    const t = useTranslations('ArticleDetail');
+    const locale = useLocale();
     const sizeClasses = {
         sm: 'text-xs gap-1',
         md: 'text-sm gap-1.5',
@@ -53,12 +56,12 @@ export default function ViewCounter({
     return (
         <div
             className={`flex items-center text-gray-600 dark:text-gray-400 ${sizeClasses[size]} ${className}`}
-            title={`${count.toLocaleString('pt-BR')} visualizações`}
+            title={t('viewsLabel', { count })}
         >
             <Eye size={iconSizes[size]} className="flex-shrink-0" />
             <span className="font-medium">
                 {formatCompactNumber(count)}
-                {showLabel && <span className="ml-1 font-normal">visualizações</span>}
+                {showLabel && <span className="ml-1 font-normal">{t('viewsLabel', { count })}</span>}
             </span>
         </div>
     );

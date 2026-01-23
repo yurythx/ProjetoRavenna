@@ -36,28 +36,29 @@ class ArticleViewSet(viewsets.ModelViewSet):
     ordering = ['-created_at']
 
     def create(self, request, *args, **kwargs):
-        # 1. Validation (Serializer)
+        # Validation (Serializer will handle content_json parsing automatically)
         serializer = self.get_serializer(data=request.data)
         serializer.is_valid(raise_exception=True)
-        data = serializer.validated_data
+        validated_data = serializer.validated_data
         
         # 2. Service Layer
         # Handle both 'tags' (direct list) and 'tag_ids' (from serializer source)
-        tags = data.get('tags', [])
+        tags = validated_data.get('tags', [])
         
         try:
             # Check permissions explicitly or rely on DRF's perform_create hook? 
             # Standard ViewSet checks permissions before entering create.
             
             article = article_create(
-                title=data['title'],
-                content=data['content'],
-                category=data['category'],
+                title=validated_data['title'],
+                content=validated_data.get('content', ''),
+                content_json=validated_data.get('content_json', {}),
+                category=validated_data['category'],
                 author=request.user if request.user.is_authenticated else None,
                 tags=tags,
-                is_published=data.get('is_published', False),
-                banner=data.get('banner', None),
-                excerpt=data.get('excerpt', '')
+                status=validated_data.get('status', 'DRAFT'),
+                banner=validated_data.get('banner', None),
+                excerpt=validated_data.get('excerpt', '')
             )
             
             return Response(ArticleSerializer(article).data, status=status.HTTP_201_CREATED)
@@ -109,7 +110,7 @@ class ArticleViewSet(viewsets.ModelViewSet):
         # Admin sees everything
         if not (user.is_authenticated and user.is_superuser):
             # Non-admin users
-            if article.is_published:
+            if article.status == 'PUBLISHED':
                 # Published article - everyone can see
                 pass
             elif user.is_authenticated and article.author == user:

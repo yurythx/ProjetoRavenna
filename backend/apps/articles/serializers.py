@@ -68,6 +68,13 @@ class ArticleSerializer(serializers.ModelSerializer):
         source='tags',
         help_text="List of Tag IDs to associate with the article."
     )
+    
+    # Fix category validation - use _base_manager to bypass TenantManager
+    category = serializers.PrimaryKeyRelatedField(
+        queryset=Category._base_manager.all(),  # Use base manager to bypass tenant filtering
+        help_text="Category ID for the article."
+    )
+    
     can_edit = serializers.SerializerMethodField()
     author_name = serializers.SerializerMethodField()
     author_avatar = serializers.SerializerMethodField()
@@ -89,11 +96,11 @@ class ArticleSerializer(serializers.ModelSerializer):
     class Meta:
         model = Article
         fields = [
-            'id', 'title', 'slug', 'excerpt', 'content', 'category', 'category_name', 
-            'tags', 'tag_ids', 'author', 'author_name', 'author_avatar', 'author_bio',
-            'banner', 'is_published', 'can_edit', 'like_count', 'is_liked', 
-            'favorite_count', 'is_favorited', 'view_count', 'unique_views', 
-            'reading_time', 'engagement_rate', 'created_at', 'updated_at'
+            'id', 'title', 'slug', 'excerpt', 'content', 'content_json', 'status',
+            'category', 'category_name', 'tags', 'tag_ids', 'author', 'author_name', 
+            'author_avatar', 'author_bio', 'banner', 'is_published', 'can_edit', 
+            'like_count', 'is_liked', 'favorite_count', 'is_favorited', 'view_count', 
+            'unique_views', 'reading_time', 'engagement_rate', 'created_at', 'updated_at'
         ]
         read_only_fields = ('slug', 'author', 'created_at', 'updated_at')
 
@@ -101,6 +108,27 @@ class ArticleSerializer(serializers.ModelSerializer):
         if len(value) < 5:
             raise serializers.ValidationError("Title must be at least 5 characters long.")
         return value
+    
+    def validate_content_json(self, value):
+        """Validate and normalize content_json - handle both string and dict"""
+        import json
+        
+        # If it's already a dict/object, ensure it's valid Tiptap structure
+        if isinstance(value, dict):
+            return value
+        
+        # If it's a string, try to parse it
+        if isinstance(value, str):
+            if not value.strip():
+                return {}  # Empty string = empty dict
+            try:
+                parsed = json.loads(value)
+                return parsed
+            except json.JSONDecodeError as e:
+                raise serializers.ValidationError(f"Invalid JSON format: {str(e)}")
+        
+        # If it's None or other types, return empty dict
+        return value if value is not None else {}
 
     @extend_schema_field(OpenApiTypes.BOOL)
     def get_can_edit(self, obj) -> bool:

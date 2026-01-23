@@ -7,9 +7,12 @@ export const metadata: Metadata = {
     description: 'Artigos que você salvou para ler depois',
 };
 
+import { useTranslations } from 'next-intl';
+
 export default function FavoritosPage() {
+    const t = useTranslations('Common');
     return (
-        <Suspense fallback={<div className="container mx-auto px-4 py-8">Carregando...</div>}>
+        <Suspense fallback={<div className="container mx-auto px-4 py-8">{t('loading')}</div>}>
             <FavoritosClient />
         </Suspense>
     );

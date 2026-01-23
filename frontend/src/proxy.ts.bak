@@ -1,0 +1,15 @@
+import createMiddleware from 'next-intl/middleware';
+
+export default createMiddleware({
+    // A list of all locales that are supported
+    locales: ['pt-br', 'en', 'es'],
+
+    // Used when no locale matches
+    defaultLocale: 'pt-br',
+    localePrefix: 'never' // We'll handle locale through cookies/tenant config mostly
+});
+
+export const config = {
+    // Match only internationalized pathnames
+    matcher: ['/', '/(pt-br|en|es)/:path*', '/((?!api|_next|_vercel|.*\\..*).*)']
+};

@@ -6,8 +6,11 @@ import { ModuleAlert } from "@/components/ModuleAlert";
 import { ToastContainer } from "@/components/ToastContainer";
 import { ThemeProvider } from "@/contexts/ThemeContext";
 import { DynamicBranding } from "@/components/DynamicBranding";
+import { DynamicFavicon } from "@/components/DynamicFavicon";
 import { getTenantConfig } from "@/services/tenant";
 import { cookies } from "next/headers";
+import { NextIntlClientProvider } from 'next-intl';
+import { getMessages, getLocale } from 'next-intl/server';
 
 // Usando fontes do sistema para evitar dependência de Google Fonts
 const fontClass = "font-sans";
@@ -63,8 +66,11 @@ export default async function RootLayout({
   // Resolve initial theme: Cookie > Tenant Default > System (fallback)
   const initialThemeClass = themeCookie || config?.default_theme || '';
 
+  const messages = await getMessages();
+  const locale = await getLocale();
+
   return (
-    <html lang={config?.default_language || "pt-BR"} suppressHydrationWarning data-scroll-behavior="smooth" className={initialThemeClass}>
+    <html lang={locale} suppressHydrationWarning data-scroll-behavior="smooth" className={initialThemeClass}>
       <head>
         <style dangerouslySetInnerHTML={{
           __html: `
@@ -80,9 +86,10 @@ export default async function RootLayout({
       <body
         className={`${fontClass} antialiased min-h-screen flex flex-col`}
       >
-        <ThemeProvider>
+        <NextIntlClientProvider messages={messages} locale={locale}>
           <Providers>
             <DynamicBranding />
+            <DynamicFavicon />
             <ToastContainer />
             <ModuleAlert />
             <Header logoUrl={config?.logo || undefined} brandName={config?.brand_name || undefined} />
@@ -97,8 +104,8 @@ export default async function RootLayout({
               </div>
             </footer>
           </Providers>
-        </ThemeProvider>
+        </NextIntlClientProvider>
       </body>
-    </html >
+    </html>
   );
 }

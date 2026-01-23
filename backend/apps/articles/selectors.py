@@ -8,7 +8,7 @@ def article_list_published():
     """
     Returns published articles with optimized queries using select_related and prefetch_related.
     """
-    return Article.objects.filter(is_published=True)\
+    return Article.objects.filter(status='PUBLISHED')\
         .select_related('author', 'category')\
         .prefetch_related('tags')
 
@@ -58,7 +58,7 @@ def article_list(user) -> QuerySet:
     if not user.is_superuser:
         if user.is_authenticated:
             # Logged user sees what is published OR what they created
-            queryset = queryset.filter(models.Q(is_published=True) | models.Q(author=user))
+            queryset = queryset.filter(models.Q(status='PUBLISHED') | models.Q(author=user))
             
             # Annotate user specific interactions
             queryset = queryset.annotate(
@@ -77,6 +77,7 @@ def article_list(user) -> QuerySet:
             )
         else:
             # Anonymous visitor sees only published
-            queryset = queryset.filter(is_published=True)
+            queryset = queryset.filter(status='PUBLISHED')
+
             
     return queryset.order_by('-created_at')

@@ -1,6 +1,7 @@
 import type { Metadata, ResolvingMetadata } from 'next';
 import ArticleClient from './ArticleClient';
 import { notFound } from 'next/navigation';
+import { getTranslations } from 'next-intl/server';
 
 async function getArticle(slug: string) {
   const baseUrl = process.env.INTERNAL_API_URL || process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000/api/v1';
@@ -28,10 +29,11 @@ export async function generateMetadata(
 ): Promise<Metadata> {
   const params = await props.params;
   const article = await getArticle(params.slug);
+  const t = await getTranslations('ArticleDetail');
 
   if (!article) {
     return {
-      title: 'Artigo não encontrado',
+      title: t('notFound'),
     };
   }
 
@@ -49,7 +51,7 @@ export async function generateMetadata(
       images: images,
       type: 'article',
       publishedTime: article.created_at,
-      authors: [article.author_name || 'Projetos Ravenna'],
+      authors: [article.author_name || 'Projeto Ravenna'],
     },
     twitter: {
       card: 'summary_large_image',

@@ -5,6 +5,7 @@ import { Send } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 import { api } from '@/lib/api';
 import { CaptchaWidget } from './CaptchaWidget';
+import { useTranslations } from 'next-intl';
 
 interface CommentFormProps {
     articleId: string;
@@ -21,10 +22,13 @@ export function CommentForm({
     parentId,
     onSubmit,
     isSubmitting,
-    placeholder = 'Escreva seu comentário...',
+    placeholder,
     autoFocus = false,
     onCancel
 }: CommentFormProps) {
+    const t = useTranslations('Comments');
+    const tc = useTranslations('Common');
+    const displayPlaceholder = placeholder || t('placeholder');
     const [content, setContent] = useState('');
     const { token } = useAuth();
     const [guestName, setGuestName] = useState('');
@@ -58,7 +62,7 @@ export function CommentForm({
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
                     <input
                         type="text"
-                        placeholder="Seu nome"
+                        placeholder={t('guestName')}
                         value={guestName}
                         onChange={(e) => setGuestName(e.target.value)}
                         className="px-4 py-2 rounded-lg border focus:outline-none focus:ring-2 focus:ring-accent"
@@ -68,7 +72,7 @@ export function CommentForm({
                     />
                     <input
                         type="email"
-                        placeholder="Seu e-mail"
+                        placeholder={t('guestEmail')}
                         value={guestEmail}
                         onChange={(e) => setGuestEmail(e.target.value)}
                         className="px-4 py-2 rounded-lg border focus:outline-none focus:ring-2 focus:ring-accent"
@@ -77,7 +81,7 @@ export function CommentForm({
                     />
                     <input
                         type="tel"
-                        placeholder="Seu telefone (DDD + número)"
+                        placeholder={t('guestPhone')}
                         value={guestPhone}
                         onChange={(e) => setGuestPhone(e.target.value)}
                         className="px-4 py-2 rounded-lg border focus:outline-none focus:ring-2 focus:ring-accent"
@@ -102,7 +106,7 @@ export function CommentForm({
             <textarea
                 value={content}
                 onChange={(e) => setContent(e.target.value)}
-                placeholder={placeholder}
+                placeholder={displayPlaceholder}
                 className="w-full px-4 py-3 rounded-lg border focus:outline-none focus:ring-2 focus:ring-accent resize-none"
                 style={{
                     background: 'var(--background)',
@@ -117,7 +121,7 @@ export function CommentForm({
 
             <div className="flex items-center justify-between">
                 <p className="text-xs" style={{ color: 'var(--muted-foreground)' }}>
-                    {content.length}/1000 caracteres
+                    {t('characters', { current: content.length, total: 1000 })}
                 </p>
 
                 <div className="flex gap-2">
@@ -128,7 +132,7 @@ export function CommentForm({
                             className="btn btn-outline px-4 py-2"
                             disabled={isSubmitting}
                         >
-                            Cancelar
+                            {tc('cancel')}
                         </button>
                     )}
                     <button
@@ -139,12 +143,12 @@ export function CommentForm({
                         {isSubmitting ? (
                             <>
                                 <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
-                                Enviando...
+                                {t('submitting')}
                             </>
                         ) : (
                             <>
                                 <Send className="w-4 h-4" aria-hidden="true" />
-                                Enviar
+                                {t('send')}
                             </>
                         )}
                     </button>

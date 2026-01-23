@@ -4,12 +4,14 @@ import { MessageSquare } from 'lucide-react';
 import { useComments } from '@/hooks/useComments';
 import { CommentForm } from './CommentForm';
 import { CommentItem } from './CommentItem';
+import { useTranslations } from 'next-intl';
 
 interface CommentSectionProps {
     articleId: string;
 }
 
 export function CommentSection({ articleId }: CommentSectionProps) {
+    const t = useTranslations('Comments');
     const { comments, isLoading, createComment, isCreating, deleteComment } = useComments(articleId);
 
     const handleCreateComment = (content: string, guest?: { name?: string; email?: string; phone?: string }) => {
@@ -41,7 +43,7 @@ export function CommentSection({ articleId }: CommentSectionProps) {
             <div className="flex items-center gap-3">
                 <MessageSquare className="w-6 h-6" style={{ color: 'var(--accent)' }} aria-hidden="true" />
                 <h2 className="text-2xl font-bold" style={{ color: 'var(--foreground)' }}>
-                    Comentários
+                    {t('title')}
                     {comments.length > 0 && (
                         <span className="ml-2 text-lg" style={{ color: 'var(--muted-foreground)' }}>
                             ({comments.length})
@@ -76,10 +78,10 @@ export function CommentSection({ articleId }: CommentSectionProps) {
                         aria-hidden="true"
                     />
                     <p className="text-lg font-medium" style={{ color: 'var(--foreground)' }}>
-                        Nenhum comentário ainda
+                        {t('noComments')}
                     </p>
                     <p className="text-sm mt-1" style={{ color: 'var(--muted-foreground)' }}>
-                        Seja o primeiro a comentar!
+                        {t('beFirst')}
                     </p>
                 </div>
             ) : (

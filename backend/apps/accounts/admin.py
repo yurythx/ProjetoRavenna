@@ -27,6 +27,13 @@ class CustomUserAdmin(BaseUserAdmin):
     fieldsets = (
         (None, {'fields': ('email', 'username', 'password')}),
         (_('Personal info'), {'fields': ('first_name', 'last_name', 'avatar', 'bio')}),
+        (_('Visual Preferences'), {
+            'fields': (
+                'theme_preference', 
+                'primary_color', 'secondary_color', 
+                'primary_color_dark', 'secondary_color_dark'
+            ),
+        }),
         (_('Permissions'), {
             'fields': ('is_active', 'is_staff', 'is_superuser', 'groups', 'user_permissions'),
         }),

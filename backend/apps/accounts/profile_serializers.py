@@ -6,14 +6,23 @@ class UserProfileSerializer(serializers.ModelSerializer):
     """Serializer for viewing user profile"""
     class Meta:
         model = CustomUser
-        fields = ['id', 'email', 'username', 'first_name', 'last_name', 'avatar', 'bio', 'date_joined', 'is_staff']
+        fields = [
+            'id', 'email', 'username', 'first_name', 'last_name', 'avatar', 'bio', 
+            'date_joined', 'is_staff', 'theme_preference', 
+            'primary_color', 'secondary_color', 
+            'primary_color_dark', 'secondary_color_dark'
+        ]
         read_only_fields = ['id', 'email', 'date_joined', 'is_staff']
 
 class UserProfileUpdateSerializer(serializers.ModelSerializer):
     """Serializer for updating user profile"""
     class Meta:
         model = CustomUser
-        fields = ['username', 'first_name', 'last_name', 'bio']
+        fields = [
+            'username', 'first_name', 'last_name', 'bio', 'theme_preference',
+            'primary_color', 'secondary_color', 
+            'primary_color_dark', 'secondary_color_dark'
+        ]
         
     def validate_username(self, value):
         """Ensure username is unique if provided"""
@@ -51,7 +60,9 @@ class AdminUserSerializer(serializers.ModelSerializer):
         fields = [
             'id', 'email', 'username', 'first_name', 'last_name',
             'is_active', 'is_staff', 'date_joined', 'last_login', 'password',
-            'groups', 'user_permissions'
+            'groups', 'user_permissions', 'theme_preference',
+            'primary_color', 'secondary_color', 
+            'primary_color_dark', 'secondary_color_dark'
         ]
         read_only_fields = ['id', 'date_joined', 'last_login']
     

@@ -5,6 +5,7 @@ import { Trash2, Reply, User as UserIcon } from 'lucide-react';
 import Image from 'next/image';
 import { useAuth } from '@/contexts/AuthContext';
 import { CommentForm } from './CommentForm';
+import { useTranslations, useLocale } from 'next-intl';
 
 interface CommentItemProps {
     comment: {
@@ -39,6 +40,8 @@ export function CommentItem({
     isSubmitting,
     level = 0
 }: CommentItemProps) {
+    const t = useTranslations('Comments');
+    const locale = useLocale();
     const [showReplyForm, setShowReplyForm] = useState(false);
     const { token } = useAuth();
 
@@ -47,11 +50,11 @@ export function CommentItem({
         const now = new Date();
         const diff = Math.floor((now.getTime() - date.getTime()) / 1000);
 
-        if (diff < 60) return 'agora';
-        if (diff < 3600) return `há ${Math.floor(diff / 60)} min`;
-        if (diff < 86400) return `há ${Math.floor(diff / 3600)} h`;
-        if (diff < 604800) return `há ${Math.floor(diff / 86400)} dias`;
-        return date.toLocaleDateString('pt-BR');
+        if (diff < 60) return t('now');
+        if (diff < 3600) return t('minAgo', { count: Math.floor(diff / 60) });
+        if (diff < 86400) return t('hAgo', { count: Math.floor(diff / 3600) });
+        if (diff < 604800) return t('daysAgo', { count: Math.floor(diff / 86400) });
+        return date.toLocaleDateString(locale);
     };
 
     const getAuthorName = () => {
@@ -124,21 +127,21 @@ export function CommentItem({
                                     style={{ color: 'var(--accent)' }}
                                 >
                                     <Reply className="w-4 h-4" aria-hidden="true" />
-                                    Responder
+                                    {t('reply')}
                                 </button>
                             )}
 
                             {comment.can_delete && (
                                 <button
                                     onClick={() => {
-                                        if (confirm('Deseja realmente deletar este comentário?')) {
+                                        if (confirm(t('deleteConfirm'))) {
                                             onDelete(comment.id);
                                         }
                                     }}
                                     className="text-sm flex items-center gap-1 hover:opacity-80 transition-opacity text-red-500"
                                 >
                                     <Trash2 className="w-4 h-4" aria-hidden="true" />
-                                    Deletar
+                                    {t('delete')}
                                 </button>
                             )}
                         </div>
@@ -153,7 +156,7 @@ export function CommentItem({
                             parentId={comment.id}
                             onSubmit={handleReply}
                             isSubmitting={isSubmitting}
-                            placeholder="Escreva sua resposta..."
+                            placeholder={t('replyPlaceholder')}
                             autoFocus
                             onCancel={() => setShowReplyForm(false)}
                         />

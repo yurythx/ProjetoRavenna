@@ -11,6 +11,11 @@ type User = {
   avatar?: string;
   role?: string;
   is_staff?: boolean;
+  theme_preference: 'light' | 'dark' | 'system';
+  primary_color?: string;
+  secondary_color?: string;
+  primary_color_dark?: string;
+  secondary_color_dark?: string;
 };
 
 type AuthState = { token: string | null; user: User | null; isLoading: boolean };

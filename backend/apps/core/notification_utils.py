@@ -3,13 +3,22 @@ from .models import Notification
 
 def create_notification(recipient, notification_type, title, message, link='', sender=None):
     """Helper function to create notifications"""
+    from apps.core.tenant_context import get_current_tenant_id
+    
+    # Map link to target fields - extract article slug if present
+    target_id = None
+    target_type = ''
+    if link and '/artigos/' in link:
+        target_type = 'article'
+        # Could extract article ID if needed, but slug is in link already
+    
     return Notification.objects.create(
         recipient=recipient,
-        sender=sender,
-        notification_type=notification_type,
+        type=notification_type,  # Changed from notification_type to type
         title=title,
         message=message,
-        link=link
+        target_type=target_type,  # Store article/comment type
+        tenant_id=get_current_tenant_id()  # Auto-set tenant
     )
 
 

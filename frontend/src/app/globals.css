@@ -75,18 +75,21 @@
 
 :root {
   /* Brand variables are injected via layout.tsx or DynamicBranding.tsx */
+  /* We use HSL for better manipulation and transitions */
+  --brand-primary-hsl: var(--brand-primary-h, 157) var(--brand-primary-s, 46%) var(--brand-primary-l, 49%);
+  --brand-secondary-hsl: var(--brand-secondary-h, 157) var(--brand-secondary-s, 72%) var(--brand-secondary-l, 17%);
 
   /* Light Mode Colors */
-  --background: #F8F8F8;
-  --foreground: #0C3C26;
-  --muted: #E8E8E8;
-  --muted-foreground: #5A6C57;
-  --border: #D4D4D4;
-  --accent: var(--brand-primary);
-  --accent-hover: var(--brand-secondary);
-  --card-bg: #FFFFFF;
-  --header-bg: var(--brand-secondary);
-  --header-text: #FFFFFF;
+  --background: hsl(0 0% 97%);
+  --foreground: hsl(157 66% 14%);
+  --muted: hsl(0 0% 91%);
+  --muted-foreground: hsl(110 11% 38%);
+  --border: hsl(0 0% 83%);
+  --accent: hsl(var(--brand-primary-hsl));
+  --accent-hover: hsl(var(--brand-secondary-hsl));
+  --card-bg: hsl(0 0% 100%);
+  --header-bg: hsl(var(--brand-secondary-hsl));
+  --header-text: hsl(0 0% 100%);
 
   /* Typography */
   --font-sans: 'Roboto', Corbel, Avenir, "Lucida Grande", "Lucida Sans", sans-serif;
@@ -94,20 +97,26 @@
   /* Spacing */
   --container-max: 1280px;
   --container-padding: 1.5rem;
+
+  /* Transitions */
+  --transition-fast: 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+  --transition-base: 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  --transition-slow: 0.5s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
 /* Dark Mode (Django Style) */
 :root.dark {
-  --background: #181D27;
-  --foreground: #C1CAD2;
-  --muted: #252B37;
-  --muted-foreground: #8B95A1;
-  --border: #3A4453;
-  --accent: var(--brand-primary-dark, #44B78B);
-  --accent-hover: var(--brand-secondary-dark, #0C4B33);
-  --card-bg: #1E2430;
-  --header-bg: var(--brand-secondary-dark, #0C4B33);
-  --header-text: #FFFFFF;
+  --background: hsl(220 23% 12%);
+  --foreground: hsl(210 15% 80%);
+  --muted: hsl(220 19% 18%);
+  --muted-foreground: hsl(214 10% 60%);
+  --border: hsl(217 19% 27%);
+  --accent: hsl(var(--brand-primary-hsl));
+  --accent-hover: hsl(157 72% 30%);
+  /* Slightly lighter for dark mode hover */
+  --card-bg: hsl(222 23% 15%);
+  --header-bg: hsl(220 23% 10%);
+  --header-text: hsl(0 0% 100%);
 }
 
 * {
@@ -125,6 +134,11 @@ body {
   line-height: 1.6;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
+  transition:
+    background-color var(--transition-base),
+    color var(--transition-base),
+    border-color var(--transition-base),
+    box-shadow var(--transition-base);
 }
 
 /* ===================================
@@ -238,7 +252,7 @@ a.btn:focus-visible {
   padding: 0.5rem 1rem;
   border-radius: 0.375rem;
   font-weight: 500;
-  transition: all 0.2s;
+  transition: all var(--transition-base);
   cursor: pointer;
 }
 
@@ -346,13 +360,15 @@ a.btn:focus-visible {
 .prose a {
   color: var(--accent);
   text-decoration: none;
-  border-bottom: 1px solid transparent;
-  transition: all 0.2s;
+  border-bottom: 2px solid transparent;
+  transition: all var(--transition-fast);
   font-weight: 500;
 }
 
 .prose a:hover {
   border-bottom-color: var(--accent);
+  background: color-mix(in srgb, var(--accent) 5%, transparent);
+  border-radius: 2px;
 }
 
 .prose blockquote {
@@ -460,16 +476,16 @@ a.btn:focus-visible {
   border-radius: 0.75rem;
   background: var(--card-bg);
   border: 1px solid var(--border);
-  transition: all 0.3s ease;
+  transition: all var(--transition-base);
   cursor: pointer;
   text-decoration: none;
   user-select: none;
 }
 
 .logo-item:hover {
-  transform: translateY(-4px);
-  box-shadow: 0 8px 16px rgba(0, 0, 0, 0.1);
-  border-color: currentColor;
+  transform: translateY(-4px) scale(1.02);
+  box-shadow: 0 12px 24px -8px rgba(0, 0, 0, 0.15);
+  border-color: var(--accent);
 }
 
 .logo-icon {

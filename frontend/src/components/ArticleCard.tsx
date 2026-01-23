@@ -10,6 +10,7 @@ import { readingTime } from '@/lib/readingTime';
 import ViewCounter from '@/components/ViewCounter';
 import ReadingTime from '@/components/ReadingTime';
 import { useState } from 'react';
+import { useTranslations, useLocale } from 'next-intl';
 
 import { Article } from '@/hooks/useArticle';
 
@@ -25,6 +26,9 @@ export function ArticleCard({
   categories?: Category[];
   tagsList?: Tag[];
 }) {
+  const t = useTranslations('Articles');
+  const td = useTranslations('ArticleDetail');
+  const locale = useLocale();
   const [liked, setLiked] = useState<boolean>(!!article.is_liked);
   const [likeCount, setLikeCount] = useState<number>(article.like_count || 0);
   const [favorited, setFavorited] = useState<boolean>(!!article.is_favorited);
@@ -46,7 +50,7 @@ export function ArticleCard({
 
   // Format date
   const formattedDate = article.created_at
-    ? new Date(article.created_at).toLocaleDateString('pt-BR', {
+    ? new Date(article.created_at).toLocaleDateString(locale, {
       day: 'numeric',
       month: 'short',
       year: 'numeric'
@@ -60,7 +64,7 @@ export function ArticleCard({
         {banner ? (
           <Image
             src={banner}
-            alt={article.title || 'Article image'}
+            alt={article.title || t('articleImage')}
             fill
             className="object-cover transition-transform duration-500 group-hover:scale-105"
             sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
@@ -89,7 +93,7 @@ export function ArticleCard({
         {likeCount > 10 && (
           <div className="absolute top-3 right-3 z-10">
             <span className="bg-amber-500 text-white text-[10px] font-bold px-2 py-1 rounded-lg shadow-lg flex items-center gap-1 animate-pulse">
-              🔥 Popular
+              🔥 {t('popular')}
             </span>
           </div>
         )}
@@ -109,7 +113,7 @@ export function ArticleCard({
             {article.content && (
               <div className="flex items-center gap-1">
                 <Clock className="h-3 w-3" />
-                <span>{readingTime(article.content)}</span>
+                <span>{readingTime(article.content)} {td('minutes')}</span>
               </div>
             )}
           </div>
@@ -146,7 +150,7 @@ export function ArticleCard({
               })}
               {article.tags.length > 2 && (
                 <span className="text-[10px] text-muted-foreground font-medium flex items-center">
-                  +{article.tags.length - 2} mais
+                  +{article.tags.length - 2} {t('more')}
                 </span>
               )}
             </div>
@@ -187,6 +191,6 @@ export function ArticleCard({
           </div>
         </div>
       </div>
-    </div>
+    </div >
   );
 }

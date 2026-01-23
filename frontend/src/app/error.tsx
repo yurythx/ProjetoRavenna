@@ -2,6 +2,7 @@
 
 import { useEffect } from 'react';
 import { AlertTriangle, Home, RefreshCw } from 'lucide-react';
+import { useTranslations } from 'next-intl';
 
 export default function Error({
     error,
@@ -10,6 +11,7 @@ export default function Error({
     error: Error & { digest?: string };
     reset: () => void;
 }) {
+    const t = useTranslations('Errors');
     useEffect(() => {
         console.error('Application error:', error);
     }, [error]);
@@ -37,10 +39,10 @@ export default function Error({
 
                 <div>
                     <h1 className="text-3xl font-bold mb-3" style={{ color: 'var(--foreground)' }}>
-                        Algo deu errado
+                        {t('somethingWentWrong')}
                     </h1>
                     <p className="text-base mb-2" style={{ color: 'var(--muted-foreground)' }}>
-                        Ocorreu um erro inesperado. Nossa equipe foi notificada.
+                        {t('unexpectedError')}
                     </p>
                     {error.message && (
                         <p className="text-sm px-4 py-2 rounded-lg mt-4" style={{
@@ -57,17 +59,17 @@ export default function Error({
                     <button
                         onClick={reset}
                         className="btn btn-primary flex items-center justify-center gap-2"
-                        aria-label="Tentar novamente"
+                        aria-label={t('tryAgain')}
                     >
                         <RefreshCw className="w-4 h-4" aria-hidden="true" />
-                        Tentar Novamente
+                        {t('tryAgain')}
                     </button>
                     <a
                         href="/"
                         className="btn btn-outline flex items-center justify-center gap-2"
                     >
                         <Home className="w-4 h-4" aria-hidden="true" />
-                        Voltar ao Início
+                        {t('backToHome')}
                     </a>
                 </div>
             </div>

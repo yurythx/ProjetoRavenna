@@ -1,8 +1,10 @@
 'use client';
 import { AlertTriangle } from 'lucide-react';
 import { useModules } from '@/contexts/ModuleContext';
+import { useTranslations } from 'next-intl';
 
 export function ModuleAlert() {
+  const t = useTranslations('Modules');
   const { disabled } = useModules();
   const first = Object.entries(disabled).find(([, v]) => v);
   if (!first) return null;
@@ -15,7 +17,7 @@ export function ModuleAlert() {
           <AlertTriangle className="w-4 h-4 text-yellow-500" />
         </div>
         <span className="text-foreground/90">
-          O módulo <span className="text-yellow-500 font-bold">"{name}"</span> está temporariamente desativado.
+          {t('moduleDisabledAlert', { name })}
         </span>
       </div>
     </div>

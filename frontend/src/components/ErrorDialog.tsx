@@ -1,6 +1,8 @@
 'use client';
 import { AlertTriangle } from 'lucide-react';
 import { createPortal } from 'react-dom';
+import { useTranslations } from 'next-intl';
+
 export function ErrorDialog({
   open,
   title,
@@ -14,6 +16,8 @@ export function ErrorDialog({
   details?: string[];
   onClose: () => void;
 }) {
+  const t = useTranslations('Dialogs');
+
   if (!open) return null;
   return createPortal(
     <div role="alertdialog" aria-modal="true" className="fixed inset-0 z-[100] flex items-center justify-center animate-fade-in">
@@ -34,7 +38,7 @@ export function ErrorDialog({
           )}
         </div>
         <div className="bg-white px-5 py-3 flex justify-end">
-          <button className="px-4 py-2 rounded bg-red-600 text-white" onClick={onClose}>Entendi</button>
+          <button className="px-4 py-2 rounded bg-red-600 text-white" onClick={onClose}>{t('ok')}</button>
         </div>
       </div>
     </div>,

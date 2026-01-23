@@ -8,8 +8,11 @@ import { KPICard } from '@/components/dashboard/KPICard';
 import { ChartCard } from '@/components/dashboard/ChartCard';
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, BarChart, Bar } from 'recharts';
 import { Users, FileText, MessageSquare, CheckCircle, TrendingUp } from 'lucide-react';
+import { useTranslations, useLocale } from 'next-intl';
 
 export default function DashboardPage() {
+    const t = useTranslations('Dashboard');
+    const locale = useLocale();
     const router = useRouter();
     const { token } = useAuth();
     const { data: stats, isLoading, error } = useDashboardStats();
@@ -39,8 +42,8 @@ export default function DashboardPage() {
         return (
             <div className="container-custom py-12">
                 <div className="text-center">
-                    <h2 className="text-2xl font-bold text-red-600 mb-2">Erro ao carregar estatísticas</h2>
-                    <p className="text-muted-foreground">Tente novamente mais tarde</p>
+                    <h2 className="text-2xl font-bold text-red-600 mb-2">{t('errorLoading')}</h2>
+                    <p className="text-muted-foreground">{t('tryLater')}</p>
                 </div>
             </div>
         );
@@ -64,17 +67,17 @@ export default function DashboardPage() {
             {/* Header */}
             <div className="mb-8">
                 <h1 className="text-3xl font-bold mb-2" style={{ color: 'var(--foreground)' }}>
-                    Dashboard Administrativo
+                    {t('title')}
                 </h1>
                 <p className="text-muted-foreground">
-                    Visão geral do sistema e estatísticas dos últimos 30 dias
+                    {t('subtitleShort')}
                 </p>
             </div>
 
             {/* KPIs Grid */}
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
                 <KPICard
-                    title="Total de Usuários"
+                    title={t('totalUsers')}
                     value={stats.kpis.total_users}
                     change={userChangePercent}
                     icon={Users}
@@ -82,7 +85,7 @@ export default function DashboardPage() {
                     bgColor="rgba(59, 130, 246, 0.1)"
                 />
                 <KPICard
-                    title="Total de Artigos"
+                    title={t('publishedArticles')}
                     value={stats.kpis.total_articles}
                     change={articleChangePercent}
                     icon={FileText}
@@ -90,7 +93,7 @@ export default function DashboardPage() {
                     bgColor="rgba(16, 185, 129, 0.1)"
                 />
                 <KPICard
-                    title="Total de Comentários"
+                    title={t('totalComments')}
                     value={stats.kpis.total_comments}
                     change={commentChangePercent}
                     icon={MessageSquare}
@@ -98,7 +101,7 @@ export default function DashboardPage() {
                     bgColor="rgba(139, 92, 246, 0.1)"
                 />
                 <KPICard
-                    title="Artigos Publicados"
+                    title={t('publishedArticles')}
                     value={stats.kpis.published_articles}
                     icon={CheckCircle}
                     iconColor="#f59e0b"
@@ -108,7 +111,7 @@ export default function DashboardPage() {
 
             {/* Charts Grid */}
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
-                <ChartCard title="Novos Artigos (30 dias)">
+                <ChartCard title={t('newArticles30d')}>
                     <ResponsiveContainer width="100%" height="100%">
                         <LineChart data={stats.charts.articles_by_day}>
                             <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" />
@@ -140,7 +143,7 @@ export default function DashboardPage() {
                     </ResponsiveContainer>
                 </ChartCard>
 
-                <ChartCard title="Novos Usuários (30 dias)">
+                <ChartCard title={t('newUsers30d')}>
                     <ResponsiveContainer width="100%" height="100%">
                         <LineChart data={stats.charts.users_by_day}>
                             <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" />
@@ -175,7 +178,7 @@ export default function DashboardPage() {
 
             {/* Comments Chart */}
             <div className="grid grid-cols-1 gap-6 mb-8">
-                <ChartCard title="Novos Comentários (30 dias)">
+                <ChartCard title={t('newComments30d')}>
                     <ResponsiveContainer width="100%" height="100%">
                         <BarChart data={stats.charts.comments_by_day}>
                             <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" />
@@ -212,7 +215,7 @@ export default function DashboardPage() {
                 >
                     <h3 className="text-lg font-semibold mb-4 flex items-center gap-2" style={{ color: 'var(--foreground)' }}>
                         <TrendingUp className="w-5 h-5" style={{ color: 'var(--accent)' }} />
-                        Top 5 Autores
+                        {t('topAuthors')}
                     </h3>
                     <div className="space-y-3">
                         {stats.top_authors.map((author, index) => {
@@ -233,7 +236,7 @@ export default function DashboardPage() {
                                         </span>
                                     </div>
                                     <span className="text-sm font-semibold" style={{ color: 'var(--muted-foreground)' }}>
-                                        {author.article_count} {author.article_count === 1 ? 'artigo' : 'artigos'}
+                                        {author.article_count} {author.article_count === 1 ? t('article') : t('articles')}
                                     </span>
                                 </div>
                             );
@@ -245,7 +248,7 @@ export default function DashboardPage() {
             {/* Auto-refresh indicator */}
             <div className="mt-8 text-center">
                 <p className="text-xs" style={{ color: 'var(--muted-foreground)' }}>
-                    ⟳ Atualização automática a cada 30 segundos
+                    ⟳ {t('autoRefresh30')}
                 </p>
             </div>
         </div>

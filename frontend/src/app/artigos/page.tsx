@@ -10,10 +10,12 @@ import { useSearchParams, useRouter, usePathname } from 'next/navigation';
 import { Search, Filter, ArrowUpDown, Sparkles } from 'lucide-react';
 import Link from 'next/link';
 import { useAuth } from '@/contexts/AuthContext';
+import { useTranslations } from 'next-intl';
 
 import { Suspense } from 'react';
 
 function ArticlesContent() {
+  const t = useTranslations('Articles');
   const { disabled } = useModules();
   const { token } = useAuth();
   const searchParams = useSearchParams();
@@ -109,7 +111,7 @@ function ArticlesContent() {
   if (disabled['articles']) {
     return (
       <div className="container-custom py-16 text-center">
-        <p className="text-yellow-600 dark:text-yellow-500 text-lg">⚠️ Módulo de artigos desativado.</p>
+        <p className="text-yellow-600 dark:text-yellow-500 text-lg">{t('moduleDisabled')}</p>
       </div>
     );
   }
@@ -124,15 +126,15 @@ function ArticlesContent() {
       <header className="border-b border-border bg-card relative z-10">
         <div className="container-custom py-10 md:py-16 flex flex-col md:flex-row justify-between items-start md:items-end gap-6">
           <div className="space-y-4 max-w-2xl">
-            <h1 className="text-4xl md:text-5xl font-extrabold tracking-tight text-foreground">Artigos</h1>
+            <h1 className="text-4xl md:text-5xl font-extrabold tracking-tight text-foreground">{t('title')}</h1>
             <p className="text-muted-foreground text-lg md:text-xl leading-relaxed">
-              Insights aprofundados, tutoriais técnicos e as últimas novidades do ecossistema de tecnologia.
+              {t('description')}
             </p>
           </div>
           <div className="w-full md:w-auto flex flex-wrap gap-3">
             {token && (
               <Link href="/artigos/new" className="btn btn-primary whitespace-nowrap flex-1 md:flex-none">
-                Novo Artigo
+                {t('newArticle')}
               </Link>
             )}
             {token && (
@@ -140,7 +142,7 @@ function ArticlesContent() {
                 onClick={() => setPubOnly(!pubOnly)}
                 className={`btn ${!pubOnly ? 'bg-yellow-500 text-white' : 'btn-outline'} whitespace-nowrap flex-1 md:flex-none`}
               >
-                {pubOnly ? 'Ver Rascunhos' : 'Ver Publicados'}
+                {pubOnly ? t('viewDrafts') : t('viewPublished')}
               </button>
             )}
           </div>
@@ -156,8 +158,8 @@ function ArticlesContent() {
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
               <input
                 className="w-full h-10 pl-10 pr-4 rounded-full bg-muted/50 focus:bg-background border border-transparent focus:border-accent outline-none text-sm transition-all placeholder:text-muted-foreground"
-                placeholder="Buscar artigos..."
-                aria-label="Buscar artigos"
+                placeholder={t('searchPlaceholder')}
+                aria-label={t('searchPlaceholder')}
                 value={searchInput}
                 onChange={(e) => setSearchInput(e.target.value)}
               />
@@ -169,12 +171,12 @@ function ArticlesContent() {
                 className="bg-transparent text-sm font-medium border-none focus:ring-0 cursor-pointer pr-8"
                 value={ordering || '-created_at'}
                 onChange={(e) => setOrdering(e.target.value)}
-                aria-label="Ordenar por"
+                aria-label={t('sortBy')}
               >
-                <option value="-created_at">Mais recentes</option>
-                <option value="created_at">Mais antigos</option>
-                <option value="-view_count">Mais lidos</option>
-                <option value="-engagement_rate">Maior engajamento</option>
+                <option value="-created_at">{t('sortRecent')}</option>
+                <option value="created_at">{t('sortOldest')}</option>
+                <option value="-view_count">{t('sortMostRead')}</option>
+                <option value="-engagement_rate">{t('sortHighestEngagement')}</option>
               </select>
             </div>
           </div>
@@ -185,7 +187,7 @@ function ArticlesContent() {
               onClick={() => setCategory(undefined)}
               className={`px-5 py-2 rounded-full text-sm font-medium whitespace-nowrap transition-all border ${!category ? 'bg-foreground text-background border-foreground' : 'bg-transparent text-muted-foreground border-border hover:border-foreground hover:text-foreground'}`}
             >
-              Todos
+              {t('allCategories')}
             </button>
             {cats?.map((c) => (
               <button
@@ -207,21 +209,21 @@ function ArticlesContent() {
           </div>
         ) : error ? (
           <div className="text-center py-20 bg-muted/30 rounded-2xl border border-border">
-            <p className="text-red-500 font-medium">Não foi possível carregar os artigos.</p>
-            <button onClick={() => window.location.reload()} className="mt-4 text-sm underline">Tentar novament</button>
+            <p className="text-red-500 font-medium">{t('loadError')}</p>
+            <button onClick={() => window.location.reload()} className="mt-4 text-sm underline">{t('tryAgain')}</button>
           </div>
         ) : articles.length === 0 ? (
           <div className="text-center py-32 bg-muted/20 rounded-3xl border border-dashed border-border animate-fade-in">
             <Sparkles className="h-12 w-12 mx-auto mb-4 text-muted-foreground opacity-50" />
-            <p className="text-xl font-medium text-foreground">Nenhum artigo encontrado</p>
+            <p className="text-xl font-medium text-foreground">{t('noArticles')}</p>
             <p className="text-muted-foreground mt-2 max-w-md mx-auto">
-              Não encontramos resultados para seus filtros. Tente termos menos específicos ou explore outras categorias.
+              {t('noArticlesDesc')}
             </p>
             <button
               onClick={() => { setSearchInput(''); setCategory(undefined); setTags([]); }}
               className="mt-6 px-6 py-2 bg-foreground text-background rounded-full font-medium hover:opacity-90 transition-opacity"
             >
-              Limpar todos os filtros
+              {t('clearFilters')}
             </button>
           </div>
         ) : (
@@ -253,8 +255,9 @@ function ArticlesContent() {
 }
 
 export default function ArtigosPage() {
+  const t = useTranslations('Articles');
   return (
-    <Suspense fallback={<div className="container-custom py-20 text-center">Carregando artigos...</div>}>
+    <Suspense fallback={<div className="container-custom py-20 text-center">{t('loading')}</div>}>
       <ArticlesContent />
     </Suspense>
   );

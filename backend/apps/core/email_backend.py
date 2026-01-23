@@ -25,9 +25,8 @@ class TenantEmailBackend(EmailBackend):
                 self.username = tenant.smtp_user
                 self.password = tenant.smtp_password
                 self.use_tls = tenant.smtp_use_tls
-                # Note: Django's SMTP backend doesn't natively support dynamic 'from' 
-                # in the backend instance itself easily for all methods, 
-                # but we set the connection parameters here.
+                self.use_ssl = getattr(tenant, 'smtp_use_ssl', False) # If we add this field later
+                self.timeout = 10
         except Entity.DoesNotExist:
             pass
 

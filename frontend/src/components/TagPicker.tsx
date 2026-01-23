@@ -11,7 +11,10 @@ interface TagPickerProps {
     maxTags?: number;
 }
 
+import { useTranslations } from 'next-intl';
+
 export default function TagPicker({ selectedTags, onChange, maxTags = 10 }: TagPickerProps) {
+    const t = useTranslations('TagPicker');
     const [searchQuery, setSearchQuery] = useState('');
     const [isOpen, setIsOpen] = useState(false);
     const { data: allTags = [], isLoading } = useTags(searchQuery);
@@ -46,7 +49,7 @@ export default function TagPicker({ selectedTags, onChange, maxTags = 10 }: TagP
                                 type="button"
                                 onClick={() => handleRemoveTag(tag.id)}
                                 className="absolute -top-2 -right-2 bg-red-500 text-white rounded-full p-0.5 opacity-0 group-hover:opacity-100 transition-opacity duration-200 hover:bg-red-600"
-                                title="Remover tag"
+                                title={t('removeTag')}
                             >
                                 <X className="w-3 h-3" />
                             </button>
@@ -67,7 +70,7 @@ export default function TagPicker({ selectedTags, onChange, maxTags = 10 }: TagP
                         }}
                         onFocus={() => setIsOpen(true)}
                         onBlur={() => setTimeout(() => setIsOpen(false), 200)}
-                        placeholder={`Adicionar tags (${selectedTags.length}/${maxTags})`}
+                        placeholder={t('placeholder', { current: selectedTags.length, max: maxTags })}
                         className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                     />
 
@@ -76,11 +79,11 @@ export default function TagPicker({ selectedTags, onChange, maxTags = 10 }: TagP
                         <div className="absolute z-10 mt-1 w-full bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded-lg shadow-lg max-h-60 overflow-y-auto">
                             {isLoading ? (
                                 <div className="p-4 text-center text-gray-500 dark:text-gray-400">
-                                    Carregando tags...
+                                    {t('loading')}
                                 </div>
                             ) : availableTags.length === 0 ? (
                                 <div className="p-4 text-center text-gray-500 dark:text-gray-400">
-                                    {searchQuery ? 'Nenhuma tag encontrada' : 'Todas as tags já foram selecionadas'}
+                                    {searchQuery ? t('noTagsFound') : t('allSelected')}
                                 </div>
                             ) : (
                                 <div className="p-2">
@@ -102,7 +105,7 @@ export default function TagPicker({ selectedTags, onChange, maxTags = 10 }: TagP
                                             </div>
                                             {tag.article_count > 0 && (
                                                 <span className="text-xs text-gray-500 dark:text-gray-400">
-                                                    {tag.article_count} {tag.article_count === 1 ? 'artigo' : 'artigos'}
+                                                    {tag.article_count} {tag.article_count === 1 ? t('article_one') : t('article_other')}
                                                 </span>
                                             )}
                                         </button>
@@ -116,7 +119,7 @@ export default function TagPicker({ selectedTags, onChange, maxTags = 10 }: TagP
 
             {/* Helper Text */}
             <p className="text-xs text-gray-500 dark:text-gray-400">
-                Selecione até {maxTags} tags para categorizar seu artigo.
+                {t('helperText', { max: maxTags })}
             </p>
         </div>
     );

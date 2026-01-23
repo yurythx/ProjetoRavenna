@@ -4,6 +4,7 @@ import { useState } from 'react';
 import { X, Lock, Eye, EyeOff, Check } from 'lucide-react';
 import { api } from '@/lib/api';
 import { useToast } from '@/contexts/ToastContext';
+import { useTranslations } from 'next-intl';
 
 interface ChangePasswordModalProps {
     isOpen: boolean;
@@ -12,6 +13,8 @@ interface ChangePasswordModalProps {
 
 export function ChangePasswordModal({ isOpen, onClose }: ChangePasswordModalProps) {
     const toast = useToast();
+    const t = useTranslations('Auth');
+    const tc = useTranslations('Common');
     const [formData, setFormData] = useState({
         old_password: '',
         new_password: '',
@@ -33,9 +36,9 @@ export function ChangePasswordModal({ isOpen, onClose }: ChangePasswordModalProp
         if (/\d/.test(password)) strength++;
         if (/[^a-zA-Z\d]/.test(password)) strength++;
 
-        if (strength <= 2) return { strength, label: 'Fraca', color: '#ef4444' };
-        if (strength <= 3) return { strength, label: 'Média', color: '#f59e0b' };
-        return { strength, label: 'Forte', color: '#22c55e' };
+        if (strength <= 2) return { strength, label: t('strengthWeak'), color: '#ef4444' };
+        if (strength <= 3) return { strength, label: t('strengthMedium'), color: '#f59e0b' };
+        return { strength, label: t('strengthStrong'), color: '#22c55e' };
     };
 
     const handleSubmit = async (e: React.FormEvent) => {
@@ -45,7 +48,7 @@ export function ChangePasswordModal({ isOpen, onClose }: ChangePasswordModalProp
 
         try {
             await api.post('/auth/change-password/', formData);
-            toast.success('Sua senha foi alterada com sucesso!');
+            toast.success(t('successChange'));
             setFormData({ old_password: '', new_password: '', confirm_password: '' });
             onClose();
         } catch (error: any) {
@@ -55,7 +58,7 @@ export function ChangePasswordModal({ isOpen, onClose }: ChangePasswordModalProp
                 const firstError = Object.values(errorData)[0];
                 toast.error(Array.isArray(firstError) ? firstError[0] : String(firstError));
             } else {
-                toast.error('Não foi possível alterar a senha. Tente novamente.');
+                toast.error(t('errorChange'));
             }
         } finally {
             setIsLoading(false);
@@ -92,12 +95,12 @@ export function ChangePasswordModal({ isOpen, onClose }: ChangePasswordModalProp
                 <div className="flex items-center justify-between mb-6">
                     <h2 className="text-xl font-bold flex items-center gap-2" style={{ color: 'var(--foreground)' }}>
                         <Lock className="w-5 h-5" aria-hidden="true" />
-                        Alterar Senha
+                        {t('changePassword')}
                     </h2>
                     <button
                         onClick={onClose}
                         className="p-2 rounded-lg hover:bg-muted transition-colors"
-                        aria-label="Fechar"
+                        aria-label={tc('cancel')}
                     >
                         <X className="w-5 h-5" style={{ color: 'var(--foreground)' }} />
                     </button>
@@ -108,7 +111,7 @@ export function ChangePasswordModal({ isOpen, onClose }: ChangePasswordModalProp
                     {/* Old Password */}
                     <div>
                         <label htmlFor="old_password" className="block text-sm font-medium mb-2" style={{ color: 'var(--foreground)' }}>
-                            Senha Atual
+                            {t('oldPassword')}
                         </label>
                         <div className="relative">
                             <input
@@ -129,7 +132,7 @@ export function ChangePasswordModal({ isOpen, onClose }: ChangePasswordModalProp
                                 type="button"
                                 onClick={() => setShowPasswords(prev => ({ ...prev, old: !prev.old }))}
                                 className="absolute right-3 top-1/2 -translate-y-1/2"
-                                aria-label={showPasswords.old ? 'Ocultar senha' : 'Mostrar senha'}
+                                aria-label={showPasswords.old ? t('hidePassword') : t('showPassword')}
                             >
                                 {showPasswords.old ? (
                                     <EyeOff className="w-4 h-4" style={{ color: 'var(--muted-foreground)' }} />
@@ -146,7 +149,7 @@ export function ChangePasswordModal({ isOpen, onClose }: ChangePasswordModalProp
                     {/* New Password */}
                     <div>
                         <label htmlFor="new_password" className="block text-sm font-medium mb-2" style={{ color: 'var(--foreground)' }}>
-                            Nova Senha
+                            {t('newPassword')}
                         </label>
                         <div className="relative">
                             <input
@@ -167,7 +170,7 @@ export function ChangePasswordModal({ isOpen, onClose }: ChangePasswordModalProp
                                 type="button"
                                 onClick={() => setShowPasswords(prev => ({ ...prev, new: !prev.new }))}
                                 className="absolute right-3 top-1/2 -translate-y-1/2"
-                                aria-label={showPasswords.new ? 'Ocultar senha' : 'Mostrar senha'}
+                                aria-label={showPasswords.new ? t('hidePassword') : t('showPassword')}
                             >
                                 {showPasswords.new ? (
                                     <EyeOff className="w-4 h-4" style={{ color: 'var(--muted-foreground)' }} />
@@ -182,7 +185,7 @@ export function ChangePasswordModal({ isOpen, onClose }: ChangePasswordModalProp
                             <div className="mt-2">
                                 <div className="flex items-center justify-between mb-1">
                                     <span className="text-xs" style={{ color: 'var(--muted-foreground)' }}>
-                                        Força da senha
+                                        {t('passwordStrength')}
                                     </span>
                                     <span className="text-xs font-medium" style={{ color: strength.color }}>
                                         {strength.label}
@@ -210,7 +213,7 @@ export function ChangePasswordModal({ isOpen, onClose }: ChangePasswordModalProp
                     {/* Confirm Password */}
                     <div>
                         <label htmlFor="confirm_password" className="block text-sm font-medium mb-2" style={{ color: 'var(--foreground)' }}>
-                            Confirmar Nova Senha
+                            {t('confirmNewPassword')}
                         </label>
                         <div className="relative">
                             <input
@@ -231,7 +234,7 @@ export function ChangePasswordModal({ isOpen, onClose }: ChangePasswordModalProp
                                 type="button"
                                 onClick={() => setShowPasswords(prev => ({ ...prev, confirm: !prev.confirm }))}
                                 className="absolute right-3 top-1/2 -translate-y-1/2"
-                                aria-label={showPasswords.confirm ? 'Ocultar senha' : 'Mostrar senha'}
+                                aria-label={showPasswords.confirm ? t('hidePassword') : t('showPassword')}
                             >
                                 {showPasswords.confirm ? (
                                     <EyeOff className="w-4 h-4" style={{ color: 'var(--muted-foreground)' }} />
@@ -253,7 +256,7 @@ export function ChangePasswordModal({ isOpen, onClose }: ChangePasswordModalProp
                             className="btn btn-outline flex-1"
                             disabled={isLoading}
                         >
-                            Cancelar
+                            {tc('cancel')}
                         </button>
                         <button
                             type="submit"
@@ -263,12 +266,12 @@ export function ChangePasswordModal({ isOpen, onClose }: ChangePasswordModalProp
                             {isLoading ? (
                                 <>
                                     <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
-                                    Alterando...
+                                    {t('changing')}
                                 </>
                             ) : (
                                 <>
                                     <Check className="w-4 h-4" aria-hidden="true" />
-                                    Alterar Senha
+                                    {t('changePassword')}
                                 </>
                             )}
                         </button>

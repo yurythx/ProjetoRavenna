@@ -23,6 +23,8 @@ import ReadingTime from '@/components/ReadingTime';
 import ArticleStats from '@/components/ArticleStats';
 import { useTrackView, useArticleStats } from '@/hooks/useAnalytics';
 import { useReadingProgress } from '@/hooks/useReadingProgress';
+import { BlockRenderer } from '@/components/BlockRenderer';
+import { useTranslations, useLocale } from 'next-intl';
 
 import { ArticleScrollProgress } from '@/components/ArticleScrollProgress';
 import { ArticleStickyHeader } from '@/components/ArticleStickyHeader';
@@ -34,6 +36,9 @@ const sanitize = (html: string) => {
 };
 
 export default function ArticleClient({ slug, initialData }: { slug: string, initialData?: Article }) {
+    const t = useTranslations('ArticleDetail');
+    const tc = useTranslations('Common');
+    const locale = useLocale();
     const articleRef = useRef<HTMLDivElement | null>(null);
     const { data: serverData, isLoading, error } = useArticle(slug, { initialData });
     const { profile } = useProfile();
@@ -93,8 +98,15 @@ export default function ArticleClient({ slug, initialData }: { slug: string, ini
 
     // Process content for TOC - Client Side Only to match Hydration
     useEffect(() => {
-        if (!data?.content) {
+        if (!data?.content && !(data as any)?.content_json) {
             setProcessedContent('');
+            setTocItems([]);
+            return;
+        }
+
+        // TOC generation for JSON content might need a different approach, 
+        // but for now we rely on HTML or skip it if it's JSON to keep it simple.
+        if (!data?.content) {
             setTocItems([]);
             return;
         }
@@ -115,7 +127,7 @@ export default function ArticleClient({ slug, initialData }: { slug: string, ini
                 if (generatedToc.some(item => item.id === id)) {
                     id = `${id}-${index}`;
                 }
-                h.id = id;
+                id = id;
             }
 
             generatedToc.push({
@@ -128,7 +140,7 @@ export default function ArticleClient({ slug, initialData }: { slug: string, ini
         setProcessedContent(sanitize(doc.body.innerHTML));
         setTocItems(generatedToc);
 
-    }, [data?.content]);
+    }, [data?.content, (data as any)?.content_json]);
 
     // Click handler for "copy link" feature (delegated)
     useEffect(() => {
@@ -143,14 +155,14 @@ export default function ArticleClient({ slug, initialData }: { slug: string, ini
             const url = `${window.location.origin}${window.location.pathname}#${heading.id}`;
             if (navigator.clipboard) {
                 navigator.clipboard.writeText(url).then(() => {
-                    show({ type: 'success', message: 'Link da seção copiado' });
+                    show({ type: 'success', message: t('sectionLinkCopied') });
                 });
             }
         };
 
         articleEl.addEventListener('click', clickHandler);
         return () => articleEl.removeEventListener('click', clickHandler);
-    }, [show, processedContent]); // Re-bind when content changes
+    }, [show, processedContent, t]); // Re-bind when content changes
 
 
     async function onShare() {
@@ -160,7 +172,7 @@ export default function ArticleClient({ slug, initialData }: { slug: string, ini
                 await (navigator as any).share({ title: data?.title, text: data?.title, url });
             } else if (navigator.clipboard) {
                 await navigator.clipboard.writeText(url);
-                show({ type: 'success', message: 'Link copiado' });
+                show({ type: 'success', message: t('linkCopied') });
             }
         } catch { }
     }
@@ -173,13 +185,13 @@ export default function ArticleClient({ slug, initialData }: { slug: string, ini
             queryClient.invalidateQueries({
                 predicate: (q) => Array.isArray(q.queryKey) && (q.queryKey[0] === 'articles' || (q.queryKey[0] === 'article' && q.queryKey[1] === data.slug)),
             });
-            show({ type: 'success', message: 'Artigo excluído com sucesso' });
+            show({ type: 'success', message: t('successDelete') });
             router.push('/artigos');
         } catch (err: any) {
             if (err.response?.status === 403) {
-                show({ type: 'error', message: 'Você não tem permissão para excluir este artigo.' });
+                show({ type: 'error', message: t('noPermissionDelete') });
             } else {
-                show({ type: 'error', message: 'Não foi possível excluir o artigo. Tente novamente mais tarde.' });
+                show({ type: 'error', message: t('errorDelete') });
             }
         }
     }
@@ -221,13 +233,11 @@ export default function ArticleClient({ slug, initialData }: { slug: string, ini
             </div>
         );
     }
-    if (error || !data) return <div className="container-custom py-20 text-center"><p className="text-red-500 font-medium">Artigo não encontrado</p></div>;
+    if (error || !data) return <div className="container-custom py-20 text-center"><p className="text-red-500 font-medium">{t('notFound')}</p></div>;
 
-    const authorName = data.author_name || 'Autor';
+    const authorName = data.author_name || t('author');
     const rawBanner = data.banner as unknown as string || '';
     const banner = rawBanner && /^https?:\/\//.test(rawBanner) ? `/api/img?url=${encodeURIComponent(rawBanner)}` : rawBanner;
-
-
 
     return (
         <div className="container-custom pb-16">
@@ -253,8 +263,8 @@ export default function ArticleClient({ slug, initialData }: { slug: string, ini
 
             <ConfirmDialog
                 open={confirmOpen}
-                title="Excluir artigo"
-                description="Esta ação é permanente."
+                title={t('deleteArticle')}
+                description={t('deleteDescription')}
                 onCancel={() => setConfirmOpen(false)}
                 onConfirm={() => onDelete()}
             />
@@ -284,9 +294,9 @@ export default function ArticleClient({ slug, initialData }: { slug: string, ini
 
                         <div className="max-w-3xl mx-auto">
                             <nav className="flex items-center gap-2 text-sm text-muted-foreground mb-6 overflow-x-auto whitespace-nowrap">
-                                <Link href="/artigos" className="hover:text-accent transition-colors">Artigos</Link>
+                                <Link href="/artigos" className="hover:text-accent transition-colors">{t('backToArticles')}</Link>
                                 <span>/</span>
-                                <span className="font-medium text-foreground">{cats?.find((c) => c.id === data.category)?.name || 'Geral'}</span>
+                                <span className="font-medium text-foreground">{cats?.find((c) => c.id === data.category)?.name || t('general')}</span>
                             </nav>
 
                             <h1 className="text-3xl md:text-5xl font-extrabold tracking-tight mb-6 leading-tight text-foreground">
@@ -347,7 +357,7 @@ export default function ArticleClient({ slug, initialData }: { slug: string, ini
                                             size="sm"
                                         />
                                         <div className="w-full h-[1px] bg-border mx-auto px-2" />
-                                        <button onClick={onShare} className="p-2 text-muted-foreground hover:text-accent transition-colors" title="Compartilhar">
+                                        <button onClick={onShare} className="p-2 text-muted-foreground hover:text-accent transition-colors" title={t('share')}>
                                             <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M8.684 13.342C8.886 12.938 9 12.482 9 12c0-.482-.114-.938-.316-1.342m0 2.684a3 3 0 110-2.684m0 2.684l6.632 3.316m-6.632-6l6.632-3.316m0 0a3 3 0 105.367-2.684 3 3 0 00-5.367 2.684zm0 9.316a3 3 0 105.368 2.684 3 3 0 00-5.368-2.684z" /></svg>
                                         </button>
                                     </div>
@@ -367,7 +377,7 @@ export default function ArticleClient({ slug, initialData }: { slug: string, ini
                                     )}
                                     <div>
                                         <p className="font-semibold text-foreground">{authorName}</p>
-                                        <p className="text-xs">{new Date(data.created_at).toLocaleDateString('pt-BR', { day: 'numeric', month: 'long', year: 'numeric' })}</p>
+                                        <p className="text-xs">{new Date(data.created_at).toLocaleDateString(locale, { day: 'numeric', month: 'long', year: 'numeric' })}</p>
                                     </div>
                                 </div>
                                 <div className="flex items-center gap-4 ml-auto md:ml-0">
@@ -384,20 +394,24 @@ export default function ArticleClient({ slug, initialData }: { slug: string, ini
 
                     {/* Article Content */}
                     <div className="max-w-3xl mx-auto">
-                        <div
-                            ref={articleRef}
-                            className="prose prose-lg dark:prose-invert max-w-none 
-                                prose-headings:scroll-mt-24 
-                                prose-a:text-primary prose-a:no-underline hover:prose-a:underline
-                                prose-img:rounded-xl prose-img:shadow-lg prose-img:w-full prose-img:h-auto
-                                [&>iframe]:w-full [&>iframe]:aspect-video [&>iframe]:rounded-xl"
-                            dangerouslySetInnerHTML={{ __html: processedContent || sanitize(data.content || '') }}
-                            suppressHydrationWarning
-                        />
+                        <div ref={articleRef} className="max-w-none prose prose-lg dark:prose-invert">
+                            {(data as any).content_json ? (
+                                <BlockRenderer content={(data as any).content_json} />
+                            ) : (
+                                <div
+                                    className="prose-headings:scroll-mt-24 
+                                        prose-a:text-primary prose-a:no-underline hover:prose-a:underline
+                                        prose-img:rounded-xl prose-img:shadow-lg prose-img:w-full prose-img:h-auto
+                                        [&>iframe]:w-full [&>iframe]:aspect-video [&>iframe]:rounded-xl"
+                                    dangerouslySetInnerHTML={{ __html: processedContent || sanitize(data.content || '') }}
+                                    suppressHydrationWarning
+                                />
+                            )}
+                        </div>
 
                         {/* Tags Footer */}
                         <div className="mt-12 pt-8 border-t border-border">
-                            <h4 className="text-sm font-semibold uppercase tracking-wider text-muted-foreground mb-4">Tópicos Relacionados</h4>
+                            <h4 className="text-sm font-semibold uppercase tracking-wider text-muted-foreground mb-4">{t('relatedTopics')}</h4>
                             <div className="flex flex-wrap gap-2">
                                 {data.tags?.map((tag: any) => {
                                     const tid = typeof tag === 'string' ? tag : tag.id;
@@ -432,12 +446,12 @@ export default function ArticleClient({ slug, initialData }: { slug: string, ini
                             )}
 
                             <div className="flex-1">
-                                <h3 className="font-bold text-xl mb-2">Sobre {authorName}</h3>
+                                <h3 className="font-bold text-xl mb-2">{t('aboutAuthor', { name: authorName })}</h3>
                                 <p className="text-muted-foreground mb-4 leading-relaxed">
-                                    {data.author_bio || "Este autor ainda não adicionou uma biografia."}
+                                    {data.author_bio || t('noAuthorBio')}
                                 </p>
                                 <Link href={`/artigos?author=${authorName}`} className="text-accent font-medium hover:underline inline-flex items-center gap-1">
-                                    Ver mais artigos deste autor <span aria-hidden="true">→</span>
+                                    {t('moreFromAuthor')} <span aria-hidden="true">→</span>
                                 </Link>
                             </div>
                         </div>
@@ -445,8 +459,8 @@ export default function ArticleClient({ slug, initialData }: { slug: string, ini
                         {/* Admin Actions */}
                         {canEdit && (
                             <div className="mt-8 flex gap-3 justify-end border-t border-border pt-6">
-                                <Link href={`/artigos/${data.slug}/edit`} className="btn btn-outline">Editar Artigo</Link>
-                                <button onClick={() => setConfirmOpen(true)} className="btn bg-red-600 hover:bg-red-700 text-white border-transparent">Deletar</button>
+                                <Link href={`/artigos/${data.slug}/edit`} className="btn btn-outline">{t('editArticle')}</Link>
+                                <button onClick={() => setConfirmOpen(true)} className="btn bg-red-600 hover:bg-red-700 text-white border-transparent">{tc('delete')}</button>
                             </div>
                         )}
 
@@ -454,23 +468,23 @@ export default function ArticleClient({ slug, initialData }: { slug: string, ini
                         <div className="mt-8 flex gap-4 justify-center">
                             <button
                                 onClick={() => {
-                                    const text = `Confira "${data.title}" em ${window.location.href}`;
+                                    const text = t('shareTemplate', { title: data.title, url: window.location.href });
                                     window.open(`https://twitter.com/intent/tweet?text=${encodeURIComponent(text)}`, '_blank');
                                 }}
                                 className="flex items-center gap-2 px-6 py-3 rounded-full bg-black text-white hover:opacity-80 transition-opacity"
                             >
                                 <svg fill="currentColor" width="20" height="20" viewBox="0 0 24 24"><path d="M23.953 4.57a10 10 0 01-2.825.775 4.958 4.958 0 002.163-2.723c-.951.555-2.005.959-3.127 1.184a4.92 4.92 0 00-8.384 4.482C7.69 8.095 4.067 6.13 1.64 3.162a4.822 4.822 0 00-.666 2.475c0 1.71.87 3.213 2.188 4.096a4.904 4.904 0 01-2.228-.616v.06a4.923 4.923 0 003.946 4.84 4.996 4.996 0 01-2.212.085 4.936 4.936 0 004.604 3.417 9.867 9.867 0 01-6.102 2.105c-.39 0-.779-.023-1.17-.067a13.995 13.995 0 007.557 2.209c9.053 0 13.998-7.496 13.998-13.985 0-.21 0-.42-.015-.63A9.935 9.935 0 0024 4.59z" /></svg>
-                                Compartilhar no X
+                                {t('shareOnX')}
                             </button>
                             <button
                                 onClick={() => {
-                                    const text = `Confira "${data.title}" em ${window.location.href}`;
+                                    const text = t('shareTemplate', { title: data.title, url: window.location.href });
                                     window.open(`https://wa.me/?text=${encodeURIComponent(text)}`, '_blank');
                                 }}
                                 className="flex items-center gap-2 px-6 py-3 rounded-full bg-[#25D366] text-white hover:opacity-80 transition-opacity"
                             >
                                 <svg fill="currentColor" width="20" height="20" viewBox="0 0 24 24"><path d="M.057 24l1.687-6.163c-1.041-1.804-1.588-3.849-1.587-5.946.003-6.556 5.338-11.891 11.893-11.891 3.181.001 6.167 1.24 8.413 3.488 2.245 2.248 3.481 5.236 3.48 8.414-.003 6.557-5.338 11.892-11.893 11.892-1.99-.001-3.951-.5-5.688-1.448l-6.305 1.654zm6.597-3.807c1.676.995 3.276 1.591 5.392 1.592 5.448 0 9.886-4.434 9.889-9.885.002-5.462-4.415-9.89-9.881-9.892-5.452 0-9.887 4.434-9.889 9.884-.001 2.225.651 3.891 1.746 5.634l-.999 3.648 3.742-.981zm11.387-5.464c-.074-.124-.272-.198-.57-.347-.297-.149-1.758-.868-2.031-.967-.272-.099-.47-.149-.669.149-.198.297-.768.967-.941 1.165-.173.198-.347.223-.644.074-.297-.149-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.297-.347.446-.521.151-.172.2-.296.3-.495.099-.198.05-.372-.025-.521-.075-.148-.669-1.611-.916-2.206-.242-.579-.487-.501-.669-.51l-.57-.01c-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.095 3.2 5.076 4.487.709.306 1.263.489 1.694.626.712.226 1.36.194 1.872.118.571-.085 1.758-.719 2.006-1.413.248-.695.248-1.29.173-1.414z" /></svg>
-                                Compartilhar no WhatsApp
+                                {t('shareOnWA')}
                             </button>
                         </div>
 
@@ -490,7 +504,7 @@ export default function ArticleClient({ slug, initialData }: { slug: string, ini
                         {sortedRelated.length > 0 && (
                             <div className="bg-card rounded-xl border border-border p-6 shadow-sm">
                                 <h3 className="font-bold text-sm uppercase tracking-wider text-muted-foreground mb-4">
-                                    Relacionados
+                                    {t('related')}
                                 </h3>
                                 <div className="space-y-4">
                                     {sortedRelated.slice(0, 3).map((relatedArticle) => (
@@ -503,7 +517,7 @@ export default function ArticleClient({ slug, initialData }: { slug: string, ini
                                                 {relatedArticle.title}
                                             </h4>
                                             <p className="text-xs text-muted-foreground">
-                                                {new Date(relatedArticle.created_at).toLocaleDateString('pt-BR')}
+                                                {new Date(relatedArticle.created_at).toLocaleDateString(locale)}
                                             </p>
                                         </Link>
                                     ))}
@@ -517,8 +531,8 @@ export default function ArticleClient({ slug, initialData }: { slug: string, ini
             {/* Related Articles */}
             <div className="max-w-5xl mx-auto mt-24 pt-12 border-t border-border">
                 <div className="flex items-center justify-between mb-8">
-                    <h3 className="text-2xl font-bold">Leia também</h3>
-                    <Link href="/artigos" className="text-accent hover:underline">Ver todos →</Link>
+                    <h3 className="text-2xl font-bold">{t('readAlso')}</h3>
+                    <Link href="/artigos" className="text-accent hover:underline">{t('viewAll')} →</Link>
                 </div>
                 <div className="grid md:grid-cols-3 gap-8">
                     {sortedRelated.filter((a) => a.slug !== data.slug).slice(0, 3).map((a) => (

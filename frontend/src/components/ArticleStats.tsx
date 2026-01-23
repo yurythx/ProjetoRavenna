@@ -12,6 +12,7 @@
 
 import { Eye, Clock, TrendingUp, Heart, MessageCircle, Users } from 'lucide-react';
 import { formatCompactNumber, formatFullNumber } from '@/lib/formatters';
+import { useTranslations } from 'next-intl';
 
 interface ArticleStatsProps {
     /**
@@ -73,47 +74,49 @@ export default function ArticleStats({
     variant = 'full',
     className = '',
 }: ArticleStatsProps) {
+    const t = useTranslations('ArticleStats');
+
     const stats = [
         {
             icon: Eye,
-            label: 'Visualizações',
+            label: t('views'),
             value: formatCompactNumber(viewCount),
             fullValue: formatFullNumber(viewCount),
             show: true,
         },
         {
             icon: Users,
-            label: 'Visitantes únicos',
+            label: t('uniqueVisitors'),
             value: formatCompactNumber(uniqueViews),
             fullValue: formatFullNumber(uniqueViews),
             show: variant === 'full',
         },
         {
             icon: Clock,
-            label: 'Tempo de leitura',
+            label: t('readingTime'),
             value: `${readingTime} min`,
-            fullValue: `${readingTime} minutos`,
+            fullValue: `${readingTime} ${t('minutes')}`,
             show: true,
         },
         {
             icon: Heart,
-            label: 'Curtidas',
+            label: t('likes'),
             value: formatCompactNumber(likeCount),
             fullValue: formatFullNumber(likeCount),
             show: variant === 'full',
         },
         {
             icon: MessageCircle,
-            label: 'Comentários',
+            label: t('comments'),
             value: formatCompactNumber(commentCount),
             fullValue: formatFullNumber(commentCount),
             show: variant === 'full',
         },
         {
             icon: TrendingUp,
-            label: 'Engajamento',
+            label: t('engagement'),
             value: `${engagementRate.toFixed(1).replace('.', ',')}%`,
-            fullValue: `${engagementRate.toFixed(2).replace('.', ',')}% de taxa de engajamento`,
+            fullValue: t('engagementRate', { rate: engagementRate.toFixed(2).replace('.', ',') }),
             show: variant === 'full' && viewCount > 0,
         },
     ].filter(stat => stat.show);
@@ -128,7 +131,7 @@ export default function ArticleStats({
         <div
             className={`${layoutClasses[layout]} ${className}`}
             role="group"
-            aria-label="Estatísticas do artigo"
+            aria-label={t('ariaLabel')}
         >
             {stats.map((stat, index) => (
                 <div

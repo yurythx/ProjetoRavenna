@@ -44,13 +44,21 @@ class Tag(BaseUUIDModel, SlugMixin):
         return self.name
 
 class Article(BaseUUIDModel, SlugMixin):
+    STATUS_CHOICES = (
+        ('DRAFT', 'Rascunho'),
+        ('PUBLISHED', 'Publicado'),
+        ('ARCHIVED', 'Arquivado'),
+    )
+
     tenant = models.ForeignKey('entities.Entity', on_delete=models.CASCADE, related_name='articles', null=True, blank=True)
     title = models.CharField(max_length=255)
     excerpt = models.TextField(max_length=500, blank=True, help_text="Short description shown in lists")
-    content = models.TextField()
+    content = models.TextField(help_text="Legacy HTML content", blank=True)
+    content_json = models.JSONField(default=dict, blank=True, help_text="Structured block content (TipTap)")
     category = models.ForeignKey(Category, related_name='articles', on_delete=models.CASCADE)
     tags = models.ManyToManyField(Tag, related_name='articles', blank=True)
     author = models.ForeignKey('accounts.CustomUser', related_name='articles', on_delete=models.SET_NULL, null=True)
+    status = models.CharField(max_length=10, choices=STATUS_CHOICES, default='DRAFT')
     banner = ResizedImageField(
         size=[1200, 630],
         quality=85,
@@ -80,12 +88,26 @@ class Article(BaseUUIDModel, SlugMixin):
         if connection.vendor == 'sqlite':
             return
 
-        from django.contrib.postgres.search import SearchVector
-        
+        if self.content_json:
+            import json
+            # Extract text from TipTap JSON for search
+            def extract_text(node):
+                text = ""
+                if node.get('type') == 'text':
+                    text += node.get('text', '')
+                for child in node.get('content', []):
+                    text += " " + extract_text(child)
+                return text
+            
+            content_text = extract_text(self.content_json)
+        else:
+            from django.utils.html import strip_tags
+            content_text = strip_tags(self.content or "")
+
         # Weight A (highest) for title, Weight B for content
         self.search_vector = (
             SearchVector('title', weight='A', config='portuguese') +
-            SearchVector('content', weight='B', config='portuguese')
+            SearchVector(models.Value(content_text), weight='B', config='portuguese')
         )
         # Avoid calling save() again to prevent recursion if called from save()
         super().save(update_fields=['search_vector'])
@@ -116,19 +138,36 @@ class Article(BaseUUIDModel, SlugMixin):
     def calculate_reading_time(self):
         """
         Calculate estimated reading time in minutes.
+        Supports both legacy HTML and TipTap JSON.
         """
         from django.utils.html import strip_tags
         
-        if not self.content:
-            return 1
-        
-        text = strip_tags(self.content)
+        if self.content_json:
+            def extract_text(node):
+                text = ""
+                if node.get('type') == 'text':
+                    text += node.get('text', '')
+                for child in node.get('content', []):
+                    text += " " + extract_text(child)
+                return text
+            text = extract_text(self.content_json)
+            # Rough estimation for images in JSON
+            import json
+            content_str = json.dumps(self.content_json)
+            image_count = content_str.count('"type": "image"')
+            video_count = content_str.count('"type": "youtube"')
+        else:
+            if not self.content:
+                return 1
+            text = strip_tags(self.content)
+            image_count = self.content.count('<img')
+            video_count = 0
+            
         word_count = len(text.split())
-        image_count = self.content.count('<img')
         
         reading_seconds = (word_count / 200) * 60
-        image_seconds = image_count * 12
-        total_seconds = reading_seconds + image_seconds
+        media_seconds = (image_count * 12) + (video_count * 20)
+        total_seconds = reading_seconds + media_seconds
         
         return max(1, round(total_seconds / 60))
     

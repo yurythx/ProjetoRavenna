@@ -36,10 +36,12 @@ class SlugMixin(models.Model):
                 unique_slug = slug_candidate
                 counter = 1
                 
-                # Check for collisions excluding current instance
+                # Check for collisions globally to respect the unique=True constraint
+                # even with TenantManager filtering.
                 ModelClass = self.__class__
+                base_manager = getattr(ModelClass, '_base_manager', ModelClass.objects)
                 
-                while ModelClass.objects.filter(slug=unique_slug).exclude(pk=self.pk).exists():
+                while base_manager.filter(slug=unique_slug).exclude(pk=self.pk).exists():
                     unique_slug = f"{slug_candidate}-{counter}"
                     counter += 1
                 

@@ -1,0 +1,11 @@
+﻿delete\
+:
+\Delete\
+\deleteConfirm\:
+\Are you sure you want to delete \\\
+title
+\\\? This action cannot be undone.\
+\deleteSuccess\:
+\Article deleted successfully\
+\deleteError\:
+\Error deleting article\

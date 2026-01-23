@@ -17,8 +17,10 @@ import { useEffect } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { api } from '@/lib/api';
 import { OnboardingWizard } from '@/components/OnboardingWizard';
+import { useTranslations } from 'next-intl';
 
 export default function AdminLayout({ children }: { children: React.ReactNode }) {
+    const t = useTranslations('Admin');
     const { user, token, isLoading: authLoading } = useAuth();
 
     const { data: config, isLoading: configLoading } = useQuery({
@@ -48,11 +50,11 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
     if (!token || !user?.is_staff) return null;
 
     const navItems = [
-        { label: 'Visão Geral', icon: LayoutDashboard, href: '/admin' },
-        { label: 'Identidade Visual', icon: Palette, href: '/admin/branding' },
-        { label: 'Estatísticas de Artigos', icon: TrendingUp, href: '/admin/stats' },
-        { label: 'Gerenciar Módulos', icon: Settings, href: '/admin/modules' },
-        { label: 'Segurança & Acesso', icon: ShieldCheck, href: '/admin/security' },
+        { label: t('overview'), icon: LayoutDashboard, href: '/admin' },
+        { label: t('branding'), icon: Palette, href: '/admin/branding' },
+        { label: t('stats'), icon: TrendingUp, href: '/admin/stats' },
+        { label: t('modules'), icon: Settings, href: '/admin/modules' },
+        { label: t('security'), icon: ShieldCheck, href: '/admin/security' },
     ];
 
     return (
@@ -63,7 +65,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
                     <div className="w-8 h-8 bg-accent rounded-lg flex items-center justify-center text-white font-bold">
                         R
                     </div>
-                    <span className="font-bold text-lg tracking-tight">Ravenna Admin</span>
+                    <span className="font-bold text-lg tracking-tight">{t('title')}</span>
                 </div>
 
                 <nav className="flex-1 p-4 space-y-1 overflow-y-auto">
@@ -93,7 +95,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
                         href="/"
                         className="flex items-center gap-2 p-3 text-sm text-muted-foreground hover:text-accent transition-colors"
                     >
-                        ← Voltar para o Site
+                        ← {t('backToSite')}
                     </Link>
                 </div>
             </aside>

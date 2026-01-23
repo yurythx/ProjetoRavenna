@@ -11,6 +11,11 @@ interface UserProfile {
     avatar: string | null;
     bio?: string;
     date_joined: string;
+    theme_preference: 'light' | 'dark' | 'system';
+    primary_color?: string;
+    secondary_color?: string;
+    primary_color_dark?: string;
+    secondary_color_dark?: string;
 }
 
 interface ProfileUpdateData {
@@ -18,6 +23,11 @@ interface ProfileUpdateData {
     first_name?: string;
     last_name?: string;
     bio?: string;
+    theme_preference?: 'light' | 'dark' | 'system';
+    primary_color?: string;
+    secondary_color?: string;
+    primary_color_dark?: string;
+    secondary_color_dark?: string;
 }
 
 export function useProfile() {

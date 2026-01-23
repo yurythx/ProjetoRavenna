@@ -2,6 +2,7 @@
 import { CheckCircle2, Eye, Share2, ArrowRight, FilePlus } from 'lucide-react';
 import { createPortal } from 'react-dom';
 import { useToast } from '@/contexts/ToastContext';
+import { useTranslations } from 'next-intl';
 
 export function SuccessDialog({
   open,
@@ -21,13 +22,16 @@ export function SuccessDialog({
   onCreateAnother?: () => void;
 }) {
   const { show } = useToast();
+  const t = useTranslations('Dialogs');
+  const tc = useTranslations('Common');
+
   if (!open) return null;
 
   const handleShare = () => {
     if (slug && typeof navigator !== 'undefined') {
       const url = `${window.location.origin}/artigos/${slug}`;
       navigator.clipboard.writeText(url);
-      show({ type: 'success', message: 'Link copiado para a área de transferência.' });
+      show({ type: 'success', message: t('linkCopied') });
     }
   };
 
@@ -51,14 +55,14 @@ export function SuccessDialog({
                   onClick={onCreateAnother}
                   className="flex items-center justify-center gap-2 w-full py-3 bg-green-600 hover:bg-green-700 text-white rounded-xl font-medium transition-colors shadow-lg shadow-green-600/20"
                 >
-                  <FilePlus className="w-4 h-4" /> Criar outro artigo
+                  <FilePlus className="w-4 h-4" /> {t('createAnother')}
                 </button>
               ) : (
                 <a
                   href={`/artigos/${slug}`}
                   className="flex items-center justify-center gap-2 w-full py-3 bg-green-600 hover:bg-green-700 text-white rounded-xl font-medium transition-colors shadow-lg shadow-green-600/20"
                 >
-                  <Eye className="w-4 h-4" /> Ver Artigo <ArrowRight className="w-4 h-4" />
+                  <Eye className="w-4 h-4" /> {t('viewArticle')} <ArrowRight className="w-4 h-4" />
                 </a>
               )}
 
@@ -66,7 +70,7 @@ export function SuccessDialog({
                 onClick={handleShare}
                 className="flex items-center justify-center gap-2 w-full py-3 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 rounded-xl font-medium transition-colors"
               >
-                <Share2 className="w-4 h-4" /> Copiar Link
+                <Share2 className="w-4 h-4" /> {t('copyLink')}
               </button>
             </>
           )}
@@ -75,7 +79,7 @@ export function SuccessDialog({
             onClick={onClose}
             className="w-full py-2 text-slate-500 hover:text-slate-700 dark:text-slate-400 dark:hover:text-slate-200 text-sm transition-colors pt-2"
           >
-            {confirmLabel || 'Fechar'}
+            {confirmLabel || tc('save')}
           </button>
         </div>
       </div>

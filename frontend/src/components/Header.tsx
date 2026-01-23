@@ -11,6 +11,8 @@ import { SuccessDialog } from '@/components/SuccessDialog';
 import { NotificationBell } from '@/components/NotificationBell';
 import { useRouter } from 'next/navigation';
 import { SearchBar } from '@/components/SearchBar';
+import { useTranslations } from 'next-intl';
+import { LanguageSwitcher } from './LanguageSwitcher';
 
 interface HeaderProps {
   logoUrl?: string;
@@ -19,6 +21,8 @@ interface HeaderProps {
 
 export function Header({ logoUrl, brandName }: HeaderProps) {
   const { token, user, logout } = useAuth();
+  const t = useTranslations('Header');
+  const tc = useTranslations('Common');
   const { disabled } = useModules();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [logoutOpen, setLogoutOpen] = useState(false);
@@ -82,17 +86,27 @@ export function Header({ logoUrl, brandName }: HeaderProps) {
               className={`text-sm font-medium transition-colors hover:text-[var(--brand-primary)] ${pathname === '/artigos' ? 'text-[var(--brand-primary)]' : ''}`}
               style={{ color: pathname === '/artigos' ? 'var(--brand-primary)' : 'var(--header-text)' }}
             >
-              Artigos
+              {t('articles')}
             </Link>
+            {token && (
+              <Link
+                href="/artigos/new"
+                className={`text-sm font-medium transition-colors hover:text-[var(--brand-primary)] ${pathname === '/artigos/new' ? 'text-[var(--brand-primary)]' : ''}`}
+                style={{ color: pathname === '/artigos/new' ? 'var(--brand-primary)' : 'var(--header-text)' }}
+              >
+                {t('newArticle') || 'Novo Artigo'}
+              </Link>
+            )}
           </nav>
 
           {/* Search Bar - Desktop */}
           <div className="hidden md:block flex-1 max-w-sm mx-4">
-            <SearchBar placeholder="Buscar..." />
+            <SearchBar placeholder={t('search')} />
           </div>
 
           {/* Action Buttons & Auth - Desktop */}
           <div className="hidden md:flex items-center gap-3 pl-4 border-l border-white/5">
+            <LanguageSwitcher />
             <ThemeToggle />
 
             {token ? (
@@ -128,7 +142,7 @@ export function Header({ logoUrl, brandName }: HeaderProps) {
                       </div>
                       <div className="mt-2">
                         <span className="px-2 py-0.5 text-[9px] font-bold uppercase tracking-wider rounded-full bg-[var(--accent)]/10 text-[var(--accent)] border border-[var(--accent)]/20">
-                          {user?.role || 'Membro'}
+                          {user?.role === 'admin' ? t('roleAdmin') : t('roleMember')}
                         </span>
                       </div>
                     </div>
@@ -139,7 +153,7 @@ export function Header({ logoUrl, brandName }: HeaderProps) {
                         className="flex items-center gap-3 px-3 py-2.5 text-sm rounded-xl hover:bg-muted transition-colors group text-foreground dark:text-gray-200"
                       >
                         <User className="h-4 w-4 opacity-60 group-hover:opacity-100 group-hover:text-[var(--accent)]" />
-                        <span className="font-medium">Meu Perfil</span>
+                        <span className="font-medium">{t('profile')}</span>
                       </Link>
 
                       <Link
@@ -147,7 +161,7 @@ export function Header({ logoUrl, brandName }: HeaderProps) {
                         className="flex items-center gap-3 px-3 py-2.5 text-sm rounded-xl hover:bg-muted transition-colors group text-foreground dark:text-gray-200"
                       >
                         <PenSquare className="h-4 w-4 opacity-60 group-hover:opacity-100 group-hover:text-[var(--accent)]" />
-                        <span className="font-medium">Dashboard Admin</span>
+                        <span className="font-medium">{t('adminDashboard')}</span>
                       </Link>
 
                       <Link
@@ -155,7 +169,7 @@ export function Header({ logoUrl, brandName }: HeaderProps) {
                         className="flex items-center gap-3 px-3 py-2.5 text-sm rounded-xl hover:bg-muted transition-colors group text-foreground dark:text-gray-200"
                       >
                         <Bookmark className="h-4 w-4 opacity-60 group-hover:opacity-100 group-hover:text-[var(--accent)]" />
-                        <span className="font-medium">Salvos & Favoritos</span>
+                        <span className="font-medium">{t('savedFavorites')}</span>
                       </Link>
 
                       <Link
@@ -168,7 +182,7 @@ export function Header({ logoUrl, brandName }: HeaderProps) {
                             <span className="absolute -top-1 -right-1 w-2 h-2 bg-red-500 rounded-full ring-2 ring-card" />
                           )}
                         </div>
-                        <span className="font-medium">Notificações</span>
+                        <span className="font-medium">{t('notifications')}</span>
                         {unreadCount > 0 && (
                           <span className="ml-auto bg-red-500/10 text-red-500 text-[10px] font-bold px-1.5 rounded-md">
                             {unreadCount}
@@ -183,7 +197,7 @@ export function Header({ logoUrl, brandName }: HeaderProps) {
                         className="flex items-center gap-3 w-full px-3 py-2.5 text-sm text-red-500 rounded-xl hover:bg-red-500/5 transition-colors group"
                       >
                         <LogOut className="h-4 w-4 opacity-70 group-hover:opacity-100" />
-                        <span className="font-semibold">Sair da conta</span>
+                        <span className="font-semibold">{t('logout')}</span>
                       </button>
                     </div>
                   </div>
@@ -195,7 +209,7 @@ export function Header({ logoUrl, brandName }: HeaderProps) {
                   href="/auth/login"
                   className="btn btn-primary btn-sm px-5 rounded-full font-bold shadow-lg shadow-[var(--brand-primary)]/20"
                 >
-                  Entrar
+                  {t('login')}
                 </Link>
               )
             )}
@@ -203,6 +217,7 @@ export function Header({ logoUrl, brandName }: HeaderProps) {
 
           {/* Mobile Menu Button */}
           <div className="md:hidden flex items-center gap-3">
+            <LanguageSwitcher />
             <ThemeToggle />
             <button
               className="p-2 rounded-xl transition-colors hover:bg-white/5 border border-transparent active:scale-95"
@@ -244,19 +259,28 @@ export function Header({ logoUrl, brandName }: HeaderProps) {
                 className={`px-4 py-3 rounded-xl font-semibold transition-all flex items-center justify-between ${pathname === '/artigos' ? 'bg-muted text-[var(--accent)]' : 'hover:bg-muted text-foreground'}`}
                 onClick={() => setMobileMenuOpen(false)}
               >
-                Artigos
+                {t('articles')}
               </Link>
+              {token && (
+                <Link
+                  href="/artigos/new"
+                  className={`px-4 py-3 rounded-xl font-semibold transition-all flex items-center justify-between ${pathname === '/artigos/new' ? 'bg-muted text-[var(--accent)]' : 'hover:bg-muted text-foreground'}`}
+                  onClick={() => setMobileMenuOpen(false)}
+                >
+                  {t('newArticle') || 'Novo Artigo'}
+                </Link>
+              )}
               <Link
                 href="/tags"
                 className={`px-4 py-3 rounded-xl font-semibold transition-all flex items-center justify-between ${pathname === '/tags' ? 'bg-muted text-[var(--accent)]' : 'hover:bg-muted text-foreground'}`}
                 onClick={() => setMobileMenuOpen(false)}
               >
-                Tags
+                {t('tags')}
               </Link>
 
               {token ? (
                 <div className="mt-4 pt-4 border-t border-border space-y-1">
-                  <p className="px-4 text-[10px] font-bold text-muted-foreground uppercase tracking-[0.2em] mb-2">Menu Pessoal</p>
+                  <p className="px-4 text-[10px] font-bold text-muted-foreground uppercase tracking-[0.2em] mb-2">{t('personalMenu')}</p>
 
                   <Link
                     href="/perfil"
@@ -264,7 +288,7 @@ export function Header({ logoUrl, brandName }: HeaderProps) {
                     onClick={() => setMobileMenuOpen(false)}
                   >
                     <User className="h-5 w-5 opacity-60" />
-                    <span>Meu Perfil</span>
+                    <span>{t('profile')}</span>
                   </Link>
 
                   <Link
@@ -273,7 +297,7 @@ export function Header({ logoUrl, brandName }: HeaderProps) {
                     onClick={() => setMobileMenuOpen(false)}
                   >
                     <PenSquare className="h-5 w-5 opacity-60" />
-                    <span>Dashboard Admin</span>
+                    <span>{t('adminDashboard')}</span>
                   </Link>
 
                   <Link
@@ -282,7 +306,7 @@ export function Header({ logoUrl, brandName }: HeaderProps) {
                     onClick={() => setMobileMenuOpen(false)}
                   >
                     <Bookmark className="h-5 w-5 opacity-60" />
-                    <span>Favoritos</span>
+                    <span>{t('savedFavorites')}</span>
                   </Link>
 
                   <Link
@@ -296,7 +320,7 @@ export function Header({ logoUrl, brandName }: HeaderProps) {
                         <span className="absolute -top-1 -right-1 w-2.5 h-2.5 bg-red-500 rounded-full border-2 border-background" />
                       )}
                     </div>
-                    <span>Notificações</span>
+                    <span>{t('notifications')}</span>
                     {unreadCount > 0 && (
                       <span className="ml-auto bg-red-500 text-white text-[10px] font-bold px-2 py-0.5 rounded-full">
                         {unreadCount}
@@ -309,7 +333,7 @@ export function Header({ logoUrl, brandName }: HeaderProps) {
                     className="flex gap-4 items-center px-4 py-3.5 w-full text-left text-red-500 rounded-xl hover:bg-red-500/5 transition-all font-bold mt-2"
                   >
                     <LogOut className="h-5 w-5" />
-                    Sair da conta
+                    {t('logout')}
                   </button>
                 </div>
               ) : (
@@ -320,7 +344,7 @@ export function Header({ logoUrl, brandName }: HeaderProps) {
                     onClick={() => setMobileMenuOpen(false)}
                   >
                     <LogIn className="h-5 w-5" />
-                    Acessar Conta
+                    {t('accessAccount')}
                   </Link>
                 </div>
               )}
@@ -330,8 +354,8 @@ export function Header({ logoUrl, brandName }: HeaderProps) {
 
         <ConfirmDialog
           open={logoutOpen}
-          title="Sair da conta"
-          description="Tem certeza que deseja sair com segurança do sistema?"
+          title={tc('logoutConfirm')}
+          description={tc('logoutDescription')}
           onCancel={() => setLogoutOpen(false)}
           onConfirm={() => {
             logout();
@@ -343,8 +367,8 @@ export function Header({ logoUrl, brandName }: HeaderProps) {
 
         <SuccessDialog
           open={logoutSuccessOpen}
-          title="Sessão encerrada"
-          description="Você saiu com segurança. Até breve!"
+          title={tc('sessionEnded')}
+          description={tc('sessionEndedDesc')}
           onClose={() => {
             setLogoutSuccessOpen(false);
             router.push('/auth/login');

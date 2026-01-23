@@ -23,8 +23,12 @@ import {
     ResponsiveContainer,
 } from 'recharts';
 import { useMemo } from 'react';
+import { useTranslations, useLocale } from 'next-intl';
 
 export default function StatsPage() {
+    const t = useTranslations('Stats');
+    const tc = useTranslations('Common');
+    const locale = useLocale();
     const { data, isLoading } = useDashboardStats();
     const viewsChart = useMemo(() => data?.charts.views_by_day || [], [data]);
     const articlesChart = useMemo(() => data?.charts.articles_by_day || [], [data]);
@@ -67,17 +71,17 @@ export default function StatsPage() {
             {/* Header */}
             <div className="flex items-center justify-between">
                 <div>
-                    <h1 className="text-3xl font-extrabold tracking-tight">Estatísticas Avançadas</h1>
-                    <p className="text-muted-foreground">Análise detalhada de desempenho e métricas de conteúdo</p>
+                    <h1 className="text-3xl font-extrabold tracking-tight">{t('title')}</h1>
+                    <p className="text-muted-foreground">{t('subtitle')}</p>
                 </div>
                 <div className="flex gap-2">
-                   
+
                     <button
                         onClick={exportData}
                         className="btn btn-outline btn-sm flex items-center gap-2"
                     >
                         <Download className="h-4 w-4" />
-                        Exportar CSV
+                        {t('exportCsv')}
                     </button>
                 </div>
             </div>
@@ -92,7 +96,7 @@ export default function StatsPage() {
                         <TrendingUp className="h-4 w-4 text-emerald-500" />
                     </div>
                     <h3 className="text-3xl font-bold">{data?.kpis.total_articles}</h3>
-                    <p className="text-sm text-muted-foreground mt-1">Total de Artigos</p>
+                    <p className="text-sm text-muted-foreground mt-1">{t('totalArticles')}</p>
                 </div>
 
                 <div className="card p-6 hover:border-purple-500/50 transition-all">
@@ -102,8 +106,8 @@ export default function StatsPage() {
                         </div>
                         <TrendingUp className="h-4 w-4 text-emerald-500" />
                     </div>
-                    <h3 className="text-3xl font-bold">{(data?.kpis.total_views || 0).toLocaleString()}</h3>
-                    <p className="text-sm text-muted-foreground mt-1">Total de Visualizações</p>
+                    <h3 className="text-3xl font-bold">{(data?.kpis.total_views || 0).toLocaleString(locale)}</h3>
+                    <p className="text-sm text-muted-foreground mt-1">{t('totalViews')}</p>
                 </div>
 
                 <div className="card p-6 hover:border-emerald-500/50 transition-all">
@@ -114,7 +118,7 @@ export default function StatsPage() {
                         <TrendingUp className="h-4 w-4 text-emerald-500" />
                     </div>
                     <h3 className="text-3xl font-bold">{data ? (data.kpis.total_users || 0) : 0}</h3>
-                    <p className="text-sm text-muted-foreground mt-1">Usuários</p>
+                    <p className="text-sm text-muted-foreground mt-1">{t('totalUsers')}</p>
                 </div>
 
                 <div className="card p-6 hover:border-amber-500/50 transition-all">
@@ -124,8 +128,8 @@ export default function StatsPage() {
                         </div>
                         <TrendingUp className="h-4 w-4 text-emerald-500" />
                     </div>
-                    <h3 className="text-3xl font-bold">{data ? `${(data.kpis.avg_reading_time || 0)} min` : '0 min'}</h3>
-                    <p className="text-sm text-muted-foreground mt-1">Tempo médio de leitura</p>
+                    <h3 className="text-3xl font-bold">{data ? t('minutes', { count: data.kpis.avg_reading_time || 0 }) : t('minutes', { count: 0 })}</h3>
+                    <p className="text-sm text-muted-foreground mt-1">{t('avgReadingTime')}</p>
                 </div>
             </div>
 
@@ -133,12 +137,22 @@ export default function StatsPage() {
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
                 {/* Views by Month */}
                 <div className="card p-6">
-                    <h3 className="font-bold text-lg mb-6">Visualizações por Dia</h3>
+                    <h3 className="font-bold text-lg mb-6">{t('viewsByDay')}</h3>
                     <div className="h-[300px] w-full">
                         <ResponsiveContainer width="100%" height={300} minHeight={300}>
                             <LineChart data={viewsChart}>
                                 <CartesianGrid strokeDasharray="3 3" stroke="var(--border)" />
-                                <XAxis dataKey="date" tick={{ fontSize: 12 }} />
+                                <XAxis
+                                    dataKey="date"
+                                    tick={{ fontSize: 12 }}
+                                    tickFormatter={(val) => {
+                                        try {
+                                            return new Date(val).toLocaleDateString(locale, { day: 'numeric', month: 'short' });
+                                        } catch (e) {
+                                            return val;
+                                        }
+                                    }}
+                                />
                                 <YAxis tick={{ fontSize: 12 }} />
                                 <Tooltip contentStyle={{ background: 'var(--card)', border: '1px solid var(--border)', borderRadius: '8px' }} />
                                 <Line type="monotone" dataKey="count" stroke="#0ea5e9" strokeWidth={2} dot={{ r: 4 }} />
@@ -149,12 +163,22 @@ export default function StatsPage() {
 
                 {/* Articles by Category */}
                 <div className="card p-6">
-                    <h3 className="font-bold text-lg mb-6">Artigos por Dia</h3>
+                    <h3 className="font-bold text-lg mb-6">{t('articlesByDay')}</h3>
                     <div className="h-[300px] w-full">
                         <ResponsiveContainer width="100%" height={300} minHeight={300}>
                             <BarChart data={articlesChart}>
                                 <CartesianGrid strokeDasharray="3 3" stroke="var(--border)" />
-                                <XAxis dataKey="date" tick={{ fontSize: 12 }} />
+                                <XAxis
+                                    dataKey="date"
+                                    tick={{ fontSize: 12 }}
+                                    tickFormatter={(val) => {
+                                        try {
+                                            return new Date(val).toLocaleDateString(locale, { day: 'numeric', month: 'short' });
+                                        } catch (e) {
+                                            return val;
+                                        }
+                                    }}
+                                />
                                 <YAxis tick={{ fontSize: 12 }} />
                                 <Tooltip contentStyle={{ background: 'var(--card)', border: '1px solid var(--border)', borderRadius: '8px' }} />
                                 <Bar dataKey="count" fill="#8b5cf6" radius={[8, 8, 0, 0]} />
@@ -168,7 +192,7 @@ export default function StatsPage() {
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
                 {/* Top Articles */}
                 <div className="card p-6">
-                    <h3 className="font-bold text-lg mb-4">Artigos Mais Visualizados</h3>
+                    <h3 className="font-bold text-lg mb-4">{t('mostViewedArticles')}</h3>
                     <div className="space-y-3">
                         {data?.top_articles.map((article, idx) => (
                             <div key={idx} className="flex items-center justify-between p-3 rounded-lg hover:bg-muted transition-colors">
@@ -178,7 +202,7 @@ export default function StatsPage() {
                                 </div>
                                 <div className="flex items-center gap-2 ml-4">
                                     <Eye className="h-4 w-4 text-muted-foreground" />
-                                    <span className="font-bold">{article.views.toLocaleString()}</span>
+                                    <span className="font-bold">{article.views.toLocaleString(locale)}</span>
                                 </div>
                             </div>
                         ))}
@@ -187,12 +211,22 @@ export default function StatsPage() {
 
                 {/* Users by Day */}
                 <div className="card p-6">
-                    <h3 className="font-bold text-lg mb-4">Novos Usuários por Dia</h3>
+                    <h3 className="font-bold text-lg mb-4">{t('newUsersByDay')}</h3>
                     <div className="h-[250px] w-full">
                         <ResponsiveContainer width="100%" height="100%">
                             <LineChart data={usersChart}>
                                 <CartesianGrid strokeDasharray="3 3" stroke="var(--border)" />
-                                <XAxis dataKey="date" tick={{ fontSize: 12 }} />
+                                <XAxis
+                                    dataKey="date"
+                                    tick={{ fontSize: 12 }}
+                                    tickFormatter={(val) => {
+                                        try {
+                                            return new Date(val).toLocaleDateString(locale, { day: 'numeric', month: 'short' });
+                                        } catch (e) {
+                                            return val;
+                                        }
+                                    }}
+                                />
                                 <YAxis tick={{ fontSize: 12 }} />
                                 <Tooltip contentStyle={{ background: 'var(--card)', border: '1px solid var(--border)', borderRadius: '8px' }} />
                                 <Line type="monotone" dataKey="count" stroke="#10b981" strokeWidth={2} dot={{ r: 3 }} />

@@ -1,5 +1,6 @@
 from django.contrib.auth.models import AbstractUser
 from django.db import models
+from django.core.validators import RegexValidator
 from django_resized import ResizedImageField
 from apps.core.models import BaseUUIDModel
 
@@ -28,6 +29,53 @@ class CustomUser(BaseUUIDModel, AbstractUser):
         blank=True,
         null=True,
         help_text='User profile picture (will be resized to 400x400 WEBP)'
+    )
+
+    # UI Preferences
+    THEME_CHOICES = (
+        ('light', 'Claro'),
+        ('dark', 'Escuro'),
+        ('system', 'Sistema'),
+    )
+
+    hex_color_validator = RegexValidator(
+        regex=r'^#([A-Fa-f0-9]{6}|[A-Fa-f0-9]{3})$',
+        message='Enter a valid hex color code (e.g., #FFFFFF or #FFF)'
+    )
+
+    theme_preference = models.CharField(
+        "Preferência de Tema",
+        max_length=10,
+        choices=THEME_CHOICES,
+        default='system'
+    )
+    primary_color = models.CharField(
+        "Cor Primária Personalizada", 
+        max_length=7, 
+        null=True, 
+        blank=True,
+        validators=[hex_color_validator]
+    )
+    secondary_color = models.CharField(
+        "Cor Secundária Personalizada", 
+        max_length=7, 
+        null=True, 
+        blank=True,
+        validators=[hex_color_validator]
+    )
+    primary_color_dark = models.CharField(
+        "Cor Primária Personalizada (Dark)", 
+        max_length=7, 
+        null=True, 
+        blank=True,
+        validators=[hex_color_validator]
+    )
+    secondary_color_dark = models.CharField(
+        "Cor Secundária Personalizada (Dark)", 
+        max_length=7, 
+        null=True, 
+        blank=True,
+        validators=[hex_color_validator]
     )
 
     bio = models.TextField(
