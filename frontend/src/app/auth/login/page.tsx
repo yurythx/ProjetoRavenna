@@ -105,8 +105,8 @@ function LoginContent() {
             </p>
           </div>
           <div className="card p-6">
-            {token && <p className="text-green-600 mb-4">{t('alreadyAuthenticated')}</p>}
-            {error && <p className="text-red-600 mb-4" role="alert" aria-live="polite">{error}</p>}
+            {token && <p className="text-success mb-4">{t('alreadyAuthenticated')}</p>}
+            {error && <p className="text-error mb-4" role="alert" aria-live="polite">{error}</p>}
             <form onSubmit={onSubmit} className="space-y-4" aria-describedby="login-status">
               <div className="relative w-full">
                 <Mail className="absolute left-4 top-1/2 -translate-y-1/2 h-5 w-5" style={{ color: 'var(--muted-foreground)' }} />
@@ -115,7 +115,7 @@ function LoginContent() {
                   placeholder={t('identifier')}
                   value={identifier}
                   onChange={(e) => setIdentifier(e.target.value)}
-                  className={`input w-full pl-12 pr-12 h-12 text-base shadow-sm ${error ? 'border-red-600' : ''}`}
+                  className={`input w-full pl-12 pr-12 h-12 text-base shadow-sm ${error ? 'border-error' : ''}`}
                   aria-label={t('identifier')}
                   autoComplete="username"
                 />
@@ -128,7 +128,7 @@ function LoginContent() {
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
                   onKeyUp={onPasswordKeyUp}
-                  className={`input w-full pl-12 pr-12 h-12 text-base shadow-sm ${error ? 'border-red-600' : ''}`}
+                  className={`input w-full pl-12 pr-12 h-12 text-base shadow-sm ${error ? 'border-error' : ''}`}
                   aria-label={t('password')}
                   autoComplete={remember ? 'current-password' : 'off'}
                 />
@@ -142,7 +142,7 @@ function LoginContent() {
                   {showPwd ? <EyeOff className="h-5 w-5" /> : <Eye className="h-5 w-5" />}
                 </button>
               </div>
-              {capsLock && <p className="text-xs text-yellow-600">{t('capsLock')}</p>}
+              {capsLock && <p className="badge badge-warning">{t('capsLock')}</p>}
               <div className="flex items-center justify-between">
                 <label className="flex items-center gap-2">
                   <input type="checkbox" checked={remember} onChange={(e) => setRemember(e.target.checked)} />

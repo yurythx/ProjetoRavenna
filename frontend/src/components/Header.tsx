@@ -55,8 +55,7 @@ export function Header({ logoUrl, brandName }: HeaderProps) {
 
   return (
     <header
-      className="sticky top-0 z-50 w-full border-b border-border/10 backdrop-blur-md transition-all duration-300"
-      style={{ backgroundColor: 'color-mix(in srgb, var(--header-bg) 95%, transparent)' }}
+      className="sticky top-0 z-50 w-full border-b border-border backdrop-blur-md transition-all duration-300 bg-header"
     >
       <div className="container-custom">
         <div className="flex h-16 items-center justify-between gap-3">
@@ -70,10 +69,10 @@ export function Header({ logoUrl, brandName }: HeaderProps) {
               </div>
             )}
             <div className="flex flex-col">
-              <span className="text-xl font-bold tracking-tight leading-none" style={{ color: 'var(--header-text)' }}>
+              <span className="text-xl font-bold tracking-tight leading-none text-header">
                 {displayName}
               </span>
-              <span className="text-[10px] font-medium opacity-80" style={{ color: 'var(--header-text)' }}>
+              <span className="text-[10px] font-medium opacity-80 text-header">
                 {displayUrl}
               </span>
             </div>
@@ -84,7 +83,7 @@ export function Header({ logoUrl, brandName }: HeaderProps) {
             <Link
               href="/artigos"
               className={`text-sm font-medium transition-colors hover:text-[var(--brand-primary)] ${pathname === '/artigos' ? 'text-[var(--brand-primary)]' : ''}`}
-              style={{ color: pathname === '/artigos' ? 'var(--brand-primary)' : 'var(--header-text)' }}
+              style={{ color: pathname === '/artigos' ? 'var(--brand-primary)' : undefined }}
             >
               {t('articles')}
             </Link>
@@ -92,7 +91,7 @@ export function Header({ logoUrl, brandName }: HeaderProps) {
               <Link
                 href="/artigos/new"
                 className={`text-sm font-medium transition-colors hover:text-[var(--brand-primary)] ${pathname === '/artigos/new' ? 'text-[var(--brand-primary)]' : ''}`}
-                style={{ color: pathname === '/artigos/new' ? 'var(--brand-primary)' : 'var(--header-text)' }}
+                style={{ color: pathname === '/artigos/new' ? 'var(--brand-primary)' : undefined }}
               >
                 {t('newArticle') || 'Novo Artigo'}
               </Link>
@@ -105,7 +104,7 @@ export function Header({ logoUrl, brandName }: HeaderProps) {
           </div>
 
           {/* Action Buttons & Auth - Desktop */}
-          <div className="hidden md:flex items-center gap-3 pl-4 border-l border-white/5">
+          <div className="hidden md:flex items-center gap-3 pl-4 border-l border-border">
             <LanguageSwitcher />
             <ThemeToggle />
 
@@ -116,19 +115,19 @@ export function Header({ logoUrl, brandName }: HeaderProps) {
                     e.stopPropagation();
                     setUserMenuOpen(!userMenuOpen);
                   }}
-                  className="flex items-center gap-2 p-1 rounded-full hover:bg-white/5 transition-all border border-transparent hover:border-white/10"
+                  className="flex items-center gap-2 p-1 rounded-full transition-all border border-transparent hover:border-border"
                   aria-label="Menu do usuário"
                 >
                   <div className="w-8 h-8 rounded-full bg-[var(--brand-primary)] flex items-center justify-center text-white font-bold text-xs ring-2 ring-transparent group-hover:ring-[var(--brand-primary)]/30 transition-all">
                     {user?.first_name?.charAt(0).toUpperCase() || user?.username?.charAt(0).toUpperCase() || 'U'}
                   </div>
-                  <Menu className="h-4 w-4 opacity-40 text-[var(--header-text)]" />
+                  <Menu className="h-4 w-4 opacity-40 text-header" />
                 </button>
 
                 {/* Profile Dropdown */}
                 {userMenuOpen && (
                   <div className="absolute right-0 mt-3 w-64 rounded-2xl bg-white dark:bg-[#1E2430] border border-border shadow-[0_10px_40px_-10px_rgba(0,0,0,0.3)] dark:shadow-[0_10px_40px_-10px_rgba(0,0,0,0.7)] animate-in fade-in zoom-in duration-150 z-[60] overflow-hidden">
-                    <div className="p-4 border-b border-border bg-[#F8F8F8] dark:bg-[#252B37]">
+                    <div className="p-4 border-b border-border bg-card">
                       <div className="flex items-center gap-3 mb-2">
                         <div className="w-10 h-10 rounded-full bg-[var(--brand-primary)] flex items-center justify-center text-white font-bold text-sm shadow-sm ring-2 ring-white/10">
                           {user?.first_name?.charAt(0).toUpperCase() || user?.username?.charAt(0).toUpperCase() || 'U'}
@@ -141,7 +140,7 @@ export function Header({ logoUrl, brandName }: HeaderProps) {
                         </div>
                       </div>
                       <div className="mt-2">
-                        <span className="px-2 py-0.5 text-[9px] font-bold uppercase tracking-wider rounded-full bg-[var(--accent)]/10 text-[var(--accent)] border border-[var(--accent)]/20">
+                        <span className="badge badge-accent-soft badge-sm">
                           {user?.role === 'admin' ? t('roleAdmin') : t('roleMember')}
                         </span>
                       </div>
@@ -179,12 +178,12 @@ export function Header({ logoUrl, brandName }: HeaderProps) {
                         <div className="relative">
                           <Bell className="h-4 w-4 opacity-60 group-hover:opacity-100 group-hover:text-[var(--accent)]" />
                           {unreadCount > 0 && (
-                            <span className="absolute -top-1 -right-1 w-2 h-2 bg-red-500 rounded-full ring-2 ring-card" />
+                            <span className="absolute -top-1 -right-1 w-2 h-2 rounded-full ring-2 ring-card" style={{ backgroundColor: 'var(--accent)' }} />
                           )}
                         </div>
                         <span className="font-medium">{t('notifications')}</span>
                         {unreadCount > 0 && (
-                          <span className="ml-auto bg-red-500/10 text-red-500 text-[10px] font-bold px-1.5 rounded-md">
+                          <span className="ml-auto badge badge-accent-soft">
                             {unreadCount}
                           </span>
                         )}
@@ -194,7 +193,7 @@ export function Header({ logoUrl, brandName }: HeaderProps) {
                     <div className="p-1.5 border-t border-border">
                       <button
                         onClick={() => setLogoutOpen(true)}
-                        className="flex items-center gap-3 w-full px-3 py-2.5 text-sm text-red-500 rounded-xl hover:bg-red-500/5 transition-colors group"
+                        className="flex items-center gap-3 w-full px-3 py-2.5 text-sm text-error rounded-xl hover:bg-error-soft transition-colors group"
                       >
                         <LogOut className="h-4 w-4 opacity-70 group-hover:opacity-100" />
                         <span className="font-semibold">{t('logout')}</span>
@@ -220,8 +219,7 @@ export function Header({ logoUrl, brandName }: HeaderProps) {
             <LanguageSwitcher />
             <ThemeToggle />
             <button
-              className="p-2 rounded-xl transition-colors hover:bg-white/5 border border-transparent active:scale-95"
-              style={{ color: 'var(--header-text)' }}
+              className="p-2 rounded-xl transition-colors hover:bg-muted border border-transparent active:scale-95 text-header"
               onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
               aria-label="Toggle menu"
             >
@@ -236,9 +234,9 @@ export function Header({ logoUrl, brandName }: HeaderProps) {
 
         {/* Mobile Menu */}
         {mobileMenuOpen && (
-          <div className="md:hidden py-6 border-t border-white/5 animate-in slide-in-from-top duration-300">
+          <div className="md:hidden py-6 border-t border-border animate-in slide-in-from-top duration-300">
             {token && (
-              <div className="px-4 mb-6 py-4 rounded-2xl bg-[#F8F8F8] dark:bg-[#252B37] border border-border">
+              <div className="px-4 mb-6 py-4 rounded-2xl bg-card border border-border">
                 <div className="flex items-center gap-3">
                   <div className="w-12 h-12 rounded-full bg-[var(--brand-primary)] flex items-center justify-center text-white font-bold text-lg shadow-sm">
                     {user?.first_name?.charAt(0).toUpperCase() || user?.username?.charAt(0).toUpperCase() || 'U'}
@@ -317,12 +315,12 @@ export function Header({ logoUrl, brandName }: HeaderProps) {
                     <div className="relative">
                       <Bell className="h-5 w-5 opacity-60" />
                       {unreadCount > 0 && (
-                        <span className="absolute -top-1 -right-1 w-2.5 h-2.5 bg-red-500 rounded-full border-2 border-background" />
+                        <span className="absolute -top-1 -right-1 w-2.5 h-2.5 rounded-full border-2 border-background" style={{ backgroundColor: 'var(--accent)' }} />
                       )}
                     </div>
                     <span>{t('notifications')}</span>
                     {unreadCount > 0 && (
-                      <span className="ml-auto bg-red-500 text-white text-[10px] font-bold px-2 py-0.5 rounded-full">
+                      <span className="ml-auto badge badge-accent">
                         {unreadCount}
                       </span>
                     )}
@@ -330,7 +328,7 @@ export function Header({ logoUrl, brandName }: HeaderProps) {
 
                   <button
                     onClick={() => setLogoutOpen(true)}
-                    className="flex gap-4 items-center px-4 py-3.5 w-full text-left text-red-500 rounded-xl hover:bg-red-500/5 transition-all font-bold mt-2"
+                    className="flex gap-4 items-center px-4 py-3.5 w-full text-left text-error rounded-xl hover:bg-error-soft transition-all font-bold mt-2"
                   >
                     <LogOut className="h-5 w-5" />
                     {t('logout')}

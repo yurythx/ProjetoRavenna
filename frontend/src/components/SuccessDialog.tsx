@@ -39,8 +39,8 @@ export function SuccessDialog({
     <div role="alertdialog" aria-modal="true" className="fixed inset-0 z-[100] flex items-center justify-center p-4 animate-fade-in">
       <div className="absolute inset-0 bg-black/40 backdrop-blur-sm" onClick={onClose} />
       <div className="relative max-w-sm w-full bg-white dark:bg-slate-900 rounded-2xl shadow-2xl overflow-hidden animate-scale-in border dark:border-slate-800">
-        <div className="p-8 text-center bg-gradient-to-br from-green-50 to-emerald-50 dark:from-green-950/20 dark:to-emerald-950/20">
-          <div className="inline-flex items-center justify-center w-16 h-16 rounded-full bg-green-100 dark:bg-green-900/30 text-green-600 dark:text-green-400 mb-4">
+        <div className="p-8 text-center bg-success-soft">
+          <div className="inline-flex items-center justify-center w-16 h-16 rounded-full bg-success-soft text-success mb-4">
             <CheckCircle2 className="h-8 w-8" />
           </div>
           <h2 className="text-2xl font-bold text-slate-900 dark:text-white mb-2">{title}</h2>
@@ -53,14 +53,16 @@ export function SuccessDialog({
               {onCreateAnother ? (
                 <button
                   onClick={onCreateAnother}
-                  className="flex items-center justify-center gap-2 w-full py-3 bg-green-600 hover:bg-green-700 text-white rounded-xl font-medium transition-colors shadow-lg shadow-green-600/20"
+                  className="flex items-center justify-center gap-2 w-full py-3 text-white rounded-xl font-medium transition-colors shadow-lg"
+                  style={{ backgroundColor: 'var(--success)' }}
                 >
                   <FilePlus className="w-4 h-4" /> {t('createAnother')}
                 </button>
               ) : (
                 <a
                   href={`/artigos/${slug}`}
-                  className="flex items-center justify-center gap-2 w-full py-3 bg-green-600 hover:bg-green-700 text-white rounded-xl font-medium transition-colors shadow-lg shadow-green-600/20"
+                  className="flex items-center justify-center gap-2 w-full py-3 text-white rounded-xl font-medium transition-colors shadow-lg"
+                  style={{ backgroundColor: 'var(--success)' }}
                 >
                   <Eye className="w-4 h-4" /> {t('viewArticle')} <ArrowRight className="w-4 h-4" />
                 </a>

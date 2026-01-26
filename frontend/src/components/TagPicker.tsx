@@ -48,7 +48,8 @@ export default function TagPicker({ selectedTags, onChange, maxTags = 10 }: TagP
                             <button
                                 type="button"
                                 onClick={() => handleRemoveTag(tag.id)}
-                                className="absolute -top-2 -right-2 bg-red-500 text-white rounded-full p-0.5 opacity-0 group-hover:opacity-100 transition-opacity duration-200 hover:bg-red-600"
+                                className="absolute -top-2 -right-2 rounded-full p-0.5 opacity-0 group-hover:opacity-100 transition-opacity duration-200"
+                                style={{ backgroundColor: 'var(--accent)', color: 'white' }}
                                 title={t('removeTag')}
                             >
                                 <X className="w-3 h-3" />
@@ -71,18 +72,18 @@ export default function TagPicker({ selectedTags, onChange, maxTags = 10 }: TagP
                         onFocus={() => setIsOpen(true)}
                         onBlur={() => setTimeout(() => setIsOpen(false), 200)}
                         placeholder={t('placeholder', { current: selectedTags.length, max: maxTags })}
-                        className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                        className="w-full px-4 py-2 border border-border rounded-lg bg-card text-foreground focus:ring-2 focus:ring-[var(--accent)] focus:border-transparent"
                     />
 
                     {/* Dropdown */}
                     {isOpen && (
-                        <div className="absolute z-10 mt-1 w-full bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded-lg shadow-lg max-h-60 overflow-y-auto">
+                        <div className="absolute z-10 mt-1 w-full bg-card border border-border rounded-lg shadow-lg max-h-60 overflow-y-auto">
                             {isLoading ? (
-                                <div className="p-4 text-center text-gray-500 dark:text-gray-400">
+                                <div className="p-4 text-center text-muted-foreground">
                                     {t('loading')}
                                 </div>
                             ) : availableTags.length === 0 ? (
-                                <div className="p-4 text-center text-gray-500 dark:text-gray-400">
+                                <div className="p-4 text-center text-muted-foreground">
                                     {searchQuery ? t('noTagsFound') : t('allSelected')}
                                 </div>
                             ) : (
@@ -92,19 +93,19 @@ export default function TagPicker({ selectedTags, onChange, maxTags = 10 }: TagP
                                             key={tag.id}
                                             type="button"
                                             onClick={() => handleAddTag(tag)}
-                                            className="w-full text-left px-3 py-2 rounded hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors duration-150 flex items-center justify-between group"
+                                            className="w-full text-left px-3 py-2 rounded hover:bg-muted transition-colors duration-150 flex items-center justify-between group"
                                         >
                                             <div className="flex items-center gap-2">
                                                 <span
                                                     className="w-3 h-3 rounded-full"
                                                     style={{ backgroundColor: tag.color }}
                                                 />
-                                                <span className="font-medium text-gray-900 dark:text-gray-100">
+                                                <span className="font-medium text-foreground">
                                                     {tag.name}
                                                 </span>
                                             </div>
                                             {tag.article_count > 0 && (
-                                                <span className="text-xs text-gray-500 dark:text-gray-400">
+                                                <span className="text-xs text-muted-foreground">
                                                     {tag.article_count} {tag.article_count === 1 ? t('article_one') : t('article_other')}
                                                 </span>
                                             )}
@@ -118,7 +119,7 @@ export default function TagPicker({ selectedTags, onChange, maxTags = 10 }: TagP
             )}
 
             {/* Helper Text */}
-            <p className="text-xs text-gray-500 dark:text-gray-400">
+            <p className="text-xs text-muted-foreground">
                 {t('helperText', { max: maxTags })}
             </p>
         </div>

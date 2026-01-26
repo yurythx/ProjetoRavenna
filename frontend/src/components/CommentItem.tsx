@@ -138,7 +138,7 @@ export function CommentItem({
                                             onDelete(comment.id);
                                         }
                                     }}
-                                    className="text-sm flex items-center gap-1 hover:opacity-80 transition-opacity text-red-500"
+                                    className="text-sm flex items-center gap-1 hover:opacity-80 transition-opacity text-error"
                                 >
                                     <Trash2 className="w-4 h-4" aria-hidden="true" />
                                     {t('delete')}

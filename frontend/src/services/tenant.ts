@@ -1,42 +1,46 @@
+import { api } from '@/lib/api';
 
-export interface TenantConfig {
-    name: string;
-    brand_name: string | null;
-    domain: string | null;
-    primary_color: string;
-    secondary_color: string;
-    primary_color_dark: string;
-    secondary_color_dark: string;
-    logo: string | null;
-    favicon: string | null;
-    footer_text: string;
-    social_links: Record<string, string>;
-    default_theme: 'light' | 'dark' | null;
-    default_language: string | null;
-}
+export type TenantConfig = {
+  name: string;
+  brand_name?: string;
+  footer_text?: string;
+  default_language?: string;
+  default_theme?: string;
+  primaryColor: string;
+  secondaryColor: string;
+  primary_color?: string;
+  secondary_color?: string;
+  primary_color_dark?: string;
+  secondary_color_dark?: string;
+  faviconUrl?: string;
+  favicon?: string;
+  logo?: string;
+};
 
-const API_URL = process.env.INTERNAL_API_URL || 'http://localhost:8000/api/v1';
-
-export async function getTenantConfig(): Promise<TenantConfig | null> {
-    const { headers } = await import('next/headers');
-    const headersList = await headers();
-    const host = headersList.get('host') || 'localhost';
-
-    try {
-        const res = await fetch(`${API_URL}/entities/config/`, {
-            method: 'GET',
-            headers: {
-                'Host': host,
-                'Content-Type': 'application/json',
-            },
-            cache: 'no-store', // Always fetch fresh data for SSR
-        });
-
-        if (!res.ok) return null;
-
-        return res.json();
-    } catch (error) {
-        console.error(`[Tenant] Error fetching config for host ${host}:`, error);
-        return null;
-    }
+export async function getTenantConfig(): Promise<TenantConfig> {
+  try {
+    const { data } = await api.get('/entities/config/');
+    return {
+      name: data?.name ?? 'Projeto Ravenna',
+      brand_name: data?.brand_name ?? data?.name,
+      footer_text: data?.footer_text ?? '',
+      default_language: data?.default_language ?? 'pt_BR',
+      default_theme: data?.default_theme ?? '',
+      primaryColor: data?.primary_color ?? '#4f46e5',
+      secondaryColor: data?.secondary_color ?? '#22c55e',
+      primary_color: data?.primary_color ?? undefined,
+      secondary_color: data?.secondary_color ?? undefined,
+      primary_color_dark: data?.primary_color_dark ?? undefined,
+      secondary_color_dark: data?.secondary_color_dark ?? undefined,
+      faviconUrl: data?.favicon_url ?? undefined,
+      favicon: data?.favicon_url ?? undefined,
+      logo: data?.logo_url ?? undefined,
+    };
+  } catch {
+    return {
+      name: 'Projeto Ravenna',
+      primaryColor: '#4f46e5',
+      secondaryColor: '#22c55e',
+    };
+  }
 }

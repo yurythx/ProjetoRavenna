@@ -81,9 +81,7 @@ export function ArticleCard({
         {/* Category Badge Overlay */}
         {catName && (
           <div className="absolute top-3 left-3 z-10">
-            <span
-              className="px-3 py-1 text-[10px] font-bold uppercase tracking-wider rounded-lg backdrop-blur-md bg-accent/90 text-white shadow-lg"
-            >
+            <span className="badge badge-accent shadow-lg">
               {catName}
             </span>
           </div>
@@ -92,7 +90,7 @@ export function ArticleCard({
         {/* Popular Badge if many likes */}
         {likeCount > 10 && (
           <div className="absolute top-3 right-3 z-10">
-            <span className="bg-amber-500 text-white text-[10px] font-bold px-2 py-1 rounded-lg shadow-lg flex items-center gap-1 animate-pulse">
+            <span className="badge badge-warning shadow-lg flex items-center gap-1 animate-pulse">
               🔥 {t('popular')}
             </span>
           </div>

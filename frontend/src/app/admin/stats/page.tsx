@@ -88,45 +88,45 @@ export default function StatsPage() {
 
             {/* KPI Cards */}
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-                <div className="card p-6 hover:border-blue-500/50 transition-all">
+                <div className="card p-6 hover:border-accent/50 transition-all">
                     <div className="flex items-center justify-between mb-4">
-                        <div className="p-3 bg-blue-500/10 rounded-xl">
-                            <FileText className="h-6 w-6 text-blue-500" />
+                        <div className="p-3 bg-accent/10 rounded-xl">
+                            <FileText className="h-6 w-6 text-accent" />
                         </div>
-                        <TrendingUp className="h-4 w-4 text-emerald-500" />
+                        <TrendingUp className="h-4 w-4 text-accent" />
                     </div>
                     <h3 className="text-3xl font-bold">{data?.kpis.total_articles}</h3>
                     <p className="text-sm text-muted-foreground mt-1">{t('totalArticles')}</p>
                 </div>
 
-                <div className="card p-6 hover:border-purple-500/50 transition-all">
+                <div className="card p-6 hover:border-accent/50 transition-all">
                     <div className="flex items-center justify-between mb-4">
-                        <div className="p-3 bg-purple-500/10 rounded-xl">
-                            <Eye className="h-6 w-6 text-purple-500" />
+                        <div className="p-3 bg-accent/10 rounded-xl">
+                            <Eye className="h-6 w-6 text-accent" />
                         </div>
-                        <TrendingUp className="h-4 w-4 text-emerald-500" />
+                        <TrendingUp className="h-4 w-4 text-accent" />
                     </div>
                     <h3 className="text-3xl font-bold">{(data?.kpis.total_views || 0).toLocaleString(locale)}</h3>
                     <p className="text-sm text-muted-foreground mt-1">{t('totalViews')}</p>
                 </div>
 
-                <div className="card p-6 hover:border-emerald-500/50 transition-all">
+                <div className="card p-6 hover:border-accent/50 transition-all">
                     <div className="flex items-center justify-between mb-4">
-                        <div className="p-3 bg-emerald-500/10 rounded-xl">
-                            <Users className="h-6 w-6 text-emerald-500" />
+                        <div className="p-3 bg-accent/10 rounded-xl">
+                            <Users className="h-6 w-6 text-accent" />
                         </div>
-                        <TrendingUp className="h-4 w-4 text-emerald-500" />
+                        <TrendingUp className="h-4 w-4 text-accent" />
                     </div>
                     <h3 className="text-3xl font-bold">{data ? (data.kpis.total_users || 0) : 0}</h3>
                     <p className="text-sm text-muted-foreground mt-1">{t('totalUsers')}</p>
                 </div>
 
-                <div className="card p-6 hover:border-amber-500/50 transition-all">
+                <div className="card p-6 hover:border-accent/50 transition-all">
                     <div className="flex items-center justify-between mb-4">
-                        <div className="p-3 bg-amber-500/10 rounded-xl">
-                            <BarChart3 className="h-6 w-6 text-amber-500" />
+                        <div className="p-3 bg-accent/10 rounded-xl">
+                            <BarChart3 className="h-6 w-6 text-accent" />
                         </div>
-                        <TrendingUp className="h-4 w-4 text-emerald-500" />
+                        <TrendingUp className="h-4 w-4 text-accent" />
                     </div>
                     <h3 className="text-3xl font-bold">{data ? t('minutes', { count: data.kpis.avg_reading_time || 0 }) : t('minutes', { count: 0 })}</h3>
                     <p className="text-sm text-muted-foreground mt-1">{t('avgReadingTime')}</p>
@@ -137,7 +137,10 @@ export default function StatsPage() {
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
                 {/* Views by Month */}
                 <div className="card p-6">
-                    <h3 className="font-bold text-lg mb-6">{t('viewsByDay')}</h3>
+                    <h3 className="font-bold text-lg mb-6 flex items-center gap-2">
+                        {t('viewsByDay')}
+                        <span className="badge badge-accent-soft">{t('days30')}</span>
+                    </h3>
                     <div className="h-[300px] w-full">
                         <ResponsiveContainer width="100%" height={300} minHeight={300}>
                             <LineChart data={viewsChart}>
@@ -155,7 +158,7 @@ export default function StatsPage() {
                                 />
                                 <YAxis tick={{ fontSize: 12 }} />
                                 <Tooltip contentStyle={{ background: 'var(--card)', border: '1px solid var(--border)', borderRadius: '8px' }} />
-                                <Line type="monotone" dataKey="count" stroke="#0ea5e9" strokeWidth={2} dot={{ r: 4 }} />
+                                <Line type="monotone" dataKey="count" stroke="var(--accent)" strokeWidth={2} dot={{ r: 4 }} />
                             </LineChart>
                         </ResponsiveContainer>
                     </div>
@@ -163,7 +166,10 @@ export default function StatsPage() {
 
                 {/* Articles by Category */}
                 <div className="card p-6">
-                    <h3 className="font-bold text-lg mb-6">{t('articlesByDay')}</h3>
+                    <h3 className="font-bold text-lg mb-6 flex items-center gap-2">
+                        {t('articlesByDay')}
+                        <span className="badge badge-accent-soft">{t('days30')}</span>
+                    </h3>
                     <div className="h-[300px] w-full">
                         <ResponsiveContainer width="100%" height={300} minHeight={300}>
                             <BarChart data={articlesChart}>
@@ -181,7 +187,7 @@ export default function StatsPage() {
                                 />
                                 <YAxis tick={{ fontSize: 12 }} />
                                 <Tooltip contentStyle={{ background: 'var(--card)', border: '1px solid var(--border)', borderRadius: '8px' }} />
-                                <Bar dataKey="count" fill="#8b5cf6" radius={[8, 8, 0, 0]} />
+                                <Bar dataKey="count" fill="var(--accent)" radius={[8, 8, 0, 0]} />
                             </BarChart>
                         </ResponsiveContainer>
                     </div>
@@ -229,7 +235,7 @@ export default function StatsPage() {
                                 />
                                 <YAxis tick={{ fontSize: 12 }} />
                                 <Tooltip contentStyle={{ background: 'var(--card)', border: '1px solid var(--border)', borderRadius: '8px' }} />
-                                <Line type="monotone" dataKey="count" stroke="#10b981" strokeWidth={2} dot={{ r: 3 }} />
+                                <Line type="monotone" dataKey="count" stroke="var(--accent)" strokeWidth={2} dot={{ r: 3 }} />
                             </LineChart>
                         </ResponsiveContainer>
                     </div>

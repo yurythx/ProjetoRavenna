@@ -55,7 +55,7 @@ export default function ViewCounter({
 
     return (
         <div
-            className={`flex items-center text-gray-600 dark:text-gray-400 ${sizeClasses[size]} ${className}`}
+            className={`flex items-center text-muted-foreground ${sizeClasses[size]} ${className}`}
             title={t('viewsLabel', { count })}
         >
             <Eye size={iconSizes[size]} className="flex-shrink-0" />

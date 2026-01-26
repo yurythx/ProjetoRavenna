@@ -23,7 +23,7 @@ export default function ForgotPage() {
           </div>
           <div className="card p-6">
             {sent ? (
-              <p className="text-green-600">{t('forgotSent')}</p>
+              <p className="text-success">{t('forgotSent')}</p>
             ) : (
               <form
                 className="space-y-4"

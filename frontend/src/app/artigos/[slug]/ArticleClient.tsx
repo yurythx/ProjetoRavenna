@@ -233,7 +233,7 @@ export default function ArticleClient({ slug, initialData }: { slug: string, ini
             </div>
         );
     }
-    if (error || !data) return <div className="container-custom py-20 text-center"><p className="text-red-500 font-medium">{t('notFound')}</p></div>;
+    if (error || !data) return <div className="container-custom py-20 text-center"><p className="text-error font-medium">{t('notFound')}</p></div>;
 
     const authorName = data.author_name || t('author');
     const rawBanner = data.banner as unknown as string || '';
@@ -421,7 +421,7 @@ export default function ArticleClient({ slug, initialData }: { slug: string, ini
                                         <Link
                                             key={tid}
                                             href={`/artigos?tags=${tagData.slug || tagData.name}`}
-                                            className="px-4 py-1.5 rounded-full bg-muted hover:bg-accent hover:text-white transition-colors text-sm font-medium"
+                                            className="badge badge-accent-soft hover:bg-accent hover:text-white transition-colors"
                                         >
                                             #{tagData.name}
                                         </Link>
@@ -460,7 +460,7 @@ export default function ArticleClient({ slug, initialData }: { slug: string, ini
                         {canEdit && (
                             <div className="mt-8 flex gap-3 justify-end border-t border-border pt-6">
                                 <Link href={`/artigos/${data.slug}/edit`} className="btn btn-outline">{t('editArticle')}</Link>
-                                <button onClick={() => setConfirmOpen(true)} className="btn bg-red-600 hover:bg-red-700 text-white border-transparent">{tc('delete')}</button>
+                                <button onClick={() => setConfirmOpen(true)} className="btn text-white border-transparent" style={{ backgroundColor: 'var(--error)' }}>{tc('delete')}</button>
                             </div>
                         )}
 

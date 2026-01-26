@@ -141,8 +141,8 @@ export default function SecurityPage() {
             {/* Quick Stats */}
             <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
                 <div className="card p-4 flex items-center gap-4">
-                    <div className="h-10 w-10 rounded-full bg-blue-500/10 flex items-center justify-center">
-                        <Users className="h-5 w-5 text-blue-500" />
+                    <div className="h-10 w-10 rounded-full bg-accent/10 flex items-center justify-center">
+                        <Users className="h-5 w-5 text-accent" />
                     </div>
                     <div>
                         <p className="text-xs font-medium text-muted-foreground">{t('totalUsers')}</p>
@@ -150,8 +150,8 @@ export default function SecurityPage() {
                     </div>
                 </div>
                 <div className="card p-4 flex items-center gap-4">
-                    <div className="h-10 w-10 rounded-full bg-purple-500/10 flex items-center justify-center">
-                        <ShieldCheck className="h-5 w-5 text-purple-500" />
+                    <div className="h-10 w-10 rounded-full bg-accent/10 flex items-center justify-center">
+                        <ShieldCheck className="h-5 w-5 text-accent" />
                     </div>
                     <div>
                         <p className="text-xs font-medium text-muted-foreground">{t('administrators')}</p>
@@ -159,8 +159,8 @@ export default function SecurityPage() {
                     </div>
                 </div>
                 <div className="card p-4 flex items-center gap-4">
-                    <div className="h-10 w-10 rounded-full bg-green-500/10 flex items-center justify-center">
-                        <CheckCircle className="h-5 w-5 text-green-500" />
+                    <div className="h-10 w-10 rounded-full bg-success-soft flex items-center justify-center">
+                        <CheckCircle className="h-5 w-5 text-success" />
                     </div>
                     <div>
                         <p className="text-xs font-medium text-muted-foreground">{t('activeUsers')}</p>
@@ -168,8 +168,8 @@ export default function SecurityPage() {
                     </div>
                 </div>
                 <div className="card p-4 flex items-center gap-4">
-                    <div className="h-10 w-10 rounded-full bg-red-500/10 flex items-center justify-center">
-                        <AlertCircle className="h-5 w-5 text-red-500" />
+                    <div className="h-10 w-10 rounded-full bg-error-soft flex items-center justify-center">
+                        <AlertCircle className="h-5 w-5 text-error" />
                     </div>
                     <div>
                         <p className="text-xs font-medium text-muted-foreground">{t('inactiveUsers')}</p>
@@ -268,12 +268,12 @@ export default function SecurityPage() {
                                         </td>
                                         <td className="px-6 py-4">
                                             {user.is_staff ? (
-                                                <span className="inline-flex items-center gap-1 px-2 py-1 rounded-full bg-purple-500/10 text-purple-600 text-[10px] font-bold uppercase tracking-wider">
+                                                <span className="badge badge-accent-soft inline-flex items-center gap-1">
                                                     <ShieldCheck className="h-3 w-3" />
                                                     {t('roleAdmin')}
                                                 </span>
                                             ) : (
-                                                <span className="inline-flex items-center gap-1 px-2 py-1 rounded-full bg-blue-500/10 text-blue-600 text-[10px] font-bold uppercase tracking-wider">
+                                                <span className="badge badge-accent-soft inline-flex items-center gap-1">
                                                     <Users className="h-3 w-3" />
                                                     {t('roleUser')}
                                                 </span>
@@ -283,11 +283,11 @@ export default function SecurityPage() {
                                             <button
                                                 onClick={() => toggleStatusMutation.mutate({ userId: user.id, active: !user.is_active })}
                                                 className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-medium transition-all ${user.is_active
-                                                        ? 'bg-green-500/10 text-green-600 hover:bg-green-500/20'
-                                                        : 'bg-red-500/10 text-red-600 hover:bg-red-500/20'
+                                                        ? 'bg-success-soft text-success hover:bg-success-soft'
+                                                        : 'bg-error-soft text-error hover:bg-error-soft'
                                                     }`}
                                             >
-                                                <span className={`h-1.5 w-1.5 rounded-full ${user.is_active ? 'bg-green-500' : 'bg-red-500'}`} />
+                                                <span className="h-1.5 w-1.5 rounded-full" style={{ backgroundColor: user.is_active ? 'var(--success)' : 'var(--error)' }} />
                                                 {user.is_active ? t('statusActive') : t('statusInactive')}
                                             </button>
                                         </td>
@@ -312,7 +312,7 @@ export default function SecurityPage() {
                                                             deleteMutation.mutate(user.id);
                                                         }
                                                     }}
-                                                    className="p-2 hover:bg-red-500/10 rounded-lg text-muted-foreground hover:text-red-500 transition-colors"
+                                                    className="p-2 hover:bg-error-soft rounded-lg text-muted-foreground hover:text-error transition-colors"
                                                 >
                                                     <Trash2 className="h-4 w-4" />
                                                 </button>

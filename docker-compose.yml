@@ -68,7 +68,7 @@ services:
     ports:
       - "8001:8000"
     env_file:
-      - .env
+      - ./backend/.env
     environment:
       - DATABASE_URL=postgres://postgres:postgres@db:5432/projetoravenna
       - REDIS_URL=redis://redis:6379/1

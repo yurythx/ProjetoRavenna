@@ -303,7 +303,7 @@ export function ArticleForm({ initial }: { initial?: Article }) {
 
   return (
     <form onSubmit={onSubmit} onKeyDown={onKeyDown} className="pb-24 md:pb-0 space-y-6" aria-describedby="form-status" aria-live="polite">
-      {error && <div className="bg-red-50 text-red-600 p-3 rounded" id="form-status">{error}</div>}
+      {error && <div className="bg-error-soft text-error p-3 rounded" id="form-status">{error}</div>}
 
       <div className="space-y-6">
         <div className="space-y-4">
@@ -312,14 +312,14 @@ export function ArticleForm({ initial }: { initial?: Article }) {
             <input
               id="title"
               maxLength={255}
-              className={`input text-lg font-bold ${titleError ? 'border-red-500' : ''}`}
+              className={`input text-lg font-bold ${titleError ? 'border-error' : ''}`}
               placeholder={t('titlePlaceholder')}
               value={title}
               onChange={(e) => setTitle(e.target.value)}
               aria-invalid={!!titleError}
             />
-            {titleError && <p className="text-xs text-red-500 mt-1">{titleError}</p>}
-            <div className="text-xs text-gray-500 mt-1 flex flex-col sm:flex-row sm:justify-between gap-1">
+            {titleError && <p className="text-xs text-error mt-1">{titleError}</p>}
+            <div className="text-xs text-muted-foreground mt-1 flex flex-col sm:flex-row sm:justify-between gap-1">
               <span>{tc('characters', { count: titleLen })}</span>
               {slugPreview && <span className="truncate">{t('urlPreview', { slug: slugPreview })}</span>}
             </div>
@@ -329,31 +329,31 @@ export function ArticleForm({ initial }: { initial?: Article }) {
             <label htmlFor="excerpt" className="block text-sm font-medium mb-1">{t('excerpt')}</label>
             <textarea
               id="excerpt"
-              className={`input w-full min-h-[100px] text-base ${excerptError ? 'border-red-500' : ''}`}
+              className={`input w-full min-h-[100px] text-base ${excerptError ? 'border-error' : ''}`}
               placeholder={t('excerptPlaceholder')}
               value={excerpt}
               onChange={(e) => setExcerpt(e.target.value)}
               aria-invalid={!!excerptError}
             />
-            {excerptError && <p className="text-xs text-red-500 mt-1">{excerptError}</p>}
-            <div className="text-xs text-gray-500 mt-1 text-right">{tc('characters', { count: excerptLen })} / 500</div>
+            {excerptError && <p className="text-xs text-error mt-1">{excerptError}</p>}
+            <div className="text-xs text-muted-foreground mt-1 text-right">{tc('characters', { count: excerptLen })} / 500</div>
           </div>
 
-          <div className={`${contentError ? 'border-red-200' : ''}`}>
+          <div className={`${contentError ? 'border-error' : ''}`}>
             <BlockEditor
               content={contentJson}
               onChange={setContentJson}
               placeholder={t('contentPlaceholder')}
             />
           </div>
-          {contentError && <p className="text-xs text-red-500 mt-1">{contentError}</p>}
-          <div className="text-xs text-gray-500 mt-1">{tc('structureCharacters', { count: JSON.stringify(contentJson || {}).length })}</div>
+          {contentError && <p className="text-xs text-error mt-1">{contentError}</p>}
+          <div className="text-xs text-muted-foreground mt-1">{tc('structureCharacters', { count: JSON.stringify(contentJson || {}).length })}</div>
         </div>
 
         <div className="grid md:grid-cols-2 gap-6">
           <div className="space-y-6">
             <div className="card p-4 space-y-4">
-              <h3 className="font-semibold text-sm text-gray-500 uppercase tracking-wider">{t('settings')}</h3>
+              <h3 className="font-semibold text-sm text-muted-foreground uppercase tracking-wider">{t('settings')}</h3>
               <div>
                 <label htmlFor="category" className="block text-sm font-medium mb-1">{t('category')}</label>
                 <select
@@ -371,7 +371,7 @@ export function ArticleForm({ initial }: { initial?: Article }) {
               <label className="flex items-center gap-3 py-2 cursor-pointer select-none">
                 <input
                   type="checkbox"
-                  className="w-5 h-5 rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+                  className="w-5 h-5 rounded border-border text-accent focus:ring-accent"
                   checked={isPublished}
                   onChange={(e) => setIsPublished(e.target.checked)}
                 />
@@ -395,7 +395,7 @@ export function ArticleForm({ initial }: { initial?: Article }) {
             </div>
 
             <div className="card p-4 space-y-4">
-              <h3 className="font-semibold text-sm text-gray-500 uppercase tracking-wider">{t('banner')}</h3>
+              <h3 className="font-semibold text-sm text-muted-foreground uppercase tracking-wider">{t('banner')}</h3>
               <div className="relative group">
                 <input
                   id="banner"
@@ -409,7 +409,7 @@ export function ArticleForm({ initial }: { initial?: Article }) {
                   className={`
                                block w-full aspect-video rounded-lg border-2 border-dashed cursor-pointer overflow-hidden relative
                                flex flex-col items-center justify-center transition-colors
-                               ${bannerError ? 'border-red-500 bg-red-50' : 'border-gray-300 hover:border-blue-500 hover:bg-gray-50'}
+                               ${bannerError ? 'border-error bg-error-soft' : 'border-border hover:border-accent hover:bg-muted'}
                            `}
                 >
                   {previewUrl ? (
@@ -428,7 +428,7 @@ export function ArticleForm({ initial }: { initial?: Article }) {
                       </div>
                     </>
                   ) : (
-                    <div className="text-center p-4 text-gray-500">
+                    <div className="text-center p-4 text-muted-foreground">
                       <ImageIcon className="h-8 w-8 mx-auto mb-2 opacity-50" />
                       <span className="text-sm font-medium">{t('clickToUpload')}</span>
                       <span className="block text-[10px] opacity-60">{t('recommendedSize')}</span>
@@ -439,20 +439,21 @@ export function ArticleForm({ initial }: { initial?: Article }) {
                   <button
                     type="button"
                     onClick={() => { setBanner(null); setPreviewUrl(null); }}
-                    className="absolute -top-2 -right-2 bg-red-500 text-white rounded-full p-2 shadow-lg border-2 border-white hover:bg-red-600 transition-colors z-20"
+                    className="absolute -top-2 -right-2 text-white rounded-full p-2 shadow-lg border-2 border-white transition-colors z-20"
+                    style={{ backgroundColor: 'var(--error)' }}
                     aria-label={t('removeBanner')}
                   >
                     <X className="h-4 w-4" />
                   </button>
                 )}
               </div>
-              {bannerError && <p className="text-xs text-red-600 font-medium underline decoration-red-200">{bannerError}</p>}
+              {bannerError && <p className="text-xs text-error font-medium">{bannerError}</p>}
             </div>
           </div>
 
           <div className="space-y-6">
             <div className="card p-4 space-y-4">
-              <h3 className="font-semibold text-sm text-gray-500 uppercase tracking-wider">Tags</h3>
+              <h3 className="font-semibold text-sm text-muted-foreground uppercase tracking-wider">Tags</h3>
               <div className="relative">
                 <input
                   ref={tagInputRef}
@@ -497,12 +498,12 @@ export function ArticleForm({ initial }: { initial?: Article }) {
                   const tag = tgs?.find(t => t.id === tid);
                   if (!tag) return null;
                   return (
-                    <span key={tid} className="badge badge-active py-1.5 px-3 flex items-center gap-2 group">
+                    <span key={tid} className="badge badge-accent-soft flex items-center gap-2 group">
                       {tag.name}
                       <button
                         type="button"
                         onClick={() => setTags(tags.filter(id => id !== tid))}
-                        className="hover:bg-black/20 rounded-full p-0.5"
+                        className="hover:bg-muted rounded-full p-0.5"
                       >
                         <X className="h-3.5 w-3.5" />
                       </button>
@@ -526,12 +527,13 @@ export function ArticleForm({ initial }: { initial?: Article }) {
               {t('draft')}
             </button>
           )}
-          {initial && (
+              {initial && (
             <button
               type="button"
               onClick={handleDelete}
               disabled={loading}
-              className="btn btn-outline border-red-500 text-red-500 hover:bg-red-50 flex-1 h-12"
+                  className="btn btn-outline flex-1 h-12"
+                  style={{ borderColor: 'var(--error)', color: 'var(--error)' }}
             >
               {loading ? '...' : t('delete')}
             </button>

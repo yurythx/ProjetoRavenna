@@ -303,7 +303,7 @@ export default function PerfilPage() {
                                 {/* Colors - Light Mode */}
                                 <div className="space-y-4">
                                     <h3 className="text-sm font-semibold text-foreground flex items-center gap-2">
-                                        <Sun className="w-4 h-4 text-amber-500" />
+                                    <Sun className="w-4 h-4 text-warning" />
                                         Cores - Modo Claro
                                     </h3>
                                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -329,7 +329,7 @@ export default function PerfilPage() {
                                 {/* Colors - Dark Mode */}
                                 <div className="space-y-4">
                                     <h3 className="text-sm font-semibold text-foreground flex items-center gap-2">
-                                        <Moon className="w-4 h-4 text-blue-500" />
+                                    <Moon className="w-4 h-4 text-accent" />
                                         Cores - Modo Escuro
                                     </h3>
                                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">

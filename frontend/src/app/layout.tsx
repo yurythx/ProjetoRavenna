@@ -8,6 +8,7 @@ import { ThemeProvider } from "@/contexts/ThemeContext";
 import { DynamicBranding } from "@/components/DynamicBranding";
 import { DynamicFavicon } from "@/components/DynamicFavicon";
 import { getTenantConfig } from "@/services/tenant";
+import { getThemeCss } from "@/lib/theme";
 import { cookies } from "next/headers";
 import { NextIntlClientProvider } from 'next-intl';
 import { getMessages, getLocale } from 'next-intl/server';
@@ -72,16 +73,7 @@ export default async function RootLayout({
   return (
     <html lang={locale} suppressHydrationWarning data-scroll-behavior="smooth" className={initialThemeClass}>
       <head>
-        <style dangerouslySetInnerHTML={{
-          __html: `
-            :root {
-              ${config?.primary_color ? `--brand-primary: ${config.primary_color};` : ''}
-              ${config?.secondary_color ? `--brand-secondary: ${config.secondary_color};` : ''}
-              ${config?.primary_color_dark ? `--brand-primary-dark: ${config.primary_color_dark};` : ''}
-              ${config?.secondary_color_dark ? `--brand-secondary-dark: ${config.secondary_color_dark};` : ''}
-            }
-          `
-        }} />
+        <style dangerouslySetInnerHTML={{ __html: getThemeCss(config) }} />
       </head>
       <body
         className={`${fontClass} antialiased min-h-screen flex flex-col`}

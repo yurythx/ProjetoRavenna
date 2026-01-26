@@ -38,7 +38,7 @@ export function ErrorDialog({
           )}
         </div>
         <div className="bg-white px-5 py-3 flex justify-end">
-          <button className="px-4 py-2 rounded bg-red-600 text-white" onClick={onClose}>{t('ok')}</button>
+          <button className="px-4 py-2 rounded text-white" onClick={onClose} style={{ backgroundColor: 'var(--error)' }}>{t('ok')}</button>
         </div>
       </div>
     </div>,

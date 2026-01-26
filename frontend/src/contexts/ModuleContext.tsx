@@ -1,42 +1,15 @@
-'use client';
-import { createContext, useContext, useEffect, useMemo, useState } from 'react';
+import { createContext, useContext, useState, ReactNode } from 'react';
 
-type ModuleState = Record<string, boolean>;
-type ModuleContextType = {
-  disabled: ModuleState;
-  reset: (module: string) => void;
-};
+type Module = { slug: string; is_active: boolean };
+type ModuleContextValue = { modules: Module[]; disabled?: boolean };
 
-const ModuleContext = createContext<ModuleContextType | null>(null);
+const Ctx = createContext<ModuleContextValue>({ modules: [], disabled: false });
 
-export function ModuleProvider({ children }: { children: React.ReactNode }) {
-  const [disabled, setDisabled] = useState<ModuleState>({});
-
-  useEffect(() => {
-    function onDisabled(e: Event) {
-      const ce = e as CustomEvent<{ module?: string }>;
-      const name = ce.detail?.module || 'unknown';
-      setDisabled((d) => ({ ...d, [name]: true }));
-    }
-    window.addEventListener('module-disabled', onDisabled as EventListener);
-    return () => window.removeEventListener('module-disabled', onDisabled as EventListener);
-  }, []);
-
-  function reset(module: string) {
-    setDisabled((d) => {
-      const next = { ...d };
-      delete next[module];
-      return next;
-    });
-  }
-
-  const value = useMemo(() => ({ disabled, reset }), [disabled]);
-  return <ModuleContext.Provider value={value}>{children}</ModuleContext.Provider>;
+export function ModuleProvider({ children }: { children: ReactNode }) {
+  const [modules] = useState<Module[]>([]);
+  return <Ctx.Provider value={{ modules, disabled: false }}>{children}</Ctx.Provider>;
 }
 
 export function useModules() {
-  const ctx = useContext(ModuleContext);
-  if (!ctx) throw new Error('useModules must be used within ModuleProvider');
-  return ctx;
+  return useContext(Ctx);
 }
-

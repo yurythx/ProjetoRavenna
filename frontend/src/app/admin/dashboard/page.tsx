@@ -42,7 +42,7 @@ export default function DashboardPage() {
         return (
             <div className="container-custom py-12">
                 <div className="text-center">
-                    <h2 className="text-2xl font-bold text-red-600 mb-2">{t('errorLoading')}</h2>
+                    <h2 className="text-2xl font-bold text-error mb-2">{t('errorLoading')}</h2>
                     <p className="text-muted-foreground">{t('tryLater')}</p>
                 </div>
             </div>
@@ -81,31 +81,31 @@ export default function DashboardPage() {
                     value={stats.kpis.total_users}
                     change={userChangePercent}
                     icon={Users}
-                    iconColor="#3b82f6"
-                    bgColor="rgba(59, 130, 246, 0.1)"
+                    iconColor="var(--accent)"
+                    bgColor="color-mix(in srgb, var(--accent) 10%, transparent)"
                 />
                 <KPICard
                     title={t('publishedArticles')}
                     value={stats.kpis.total_articles}
                     change={articleChangePercent}
                     icon={FileText}
-                    iconColor="#10b981"
-                    bgColor="rgba(16, 185, 129, 0.1)"
+                    iconColor="var(--accent)"
+                    bgColor="color-mix(in srgb, var(--accent) 10%, transparent)"
                 />
                 <KPICard
                     title={t('totalComments')}
                     value={stats.kpis.total_comments}
                     change={commentChangePercent}
                     icon={MessageSquare}
-                    iconColor="#8b5cf6"
-                    bgColor="rgba(139, 92, 246, 0.1)"
+                    iconColor="var(--accent)"
+                    bgColor="color-mix(in srgb, var(--accent) 10%, transparent)"
                 />
                 <KPICard
                     title={t('publishedArticles')}
                     value={stats.kpis.published_articles}
                     icon={CheckCircle}
-                    iconColor="#f59e0b"
-                    bgColor="rgba(245, 158, 11, 0.1)"
+                    iconColor="var(--accent)"
+                    bgColor="color-mix(in srgb, var(--accent) 10%, transparent)"
                 />
             </div>
 
@@ -114,7 +114,7 @@ export default function DashboardPage() {
                 <ChartCard title={t('newArticles30d')}>
                     <ResponsiveContainer width="100%" height="100%">
                         <LineChart data={stats.charts.articles_by_day}>
-                            <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" />
+                            <CartesianGrid strokeDasharray="3 3" stroke="var(--border)" />
                             <XAxis
                                 dataKey="date"
                                 tick={{ fontSize: 12 }}
@@ -134,9 +134,9 @@ export default function DashboardPage() {
                             <Line
                                 type="monotone"
                                 dataKey="count"
-                                stroke="#10b981"
+                                stroke="var(--accent)"
                                 strokeWidth={2}
-                                dot={{ fill: '#10b981', r: 4 }}
+                                dot={{ fill: 'var(--accent)', r: 4 }}
                                 activeDot={{ r: 6 }}
                             />
                         </LineChart>
@@ -146,7 +146,7 @@ export default function DashboardPage() {
                 <ChartCard title={t('newUsers30d')}>
                     <ResponsiveContainer width="100%" height="100%">
                         <LineChart data={stats.charts.users_by_day}>
-                            <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" />
+                            <CartesianGrid strokeDasharray="3 3" stroke="var(--border)" />
                             <XAxis
                                 dataKey="date"
                                 tick={{ fontSize: 12 }}
@@ -166,9 +166,9 @@ export default function DashboardPage() {
                             <Line
                                 type="monotone"
                                 dataKey="count"
-                                stroke="#3b82f6"
+                                stroke="var(--accent)"
                                 strokeWidth={2}
-                                dot={{ fill: '#3b82f6', r: 4 }}
+                                dot={{ fill: 'var(--accent)', r: 4 }}
                                 activeDot={{ r: 6 }}
                             />
                         </LineChart>
@@ -181,7 +181,7 @@ export default function DashboardPage() {
                 <ChartCard title={t('newComments30d')}>
                     <ResponsiveContainer width="100%" height="100%">
                         <BarChart data={stats.charts.comments_by_day}>
-                            <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" />
+                            <CartesianGrid strokeDasharray="3 3" stroke="var(--border)" />
                             <XAxis
                                 dataKey="date"
                                 tick={{ fontSize: 12 }}
@@ -198,7 +198,7 @@ export default function DashboardPage() {
                                     borderRadius: '8px'
                                 }}
                             />
-                            <Bar dataKey="count" fill="#8b5cf6" radius={[8, 8, 0, 0]} />
+                            <Bar dataKey="count" fill="var(--accent)" radius={[8, 8, 0, 0]} />
                         </BarChart>
                     </ResponsiveContainer>
                 </ChartCard>

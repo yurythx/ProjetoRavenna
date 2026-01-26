@@ -70,10 +70,10 @@ export default function AdminDashboard() {
     </div>;
 
     const kpis = [
-        { label: t('totalReaders'), value: data?.kpis.total_users, icon: Users, color: 'text-blue-500', bg: 'bg-blue-500/10' },
-        { label: t('publishedArticles'), value: data?.kpis.total_articles, icon: BookOpen, color: 'text-purple-500', bg: 'bg-purple-500/10' },
-        { label: t('views'), value: data?.kpis.total_views, icon: Eye, color: 'text-amber-500', bg: 'bg-amber-500/10' },
-        { label: t('avgEngagement'), value: `${data?.kpis.avg_engagement}%`, icon: MousePointer2, color: 'text-emerald-500', bg: 'bg-emerald-500/10' },
+        { label: t('totalReaders'), value: data?.kpis.total_users, icon: Users, color: 'text-accent', bg: 'bg-accent/10' },
+        { label: t('publishedArticles'), value: data?.kpis.total_articles, icon: BookOpen, color: 'text-accent', bg: 'bg-accent/10' },
+        { label: t('views'), value: data?.kpis.total_views, icon: Eye, color: 'text-warning', bg: 'bg-warning-soft' },
+        { label: t('avgEngagement'), value: `${data?.kpis.avg_engagement}%`, icon: MousePointer2, color: 'text-success', bg: 'bg-success-soft' },
     ];
 
     return (
@@ -108,7 +108,7 @@ export default function AdminDashboard() {
                     <div className="flex items-center justify-between mb-8">
                         <h3 className="font-bold text-lg flex items-center gap-2">
                             {t('dailyViews')}
-                            <span className="text-xs font-normal text-muted-foreground bg-muted px-2 py-0.5 rounded-full">{t('days30')}</span>
+                            <span className="badge badge-accent-soft">{t('days30')}</span>
                         </h3>
                     </div>
                     <div className="h-[300px] w-full">
@@ -147,14 +147,14 @@ export default function AdminDashboard() {
                                 <div className="min-w-0 flex-1 pr-4">
                                     <p className="font-medium text-sm truncate">{art.title}</p>
                                     <div className="flex items-center gap-2 mt-1">
-                                        <span className="text-[10px] text-muted-foreground bg-muted px-1.5 py-0.5 rounded uppercase">{t('engagement')}: {art.engagement}%</span>
+                                        <span className="badge badge-success-soft">{t('engagement')}: {art.engagement}%</span>
                                     </div>
                                 </div>
                                 <div className="text-right">
                                     <div className="text-sm font-bold flex items-center gap-1">
                                         {art.views} <Eye className="h-3 w-3 opacity-50" />
                                     </div>
-                                    <div className="text-[10px] text-emerald-500 font-medium">+12%</div>
+                                    <div className="text-[10px] text-success font-medium">+12%</div>
                                 </div>
                             </div>
                         ))}

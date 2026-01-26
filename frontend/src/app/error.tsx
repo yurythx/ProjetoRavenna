@@ -31,10 +31,9 @@ export default function Error({
                 aria-live="assertive"
             >
                 <div
-                    className="w-20 h-20 mx-auto rounded-full flex items-center justify-center"
-                    style={{ background: 'rgba(239, 68, 68, 0.1)' }}
+                    className="w-20 h-20 mx-auto rounded-full flex items-center justify-center bg-error-soft"
                 >
-                    <AlertTriangle className="w-10 h-10 text-red-500" aria-hidden="true" />
+                    <AlertTriangle className="w-10 h-10 text-error" aria-hidden="true" />
                 </div>
 
                 <div>

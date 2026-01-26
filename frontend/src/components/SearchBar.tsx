@@ -116,7 +116,7 @@ export function SearchBar({
     return (
         <div className={`relative ${className}`}>
             <div className="relative">
-                <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-gray-400" />
+                <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-muted-foreground" />
                 <input
                     ref={inputRef}
                     type="text"
@@ -140,7 +140,7 @@ export function SearchBar({
                 {query && (
                     <button
                         onClick={handleClear}
-                        className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 transition-colors"
+                    className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors"
                         aria-label={t('clearSearch')}
                     >
                         <X className="h-5 w-5" />
@@ -149,7 +149,7 @@ export function SearchBar({
 
                 {isLoading && (
                     <div className="absolute right-12 top-1/2 -translate-y-1/2">
-                        <Loader2 className="h-4 w-4 animate-spin text-gray-400" />
+                        <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />
                     </div>
                 )}
             </div>
@@ -159,7 +159,7 @@ export function SearchBar({
                 <div
                     ref={autocompleteRef}
                     id="search-autocomplete"
-                    className="absolute z-50 w-full mt-2 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg shadow-lg max-h-80 overflow-y-auto"
+                    className="absolute z-50 w-full mt-2 bg-card border border-border rounded-lg shadow-lg max-h-80 overflow-y-auto"
                     role="listbox"
                 >
                     {results.map((result, index) => (
@@ -170,13 +170,13 @@ export function SearchBar({
                                 setShowAutocomplete(false);
                                 setQuery('');
                             }}
-                            className={`w-full text-left px-4 py-3 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors border-b border-gray-100 dark:border-gray-700 last:border-b-0 ${index === selectedIndex ? 'bg-gray-100 dark:bg-gray-700' : ''
+                            className={`w-full text-left px-4 py-3 hover:bg-muted transition-colors border-b border-border last:border-b-0 ${index === selectedIndex ? 'bg-muted' : ''
                                 }`}
                             role="option"
                             aria-selected={index === selectedIndex}
                         >
                             <div className="flex items-center gap-3">
-                                <Search className="h-4 w-4 text-gray-400 shrink-0" />
+                                <Search className="h-4 w-4 text-muted-foreground shrink-0" />
                                 <span className="text-sm font-medium truncate">{result.title}</span>
                             </div>
                         </button>

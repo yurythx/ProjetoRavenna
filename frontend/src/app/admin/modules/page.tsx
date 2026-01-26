@@ -69,7 +69,7 @@ export default function ModulesManager() {
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 {modules?.map((mod) => (
-                    <div key={mod.id} className={`card p-6 border-l-4 transition-all ${mod.is_active ? 'border-l-accent' : 'border-l-gray-300 opacity-80'}`}>
+                    <div key={mod.id} className={`card p-6 border-l-4 transition-all ${mod.is_active ? 'border-l-accent' : 'border-l-border opacity-80'}`}>
                         <div className="flex items-start justify-between">
                             <div className="flex gap-4">
                                 <div className={`p-3 rounded-xl ${mod.is_active ? 'bg-accent/10 text-accent' : 'bg-muted text-muted-foreground'}`}>
@@ -91,7 +91,7 @@ export default function ModulesManager() {
                                     disabled={mod.is_system_module || toggleMutation.isPending}
                                     onChange={(e) => toggleMutation.mutate({ slug: mod.slug, active: e.target.checked })}
                                 />
-                                <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none rounded-full peer dark:bg-gray-700 peer-checked:after:translate-x-full rtl:peer-checked:after:-translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all dark:border-gray-600 peer-checked:bg-accent disabled:opacity-50"></div>
+                                <div className="w-11 h-6 bg-muted peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full rtl:peer-checked:after:-translate-x-full after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-card after:border-border after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-accent disabled:opacity-50"></div>
                             </label>
                         </div>
 
@@ -102,20 +102,20 @@ export default function ModulesManager() {
                         </p>
 
                         <div className="mt-6 flex flex-wrap gap-3">
-                            <div className="flex items-center gap-1.5 text-[10px] font-medium px-2 py-1 bg-muted rounded-full uppercase tracking-wider">
+                            <div className="badge badge-accent-soft inline-flex items-center gap-1">
                                 <ShieldCheck className="h-3 w-3" />
                                 {mod.is_system_module ? t('moduleSystem') : t('moduleExpandable')}
                             </div>
-                            <div className="flex items-center gap-1.5 text-[10px] font-medium px-2 py-1 bg-muted rounded-full uppercase tracking-wider">
+                            <div className="badge badge-accent-soft inline-flex items-center gap-1">
                                 <Clock className="h-3 w-3" />
                                 {t('moduleReactive')}
                             </div>
                         </div>
 
                         {mod.is_system_module && (
-                            <div className="mt-4 p-3 bg-blue-500/5 rounded-lg border border-blue-500/10 flex items-start gap-3">
-                                <Info className="h-4 w-4 text-blue-500 shrink-0 mt-0.5" />
-                                <p className="text-[11px] text-blue-500/80 leading-snug">
+                            <div className="mt-4 p-3 bg-accent/5 rounded-lg border border-accent/10 flex items-start gap-3">
+                                <Info className="h-4 w-4 text-accent shrink-0 mt-0.5" />
+                                <p className="text-[11px] text-accent/80 leading-snug">
                                     {t('moduleSystemNotice')}
                                 </p>
                             </div>
@@ -124,11 +124,11 @@ export default function ModulesManager() {
                 ))}
             </div>
 
-            <div className="p-6 bg-yellow-500/5 rounded-2xl border border-yellow-500/10 flex items-start gap-4">
-                <AlertTriangle className="h-6 w-6 text-yellow-500 shrink-0" />
+            <div className="p-6 bg-accent/5 rounded-2xl border border-accent/10 flex items-start gap-4">
+                <AlertTriangle className="h-6 w-6 text-accent shrink-0" />
                 <div>
-                    <h4 className="font-bold text-yellow-500">{t('modulesNoticeTitle')}</h4>
-                    <p className="text-sm text-yellow-500/80 max-w-2xl">
+                    <h4 className="font-bold text-accent">{t('modulesNoticeTitle')}</h4>
+                    <p className="text-sm text-accent/80 max-w-2xl">
                         {t('modulesNoticeDesc')}
                     </p>
                 </div>

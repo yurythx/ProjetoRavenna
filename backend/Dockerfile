@@ -1,34 +1,12 @@
-
-# Use an official Python runtime as a parent image
-FROM python:3.12-slim
-
-# Set environment variables
-ENV PYTHONDONTWRITEBYTECODE 1
-ENV PYTHONUNBUFFERED 1
-
-# Set work directory
+FROM python:3.12-slim AS base
+ENV PYTHONDONTWRITEBYTECODE=1
+ENV PYTHONUNBUFFERED=1
 WORKDIR /app
-
-# Install system dependencies
-RUN apt-get update && apt-get install -y \
-    gcc \
-    libpq-dev \
-    netcat-openbsd \
-    curl \
-    && apt-get clean && rm -rf /var/lib/apt/lists/*
-
-# Install python dependencies
-COPY requirements.txt /app/
-RUN pip install --no-cache-dir --upgrade pip && \
-    pip install --no-cache-dir -r requirements.txt
-
-# Copy project
-COPY . /app/
-
-# Make entrypoint executable (Fix permission issue on Windows/Linux mount)
-# Ensure Unix line endings (CRLF -> LF) using sed in case of Windows editing
-RUN chmod +x /app/entrypoint.sh && \
-    sed -i 's/\r$//' /app/entrypoint.sh
-
-# Run entrypoint.sh
-ENTRYPOINT ["/app/entrypoint.sh"]
+RUN apt-get update && apt-get install -y --no-install-recommends build-essential libpq-dev && rm -rf /var/lib/apt/lists/*
+COPY requirements.txt /app/requirements.txt
+RUN pip install --no-cache-dir -r requirements.txt
+COPY . /app
+EXPOSE 8000
+COPY entrypoint.sh /entrypoint.sh
+RUN chmod +x /entrypoint.sh
+CMD ["/entrypoint.sh"]

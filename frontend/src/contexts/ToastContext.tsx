@@ -1,53 +1,29 @@
 'use client';
-import { createContext, useContext, useMemo, useState, useCallback } from 'react';
+import { createContext, useContext, useState, ReactNode } from 'react';
 
-type ToastType = 'success' | 'error' | 'info' | 'warning';
-type Toast = { id: string; type: ToastType; message: string };
-type ToastContextType = {
-  toasts: Toast[];
-  show: (t: Omit<Toast, 'id'>) => void;
-  remove: (id: string) => void;
-  success: (message: string) => void;
-  error: (message: string) => void;
-  info: (message: string) => void;
-  warning: (message: string) => void;
-};
+type Toast = { message: string; type?: 'success' | 'error' | 'info' };
 
-const ToastContext = createContext<ToastContextType | null>(null);
+const ToastContext = createContext<{ show: (t: Toast) => void; success: (m: string) => void; error: (m: string) => void; info: (m: string) => void } | null>(null);
 
-function uid() {
-  return Math.random().toString(36).slice(2);
-}
-
-export function ToastProvider({ children }: { children: React.ReactNode }) {
+export function ToastProvider({ children }: { children: ReactNode }) {
   const [toasts, setToasts] = useState<Toast[]>([]);
-
-  const show = useCallback((t: Omit<Toast, 'id'>) => {
-    const exists = toasts.some((x) => x.message === t.message && x.type === t.type);
-    if (exists) return;
-    const id = uid();
-    const toast = { ...t, id };
-    setToasts((list) => [...list.slice(-4), toast]);
-    setTimeout(() => {
-      setToasts((list) => list.filter((x) => x.id !== id));
-    }, 5000);
-  }, [toasts]);
-
-  const remove = useCallback((id: string) => {
-    setToasts((list) => list.filter((x) => x.id !== id));
-  }, []);
-
-  const success = useCallback((message: string) => show({ type: 'success', message }), [show]);
-  const error = useCallback((message: string) => show({ type: 'error', message }), [show]);
-  const info = useCallback((message: string) => show({ type: 'info', message }), [show]);
-  const warning = useCallback((message: string) => show({ type: 'warning', message }), [show]);
-
-  const value = useMemo(() => ({ toasts, show, remove, success, error, info, warning }), [toasts, show, remove, success, error, info, warning]);
-  return <ToastContext.Provider value={value}>{children}</ToastContext.Provider>;
+  const show = (t: Toast) => setToasts((prev) => [...prev, t]);
+  const success = (m: string) => show({ message: m, type: 'success' });
+  const error = (m: string) => show({ message: m, type: 'error' });
+  const info = (m: string) => show({ message: m, type: 'info' });
+  return (
+    <ToastContext.Provider value={{ show, success, error, info }}>
+      {children}
+      <div className="fixed bottom-4 right-4 space-y-2 z-50">
+        {toasts.map((t, i) => (
+          <div key={i} className={`toast ${t.type === 'success' ? 'toast-success' : t.type === 'error' ? 'toast-error' : 'toast-info'}`}>{t.message}</div>
+        ))}
+      </div>
+    </ToastContext.Provider>
+  );
 }
 
 export function useToast() {
   const ctx = useContext(ToastContext);
-  if (!ctx) throw new Error('useToast must be used within ToastProvider');
-  return ctx;
+  return ctx ?? { show: () => {}, success: () => {}, error: () => {}, info: () => {} };
 }

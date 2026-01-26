@@ -111,7 +111,7 @@ function ArticlesContent() {
   if (disabled['articles']) {
     return (
       <div className="container-custom py-16 text-center">
-        <p className="text-yellow-600 dark:text-yellow-500 text-lg">{t('moduleDisabled')}</p>
+        <p className="text-accent text-lg">{t('moduleDisabled')}</p>
       </div>
     );
   }
@@ -140,7 +140,8 @@ function ArticlesContent() {
             {token && (
               <button
                 onClick={() => setPubOnly(!pubOnly)}
-                className={`btn ${!pubOnly ? 'bg-yellow-500 text-white' : 'btn-outline'} whitespace-nowrap flex-1 md:flex-none`}
+                className={`btn ${!pubOnly ? 'text-white' : 'btn-outline'} whitespace-nowrap flex-1 md:flex-none`}
+                style={!pubOnly ? { backgroundColor: 'var(--warning)' } : undefined}
               >
                 {pubOnly ? t('viewDrafts') : t('viewPublished')}
               </button>
@@ -185,7 +186,7 @@ function ArticlesContent() {
           <div className="w-full md:w-auto overflow-x-auto no-scrollbar flex items-center gap-2 pb-1 md:pb-0 mask-linear-fade">
             <button
               onClick={() => setCategory(undefined)}
-              className={`px-5 py-2 rounded-full text-sm font-medium whitespace-nowrap transition-all border ${!category ? 'bg-foreground text-background border-foreground' : 'bg-transparent text-muted-foreground border-border hover:border-foreground hover:text-foreground'}`}
+              className={`badge badge-md ${!category ? 'badge-accent' : 'badge-outline'}`}
             >
               {t('allCategories')}
             </button>
@@ -193,7 +194,7 @@ function ArticlesContent() {
               <button
                 key={c.id}
                 onClick={() => setCategory(c.slug || c.id)}
-                className={`px-5 py-2 rounded-full text-sm font-medium whitespace-nowrap transition-all border ${category === (c.slug || c.id) ? 'bg-foreground text-background border-foreground' : 'bg-transparent text-muted-foreground border-border hover:border-foreground hover:text-foreground'}`}
+                className={`badge badge-md ${category === (c.slug || c.id) ? 'badge-accent' : 'badge-outline'}`}
               >
                 {c.name}
               </button>
@@ -209,7 +210,7 @@ function ArticlesContent() {
           </div>
         ) : error ? (
           <div className="text-center py-20 bg-muted/30 rounded-2xl border border-border">
-            <p className="text-red-500 font-medium">{t('loadError')}</p>
+            <p className="text-error font-medium">{t('loadError')}</p>
             <button onClick={() => window.location.reload()} className="mt-4 text-sm underline">{t('tryAgain')}</button>
           </div>
         ) : articles.length === 0 ? (

@@ -103,7 +103,8 @@ export function AvatarUpload({ currentAvatar, onUpload, isUploading }: AvatarUpl
                 {preview && !isUploading && (
                     <button
                         onClick={handleRemove}
-                        className="absolute top-0 right-0 p-1 rounded-full bg-red-500 text-white hover:bg-red-600 transition-colors"
+                        className="absolute top-0 right-0 p-1 rounded-full text-white transition-colors"
+                        style={{ backgroundColor: 'var(--error)' }}
                         aria-label={t('removeAvatar')}
                     >
                         <X className="w-4 h-4" />

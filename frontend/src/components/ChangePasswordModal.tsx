@@ -142,7 +142,7 @@ export function ChangePasswordModal({ isOpen, onClose }: ChangePasswordModalProp
                             </button>
                         </div>
                         {errors.old_password && (
-                            <p className="text-xs mt-1 text-red-500">{errors.old_password}</p>
+                            <p className="text-xs mt-1 text-error">{errors.old_password}</p>
                         )}
                     </div>
 
@@ -204,7 +204,7 @@ export function ChangePasswordModal({ isOpen, onClose }: ChangePasswordModalProp
                         )}
 
                         {errors.new_password && (
-                            <p className="text-xs mt-1 text-red-500">
+                            <p className="text-xs mt-1 text-error">
                                 {Array.isArray(errors.new_password) ? errors.new_password[0] : errors.new_password}
                             </p>
                         )}
@@ -244,7 +244,7 @@ export function ChangePasswordModal({ isOpen, onClose }: ChangePasswordModalProp
                             </button>
                         </div>
                         {errors.confirm_password && (
-                            <p className="text-xs mt-1 text-red-500">{errors.confirm_password}</p>
+                            <p className="text-xs mt-1 text-error">{errors.confirm_password}</p>
                         )}
                     </div>
 
