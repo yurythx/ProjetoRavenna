@@ -1,102 +1,69 @@
-import type { Metadata, Viewport } from "next";
+import type { Metadata } from "next";
+import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
-import Providers from "./providers";
-import { Header } from "@/components/Header";
-import { ModuleAlert } from "@/components/ModuleAlert";
-import { ToastContainer } from "@/components/ToastContainer";
-import { ThemeProvider } from "@/contexts/ThemeContext";
-import { DynamicBranding } from "@/components/DynamicBranding";
-import { DynamicFavicon } from "@/components/DynamicFavicon";
-import { getTenantConfig } from "@/services/tenant";
-import { getThemeCss } from "@/lib/theme";
-import { cookies } from "next/headers";
-import { NextIntlClientProvider } from 'next-intl';
-import { getMessages, getLocale } from 'next-intl/server';
 
-// Usando fontes do sistema para evitar dependência de Google Fonts
-const fontClass = "font-sans";
+import { AppHeader } from "@/components/app-header";
+import { AuthProvider } from "@/components/auth-provider";
+import { ErrorBoundary } from "@/components/error-boundary";
+import { QueryProvider } from "@/components/query-provider";
+import { ThemeProvider } from "@/components/theme-provider";
+import { Toaster as UiToaster } from "@/components/ui/toaster";
+import { ToastProvider } from "@/hooks/use-toast";
+import { getSiteBaseUrl } from "@/lib/env";
+import { Toaster as SonnerToaster } from "sonner";
 
-export async function generateMetadata(): Promise<Metadata> {
-  const config = await getTenantConfig();
+const geistSans = Geist({
+  variable: "--font-geist-sans",
+  subsets: ["latin"],
+});
 
-  const title = config?.brand_name || "Projeto Ravenna";
-  const description = config?.footer_text || "Gestão Inteligente";
-  const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || "https://projetoravenna.cloud";
+const geistMono = Geist_Mono({
+  variable: "--font-geist-mono",
+  subsets: ["latin"],
+});
 
-  return {
-    title: {
-      default: `${title} | Gestão Inteligente`,
-      template: `%s | ${title}`
-    },
-    description: description,
-    icons: config?.favicon ? [{ rel: "icon", url: config.favicon }] : undefined,
-    metadataBase: new URL(siteUrl),
-    openGraph: {
-      title: title,
-      description: description,
-      url: siteUrl,
-      siteName: title,
-      locale: config?.default_language || 'pt_BR',
-      type: 'website',
-      images: config?.logo ? [{ url: config.logo }] : [],
-    },
-    twitter: {
-      card: 'summary_large_image',
-      title: title,
-      description: description,
-      images: config?.logo ? [config.logo] : [],
-    },
-  };
-}
-
-export const viewport: Viewport = {
-  width: "device-width",
-  initialScale: 1,
-  themeColor: "#0ea5e9"
+export const metadata: Metadata = {
+  title: "Projeto Ravenna",
+  description: "Portal do jogador - Projeto Ravenna",
+  metadataBase: new URL(getSiteBaseUrl()),
 };
 
-export default async function RootLayout({
+export default function RootLayout({
   children,
 }: Readonly<{
   children: React.ReactNode;
 }>) {
-  const config = await getTenantConfig();
-  const cookieStore = await cookies();
-  const themeCookie = cookieStore.get('theme')?.value;
-
-  // Resolve initial theme: Cookie > Tenant Default > System (fallback)
-  const initialThemeClass = themeCookie || config?.default_theme || '';
-
-  const messages = await getMessages();
-  const locale = await getLocale();
-
   return (
-    <html lang={locale} suppressHydrationWarning data-scroll-behavior="smooth" className={initialThemeClass}>
+    <html
+      lang="pt-BR"
+      suppressHydrationWarning
+      className={`${geistSans.variable} ${geistMono.variable} h-full antialiased`}
+    >
       <head>
-        <style dangerouslySetInnerHTML={{ __html: getThemeCss(config) }} />
+        <link rel="alternate" type="application/rss+xml" title="Projeto Ravenna - Blog" href="/rss.xml" />
+        <script
+          id="theme-init"
+          dangerouslySetInnerHTML={{
+            __html:
+              "(function(){try{var k='ravenna.theme';var t=localStorage.getItem(k)||'system';var r=document.documentElement;if(t==='light'||t==='dark'){r.dataset.theme=t}else{delete r.dataset.theme}}catch(e){}})();",
+          }}
+        />
       </head>
-      <body
-        className={`${fontClass} antialiased min-h-screen flex flex-col`}
-      >
-        <NextIntlClientProvider messages={messages} locale={locale}>
-          <Providers>
-            <DynamicBranding />
-            <DynamicFavicon />
-            <ToastContainer />
-            <ModuleAlert />
-            <Header logoUrl={config?.logo || undefined} brandName={config?.brand_name || undefined} />
-            <main className="flex-1">
-              {children}
-            </main>
-            <footer className="border-t border-border mt-16">
-              <div className="container-custom py-8">
-                <p className="text-center text-sm" style={{ color: 'var(--muted-foreground)' }}>
-                  © {new Date().getFullYear()} {config?.brand_name || "Projeto Ravenna"}. {config?.footer_text}
-                </p>
-              </div>
-            </footer>
-          </Providers>
-        </NextIntlClientProvider>
+      <body className="min-h-full flex flex-col">
+        <ThemeProvider>
+          <AuthProvider>
+            <QueryProvider>
+              <ToastProvider>
+                <AppHeader />
+                <main className="flex-1 pt-20">
+                  <ErrorBoundary>{children}</ErrorBoundary>
+                </main>
+                <UiToaster />
+                <SonnerToaster richColors />
+              </ToastProvider>
+            </QueryProvider>
+          </AuthProvider>
+        </ThemeProvider>
       </body>
     </html>
   );

@@ -1,0 +1,225 @@
+services:
+  postgres:
+    image: postgres:16-alpine
+    container_name: ravenna_postgres
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB:-projeto_ravenna}
+      POSTGRES_USER: ${POSTGRES_USER:-postgres}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-postgres}
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    networks:
+      - ravenna_net
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-postgres}"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+    restart: unless-stopped
+
+  redis:
+    image: redis:7-alpine
+    container_name: ravenna_redis
+    volumes:
+      - redis_data:/data
+    networks:
+      - ravenna_net
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    restart: unless-stopped
+
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+      args:
+        APP_VERSION: ${APP_VERSION:-}
+        APP_BUILD_SHA: ${APP_BUILD_SHA:-}
+        APP_BUILD_TIME: ${APP_BUILD_TIME:-}
+    container_name: ravenna_backend
+    environment:
+      DEBUG: "False"
+      USE_SQLITE: "False"
+      ALLOWED_HOSTS: ${ALLOWED_HOSTS:-localhost,127.0.0.1}
+      CORS_ALLOWED_ORIGINS: ${CORS_ALLOWED_ORIGINS:-http://localhost:3000}
+      CSRF_TRUSTED_ORIGINS: ${CSRF_TRUSTED_ORIGINS:-}
+      SECURE_SSL_REDIRECT: ${SECURE_SSL_REDIRECT:-True}
+      SECURE_HSTS_SECONDS: ${SECURE_HSTS_SECONDS:-0}
+      SECURE_HSTS_PRELOAD: ${SECURE_HSTS_PRELOAD:-False}
+      POSTGRES_DB: ${POSTGRES_DB:-projeto_ravenna}
+      POSTGRES_USER: ${POSTGRES_USER:-postgres}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-postgres}
+      POSTGRES_HOST: postgres
+      POSTGRES_PORT: "5432"
+      DJANGO_SECRET_KEY: ${DJANGO_SECRET_KEY}
+      EMAIL_SETTINGS_ENCRYPTION_SALT: ${EMAIL_SETTINGS_ENCRYPTION_SALT}
+      REDIS_URL: redis://redis:6379/1
+      CHANNEL_LAYER_URL: redis://redis:6379/3
+      CELERY_BROKER_URL: redis://redis:6379/2
+      REST_THROTTLE_ANON: ${REST_THROTTLE_ANON:-30/min}
+      REST_THROTTLE_USER: ${REST_THROTTLE_USER:-120/min}
+      REST_THROTTLE_LOGIN: ${REST_THROTTLE_LOGIN:-10/min}
+      REST_THROTTLE_OTP: ${REST_THROTTLE_OTP:-50/hour}
+      REST_THROTTLING_ENABLED: "True"
+      JWT_PRIVATE_KEY: ${JWT_PRIVATE_KEY:-}
+      JWT_PUBLIC_KEY: ${JWT_PUBLIC_KEY:-}
+      DEFAULT_FROM_EMAIL: ${DEFAULT_FROM_EMAIL:-no-reply@localhost}
+      SENTRY_DSN: ${SENTRY_DSN:-}
+      LOG_FORMAT: json
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    volumes:
+      - media_data:/app/media
+      - keys_data:/app/keys
+    networks:
+      - ravenna_net
+    expose:
+      - "8000"
+    command:
+      [
+        "sh",
+        "-c",
+        "python keys/generate_keys.py || true && python manage.py ensure_unique_topic_slugs && python manage.py migrate && daphne -b 0.0.0.0 -p 8000 core.asgi:application",
+      ]
+    healthcheck:
+      test:
+        [
+          "CMD-SHELL",
+          "python -c \"import urllib.request; urllib.request.urlopen('http://localhost:8000/api/health/live/')\" || exit 1",
+        ]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 60s
+    restart: unless-stopped
+
+  celery_worker:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: ravenna_celery_worker
+    command: celery -A core worker -l INFO -Q celery --concurrency 2
+    environment:
+      DEBUG: "False"
+      USE_SQLITE: "False"
+      POSTGRES_DB: ${POSTGRES_DB:-projeto_ravenna}
+      POSTGRES_USER: ${POSTGRES_USER:-postgres}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-postgres}
+      POSTGRES_HOST: postgres
+      POSTGRES_PORT: "5432"
+      DJANGO_SECRET_KEY: ${DJANGO_SECRET_KEY}
+      EMAIL_SETTINGS_ENCRYPTION_SALT: ${EMAIL_SETTINGS_ENCRYPTION_SALT}
+      REDIS_URL: redis://redis:6379/1
+      CELERY_BROKER_URL: redis://redis:6379/2
+      JWT_PRIVATE_KEY: ${JWT_PRIVATE_KEY:-}
+      JWT_PUBLIC_KEY: ${JWT_PUBLIC_KEY:-}
+      DEFAULT_FROM_EMAIL: ${DEFAULT_FROM_EMAIL:-no-reply@localhost}
+      SENTRY_DSN: ${SENTRY_DSN:-}
+      LOG_FORMAT: json
+    volumes:
+      - media_data:/app/media
+      - keys_data:/app/keys
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      backend:
+        condition: service_healthy
+    networks:
+      - ravenna_net
+    restart: unless-stopped
+
+  celery_beat:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: ravenna_celery_beat
+    command: celery -A core beat -l INFO --scheduler django_celery_beat.schedulers:DatabaseScheduler
+    environment:
+      DEBUG: "False"
+      USE_SQLITE: "False"
+      POSTGRES_DB: ${POSTGRES_DB:-projeto_ravenna}
+      POSTGRES_USER: ${POSTGRES_USER:-postgres}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-postgres}
+      POSTGRES_HOST: postgres
+      POSTGRES_PORT: "5432"
+      DJANGO_SECRET_KEY: ${DJANGO_SECRET_KEY}
+      EMAIL_SETTINGS_ENCRYPTION_SALT: ${EMAIL_SETTINGS_ENCRYPTION_SALT}
+      REDIS_URL: redis://redis:6379/1
+      CELERY_BROKER_URL: redis://redis:6379/2
+      JWT_PRIVATE_KEY: ${JWT_PRIVATE_KEY:-}
+      JWT_PUBLIC_KEY: ${JWT_PUBLIC_KEY:-}
+      SENTRY_DSN: ${SENTRY_DSN:-}
+      LOG_FORMAT: json
+    volumes:
+      - keys_data:/app/keys
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      backend:
+        condition: service_healthy
+    networks:
+      - ravenna_net
+    restart: unless-stopped
+
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    container_name: ravenna_frontend
+    environment:
+      NODE_ENV: production
+      NEXT_TELEMETRY_DISABLED: "1"
+      NEXT_PUBLIC_API_BASE_URL: ${NEXT_PUBLIC_API_BASE_URL:-http://backend:8000}
+      NEXT_PUBLIC_SITE_URL: ${NEXT_PUBLIC_SITE_URL:-http://localhost:3000}
+    depends_on:
+      backend:
+        condition: service_healthy
+    networks:
+      - ravenna_net
+    expose:
+      - "3000"
+    restart: unless-stopped
+
+  gameserver:
+    build:
+      context: ./gameserver
+      dockerfile: Dockerfile
+    container_name: ravenna_gameserver
+    environment:
+      UDP_PORT: ${GAMESERVER_UDP_PORT:-7777}
+      DJANGO_URL: http://backend:8000
+      JWT_PUBLIC_KEY_PATH: /app/keys/public.pem
+      DJANGO_WEBHOOK_SECRET: ${DJANGO_WEBHOOK_SECRET}
+      WORLD_WIDTH: ${WORLD_WIDTH:-10000}
+      WORLD_HEIGHT: ${WORLD_HEIGHT:-10000}
+      SPATIAL_CELL_SIZE: ${SPATIAL_CELL_SIZE:-5000}
+    volumes:
+      - keys_data:/app/keys:ro
+    ports:
+      - "${GAMESERVER_UDP_PORT:-7777}:7777/udp"
+    depends_on:
+      backend:
+        condition: service_healthy
+    networks:
+      - ravenna_net
+    restart: unless-stopped
+
+networks:
+  ravenna_net:
+    name: ravenna_net
+
+volumes:
+  postgres_data:
+  redis_data:
+  media_data:
+  keys_data:

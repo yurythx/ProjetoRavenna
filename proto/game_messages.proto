@@ -1,0 +1,51 @@
+syntax = "proto3";
+package ravenna;
+option csharp_namespace = "RavennaServer.Proto";
+
+// ── Client → Server ──────────────────────────────────────────────────────────
+
+// First packet sent by client before KCP is established (raw UDP, magic-prefixed)
+message C2S_Handshake {
+    string jwt_token = 1;
+    string hwid      = 2;  // hardware ID for multi-client detection
+}
+
+// Quantized position update — sent every tick the player moves
+message C2S_Move {
+    int32  x        = 1;  // world position in centimetres
+    int32  y        = 2;
+    int32  sequence = 3;  // monotonic client tick counter
+}
+
+message C2S_Action {
+    uint32 action_id = 1;
+    uint32 target_id = 2;
+}
+
+// ── Server → Client ──────────────────────────────────────────────────────────
+
+// Sent after handshake validation; contains the KCP conv_id the client must use
+message S2C_HandshakeAck {
+    uint32 conv_id = 1;
+    bool   ok      = 2;
+    string reason  = 3;
+}
+
+// Snapshot of all entities visible to this player (interest-management filtered)
+message S2C_WorldSnapshot {
+    uint32              server_tick = 1;
+    repeated EntityState entities   = 2;
+}
+
+message EntityState {
+    uint32 entity_id = 1;
+    int32  x         = 2;
+    int32  y         = 3;
+    uint32 flags     = 4;  // bit0=moving, bit1=attacking, bit2=dead
+}
+
+// Generic server-push event (XP, items, kick, etc.)
+message S2C_Event {
+    string event_type = 1;  // "xp_gained" | "item_collected" | "kicked"
+    bytes  payload    = 2;  // event-specific Protobuf payload
+}

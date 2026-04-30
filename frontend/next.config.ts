@@ -1,37 +1,43 @@
 import type { NextConfig } from "next";
-import createNextIntlPlugin from 'next-intl/plugin';
 
-const withNextIntl = createNextIntlPlugin();
+function tryParseRemotePatternFromEnv(): { protocol: "http" | "https"; hostname: string; port?: string; pathname: string } | null {
+  const raw = process.env.NEXT_PUBLIC_API_BASE_URL;
+  if (!raw) return null;
+  try {
+    const u = new URL(raw);
+    const protocol = u.protocol.replace(":", "");
+    if (protocol !== "http" && protocol !== "https") return null;
+    return {
+      protocol,
+      hostname: u.hostname,
+      port: u.port || undefined,
+      pathname: "/**",
+    };
+  } catch {
+    return null;
+  }
+}
 
 const nextConfig: NextConfig = {
   images: {
     remotePatterns: [
-      { protocol: 'http', hostname: 'localhost', port: '8000' },
-      { protocol: 'http', hostname: 'localhost', port: '9000' }, // MinIO Local
-      { protocol: 'http', hostname: '127.0.0.1', port: '8000' },
-      { protocol: 'http', hostname: '127.0.0.1', port: '9000' }, // MinIO Local IP
-      { protocol: 'http', hostname: 'minio', port: '9000' }, // Docker Internal
-      { protocol: 'https', hostname: 'api.projetoravenna.cloud' },
-      { protocol: 'https', hostname: 'minio.projetoravenna.cloud' },
+      { protocol: "http", hostname: "127.0.0.1", port: "8000", pathname: "/**" },
+      { protocol: "http", hostname: "localhost", port: "8000", pathname: "/**" },
     ],
-    localPatterns: [
-      { pathname: '/api/img' },
-    ],
-    dangerouslyAllowSVG: true,
-    contentDispositionType: 'attachment',
-    contentSecurityPolicy: "default-src 'self'; script-src 'none'; sandbox;",
   },
-  async redirects() {
-    return [
-      { source: '/login', destination: '/auth/login', permanent: false },
-      { source: '/blog', destination: '/artigos', permanent: false },
-      { source: '/blog/new', destination: '/artigos/new', permanent: false },
-      { source: '/blog/editor', destination: '/artigos/editor', permanent: false },
-      { source: '/blog/:slug', destination: '/artigos/:slug', permanent: false },
-      { source: '/blog/:slug/edit', destination: '/artigos/:slug/edit', permanent: false },
-    ];
-  },
-  output: 'standalone',
 };
 
-export default withNextIntl(nextConfig);
+const envPattern = tryParseRemotePatternFromEnv();
+if (envPattern) {
+  const patterns = nextConfig.images?.remotePatterns ?? [];
+  const exists = patterns.some(
+    (p) =>
+      p.protocol === envPattern.protocol &&
+      p.hostname === envPattern.hostname &&
+      (p.port ?? "") === (envPattern.port ?? "")
+  );
+  if (!exists) patterns.push(envPattern);
+  if (nextConfig.images) nextConfig.images.remotePatterns = patterns;
+}
+
+export default nextConfig;

@@ -1,0 +1,120 @@
+services:
+  db:
+    image: postgres:16-alpine
+    container_name: ravenna_postgres
+    environment:
+      POSTGRES_DB: projeto_ravenna
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    ports:
+      - "5432:5432"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  redis:
+    image: redis:7-alpine
+    container_name: ravenna_redis
+    volumes:
+      - redis_data:/data
+    ports:
+      - "6379:6379"
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  web:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      args:
+        APP_VERSION: ${APP_VERSION:-}
+        APP_BUILD_SHA: ${APP_BUILD_SHA:-}
+        APP_BUILD_TIME: ${APP_BUILD_TIME:-}
+    container_name: ravenna_web
+    command: >
+      sh -c "python keys/generate_keys.py || true &&
+             python manage.py migrate &&
+             python manage.py ensure_support_user || true &&
+             gunicorn core.wsgi:application --bind 0.0.0.0:8000 --workers 4"
+    working_dir: /app
+    volumes:
+      - .:/app
+      - keys_data:/app/keys
+    ports:
+      - "8000:8000"
+    env_file:
+      - .env
+    depends_on:
+      db:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+
+  celery_worker:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: ravenna_celery_worker
+    command: celery -A core worker -l INFO -Q celery --concurrency 2
+    working_dir: /app
+    volumes:
+      - .:/app
+      - keys_data:/app/keys
+    env_file:
+      - .env
+    depends_on:
+      db:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+
+  celery_beat:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: ravenna_celery_beat
+    command: celery -A core beat -l INFO --scheduler django_celery_beat.schedulers:DatabaseScheduler
+    working_dir: /app
+    volumes:
+      - .:/app
+      - keys_data:/app/keys
+    env_file:
+      - .env
+    depends_on:
+      db:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      web:
+        condition: service_started
+
+  gameserver:
+    build:
+      context: ../gameserver
+      dockerfile: Dockerfile
+    container_name: ravenna_gameserver
+    env_file:
+      - ../gameserver/.env.example   # override with .env in production
+    environment:
+      DJANGO_URL: http://web:8000
+      JWT_PUBLIC_KEY_PATH: /app/keys/public.pem
+    volumes:
+      - keys_data:/app/keys:ro        # shares RSA public key from Django container
+    ports:
+      - "7777:7777/udp"
+    depends_on:
+      web:
+        condition: service_started
+    restart: unless-stopped
+
+volumes:
+  postgres_data:
+  redis_data:
+  keys_data:

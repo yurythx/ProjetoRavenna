@@ -1,0 +1,36 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <TargetFramework>net8.0</TargetFramework>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
+    <Optimize>true</Optimize>
+    <!-- Server GC: favours throughput over pause times -->
+    <ServerGarbageCollection>true</ServerGarbageCollection>
+    <GarbageCollectionAdaptationMode>0</GarbageCollectionAdaptationMode>
+    <AssemblyName>RavennaServer</AssemblyName>
+    <RootNamespace>RavennaServer</RootNamespace>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <!-- Protobuf serialisation (no gRPC — game messages travel over KCP) -->
+    <PackageReference Include="Google.Protobuf"                  Version="3.27.3" />
+    <PackageReference Include="Grpc.Tools"                       Version="2.65.0">
+      <PrivateAssets>all</PrivateAssets>
+      <IncludeAssets>runtime; build; native; contentfiles; analyzers</IncludeAssets>
+    </PackageReference>
+    <!-- JWT RS256 validation (offline, no Django round-trip) -->
+    <PackageReference Include="Microsoft.IdentityModel.Tokens"   Version="8.1.2" />
+    <PackageReference Include="System.IdentityModel.Tokens.Jwt"  Version="8.1.2" />
+  </ItemGroup>
+
+  <!-- Proto files from the shared /proto directory -->
+  <ItemGroup>
+    <Protobuf Include="..\..\..\proto\game_messages.proto"
+              Link="Proto\game_messages.proto"
+              GrpcServices="None" />
+  </ItemGroup>
+
+</Project>
