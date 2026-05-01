@@ -1,7 +1,9 @@
 "use client";
 
 import { useRouter, useSearchParams } from "next/navigation";
-import { Suspense } from "react";
+import { Suspense, useState } from "react";
+import { useAuth } from "@/components/auth-provider";
+import { jsonFetch } from "@/lib/fetch";
 
 function VerifyEmailForm() {
   const router = useRouter();

@@ -1,6 +1,10 @@
 "use client";
 
 import { Suspense, useEffect, useState } from "react";
+import { useSearchParams, useRouter } from "next/navigation";
+import { useAuth } from "@/components/auth-provider";
+
+type Step = "checking-auth" | "requesting-token" | "redirecting" | "error";
 
 function UnityCallbackContent() {
   const searchParams = useSearchParams();
