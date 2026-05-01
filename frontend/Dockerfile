@@ -2,6 +2,7 @@ FROM node:22 AS deps
 WORKDIR /app
 
 # Copiar apenas o package.json para ignorar restrições do lockfile de outra plataforma
+ARG CACHE_BUST=1
 COPY package.json ./
 RUN npm install
 

@@ -31,6 +31,7 @@ const nextConfig: NextConfig = {
   typescript: {
     ignoreBuildErrors: true,
   },
+  output: "standalone",
 };
 
 const envPattern = tryParseRemotePatternFromEnv();
