@@ -2,6 +2,7 @@ import Link from "next/link";
 import type { Metadata } from "next";
 import Image from "next/image";
 import { notFound } from "next/navigation";
+export const dynamic = "force-dynamic";
 
 import { BlogComments } from "@/components/blog-comments";
 import { backendFetch } from "@/lib/backend";
