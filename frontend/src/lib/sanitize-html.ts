@@ -1,34 +1,21 @@
-import DOMPurify from "isomorphic-dompurify";
+import sanitizeHtml from "sanitize-html";
 
 const ALLOWED_TAGS = [
-  "a",
-  "p",
-  "br",
-  "strong",
-  "b",
-  "em",
-  "i",
-  "u",
-  "s",
-  "blockquote",
-  "ul",
-  "ol",
-  "li",
-  "h1",
-  "h2",
-  "h3",
-  "pre",
-  "code",
-  "hr",
-  "span",
-  "div",
-  "img",
+  "a", "p", "br", "strong", "b", "em", "i", "u", "s", "blockquote",
+  "ul", "ol", "li", "h1", "h2", "h3", "pre", "code", "hr", "span", "div", "img",
 ];
 
-const ALLOWED_ATTR = ["href", "title", "target", "rel", "src", "alt", "width", "height", "style", "class"];
+const ALLOWED_ATTR = {
+  a: ["href", "name", "target"],
+  img: ["src", "alt", "width", "height"],
+  "*": ["class", "style", "title"],
+};
 
 export function sanitizeRichTextHtml(value: string) {
   const html = value ?? "";
-  return DOMPurify.sanitize(html, { ALLOWED_TAGS, ALLOWED_ATTR });
+  return sanitizeHtml(html, {
+    allowedTags: ALLOWED_TAGS,
+    allowedAttributes: ALLOWED_ATTR,
+  });
 }
 
