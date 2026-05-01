@@ -208,46 +208,75 @@ Paste the full PEM content (including `-----BEGIN...` / `-----END...` lines) int
 
 ## API Routes
 
-### Blog
-
-| Route | Access | Description |
-|---|---|---|
-| `GET /api/blog/public/posts/` | Public | Published posts (SSR/SEO) |
-| `GET /api/blog/public/categories/` | Public | Categories |
-| `GET /api/blog/public/tags/` | Public | Tags |
-| `GET /api/blog/public/comments/` | Public | Approved comments |
-| `/api/blog/posts/` | Auth | Full CRUD + workflow (draft/publish/reject/archive) |
-| `/api/blog/comments/` | Auth | Comment moderation |
-
-### Forum
-
-| Route | Access | Description |
-|---|---|---|
-| `GET /api/forum/public/categories/` | Public | Categories |
-| `GET /api/forum/public/topics/` | Public | Topics (includes `/with_replies/`, `/reactions/`) |
-| `GET /api/forum/public/replies/` | Public | Replies |
-| `/api/forum/topics/` | Auth | Create/update + moderation actions |
-| `/api/forum/replies/` | Auth | Create/update + moderation |
+All routes are prefixed with `/api/v1/`.
 
 ### Accounts
 
 | Route | Access | Description |
 |---|---|---|
-| `POST /api/accounts/auth/register/` | Public | User registration |
-| `POST /api/accounts/auth/login/` | Public | JWT login |
-| `POST /api/accounts/auth/token/refresh/` | Public | Refresh access token |
-| `POST /api/accounts/auth/logout/` | Auth | Blacklist refresh token |
-| `POST /api/accounts/email/verify/` | Public | OTP email verification |
-| `POST /api/accounts/password/reset/` | Public | Password reset via OTP |
+| `POST /api/v1/accounts/auth/register/` | Public | User registration |
+| `POST /api/v1/accounts/auth/login/` | Public | JWT login (returns access + refresh) |
+| `POST /api/v1/accounts/auth/token/refresh/` | Public | Refresh access token |
+| `POST /api/v1/accounts/auth/logout/` | Auth | Blacklist refresh token |
+| `POST /api/v1/accounts/email/verify/` | Public | OTP email verification |
+| `POST /api/v1/accounts/password/reset/request/` | Public | Password reset request |
+| `POST /api/v1/accounts/password/reset/confirm/` | Public | Confirm reset with OTP |
+| `GET /api/v1/accounts/admin/diagnostics/` | Admin | Full system diagnostics |
 
-### Game
+### Blog
 
 | Route | Access | Description |
 |---|---|---|
-| `GET /api/game-data/items/` | Public | Item templates |
-| `GET /api/game-data/skills/` | Public | Skill templates |
-| `GET /api/game-data/maps/` | Public | Map templates |
-| `/api/game-logic/player/` | Auth | Player instance (stats, inventory, quests) |
+| `GET /api/v1/blog/public/posts/` | Public | Published posts (SSR/SEO, paginated) |
+| `GET /api/v1/blog/public/posts/<slug>/` | Public | Single post detail |
+| `GET /api/v1/blog/public/categories/` | Public | Categories with post count |
+| `GET /api/v1/blog/public/tags/` | Public | Tags |
+| `GET /api/v1/blog/public/comments/?post=<id>` | Public | Approved comments |
+| `POST /api/v1/blog/public/comments/` | Auth | Submit comment |
+| `* /api/v1/blog/posts/` | Auth | Full CRUD + workflow |
+
+### Forum
+
+| Route | Access | Description |
+|---|---|---|
+| `GET /api/v1/forum/public/categories/` | Public | Active categories |
+| `GET /api/v1/forum/public/topics/` | Public | Topic list |
+| `GET /api/v1/forum/public/topics/<slug>/with_replies/` | Public | Topic with replies |
+| `POST /api/v1/forum/topics/` | Auth | Create topic |
+| `POST /api/v1/forum/replies/` | Auth | Create reply |
+| `POST /api/v1/forum/replies/<id>/react/` | Auth | React to reply |
+| `POST /api/v1/forum/topics/<slug>/pin/` | Mod | Pin topic |
+| `POST /api/v1/forum/topics/<slug>/close/` | Mod | Close topic |
+
+### Game Data (public)
+
+| Route | Filters | Description |
+|---|---|---|
+| `GET /api/v1/game-data/items/` | `rarity`, `item_type`, `min_level`, `max_level`, `search`, `ordering` | Item templates |
+| `GET /api/v1/game-data/skills/` | `skill_type`, `search`, `ordering` | Skill templates |
+| `GET /api/v1/game-data/maps/` | — | Enabled maps only |
+| `GET /api/v1/game-data/bootstrap/?since=<iso>` | `since` | Delta data for Unity client |
+| `GET /api/v1/game-data/manifest/` | — | ETag + 304 support |
+
+### Game Logic (authenticated)
+
+| Route | Access | Description |
+|---|---|---|
+| `GET /api/v1/game-logic/` | Auth | Player instances (inventory + stats) |
+| `GET/POST /api/v1/game-logic/inventory/` | Auth | Inventory (POST: admin only) |
+| `DELETE /api/v1/game-logic/inventory/<slot>/` | Auth | Remove item by slot |
+| `GET /api/v1/game-logic/stats/` | Auth | Player stats |
+| `POST /api/v1/game-logic/stats/allocate/` | Auth | Allocate attribute points |
+| `POST /api/v1/game-logic/stats/gain-xp/` | Admin | Grant XP |
+| `GET /api/v1/game-logic/skills/` | Auth | Player skills |
+| `POST /api/v1/game-logic/skills/` | Admin | Learn skill |
+| `GET /api/v1/game-logic/quests/` | Auth | Quest progress |
+| `POST /api/v1/game-logic/quests/` | Auth | Start quest |
+| `POST /api/v1/game-logic/quests/complete/` | Admin | Complete quest + deliver rewards |
+| `GET /api/v1/game-logic/quest-templates/` | Public | Quest templates (`?level=`, `?quest_type=`) |
+| `GET /api/v1/game-logic/leaderboard/` | Auth | Top players (`?limit=100`) |
+| `POST/DELETE /api/v1/game-logic/session/` | Auth | Start / end game session |
+| `POST /api/v1/game-logic/events/` | HMAC | GameServer webhook |
 
 ### WebSocket
 
@@ -259,11 +288,10 @@ Paste the full PEM content (including `-----BEGIN...` / `-----END...` lines) int
 
 | Endpoint | Description |
 |---|---|
-| `GET /api/health/live/` | Liveness — returns 200 if the process is up |
-| `GET /api/health/ready/` | Readiness — checks DB and Redis; returns 503 if degraded |
-| `GET /api/health/version/` | Returns build version/SHA |
-| `GET /api/accounts/smtp-settings/health/` | Admin: SMTP connectivity check |
-| `GET /api/accounts/admin/diagnostics/` | Admin: full configuration and health report |
+| `GET /api/v1/health/live/` | Liveness — 200 if the process is up |
+| `GET /api/v1/health/ready/` | Readiness — 503 if DB or Redis is down |
+| `GET /api/v1/health/version/` | Build version and SHA |
+| `GET /api/v1/accounts/admin/diagnostics/` | Admin: full system health report |
 
 ---
 

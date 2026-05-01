@@ -8,67 +8,68 @@ using RavennaServer.Proto;
 namespace RavennaServer.Simulation;
 
 /// <summary>
-/// 30 Hz fixed-timestep simulation loop (33.33 ms per tick).
-/// Responsibilities:
+/// 30 Hz fixed-timestep authoritative simulation loop.
+///
+/// Per-tick responsibilities:
 ///   1. Drain per-player KCP receive channels
-///   2. Process game messages (move, action)
-///   3. Run interest-management and broadcast WorldSnapshots
-///   4. Evict stale sessions (no heartbeat for 30 s)
+///   2. Process game messages (MoveTo, AttackTarget, StopAction, legacy Move/Action)
+///   3. Advance player movement (authoritative steering)
+///   4. Run player combat state machine (Chasing → Attacking → damage)
+///   5. Tick NPC AI (via NpcManager)
+///   6. Run interest-management and broadcast WorldSnapshots
+///   7. Evict stale sessions (no heartbeat for 30 s)
+///
 /// Zero-alloc policy: no LINQ, no new() in the tick body.
 /// </summary>
 internal sealed class SimulationLoop
 {
-    private const int    TICK_HZ         = 30;
-    private const long   TICK_US         = 1_000_000L / TICK_HZ;      // 33 333 µs
-    private const long   HEARTBEAT_LIMIT = 30_000;                     // ms
-    private const int    RECV_BUF_SIZE   = 4096;
+    private const int   TICK_HZ         = 30;
+    private const float TICK_DELTA      = 1.0f / TICK_HZ;   // seconds per tick
+    private const long  TICK_US         = 1_000_000L / TICK_HZ;
+    private const long  HEARTBEAT_LIMIT = 30_000;            // ms
+    private const int   RECV_BUF_SIZE   = 4096;
 
     private readonly SpatialGrid   _grid;
     private readonly DjangoBridge  _bridge;
+    private readonly NpcManager    _npcs;
 
-    // All active sessions — written by network thread via OnPlayerConnected/Disconnected
     private readonly ConcurrentDictionary<uint, PlayerSession> _sessions = new();
 
-    // Pre-allocated scratch collections (single-threaded simulation — safe to reuse)
-    private readonly List<uint>          _neighbourScratch  = new(64);
-    private readonly List<EntityState>   _snapshotScratch   = new(64);
-    private readonly byte[]              _recvBuf           = new byte[RECV_BUF_SIZE];
-    private          uint                _tick;
+    // Pre-allocated scratch collections (single-threaded — safe to reuse)
+    private readonly List<uint>        _neighbourScratch = new(128);
+    private readonly List<EntityState> _snapshotScratch  = new(128);
+    private readonly byte[]            _recvBuf          = new byte[RECV_BUF_SIZE];
+    private          uint              _tick;
 
-    public SimulationLoop(SpatialGrid grid, DjangoBridge bridge)
+    public SimulationLoop(SpatialGrid grid, DjangoBridge bridge, NpcManager npcs)
     {
         _grid   = grid;
         _bridge = bridge;
+        _npcs   = npcs;
+
+        // Wire NPC combat event callbacks → broadcast helpers
+        _npcs.OnDamageDealt = BroadcastDamageEvent;
+        _npcs.OnEntityDied  = BroadcastEntityDied;
     }
 
-    // ── Called by UdpSocketListener on handshake success ─────────────────────
+    // ── Called by UdpSocketListener on handshake ──────────────────────────────
+
     public void OnPlayerConnected(PlayerSession session)
     {
-        try
-        {
-            _sessions[session.ConvId] = session;
-            Console.WriteLine($"[Sim] Connected  user={session.UserId}  conv={session.ConvId}");
+        _sessions[session.ConvId] = session;
+        Console.WriteLine($"[Sim] Connected  user={session.UserId}  conv={session.ConvId}");
 
-            // Notify Django of the connection
-            Console.WriteLine($"[Sim] Sending player_connected for {session.UserId}");
-            _ = _bridge.SendEventAsync(new GameEvent
-            {
-                EventType = "player_connected",
-                PlayerId  = session.UserId,
-                Data      = new Dictionary<string, object>
-                {
-                    ["conv_id"]   = session.ConvId,
-                    ["hwid"]      = session.Hwid,
-                    ["ip_address"] = session.RemoteEndPoint.Address.ToString()
-                }
-            });
-            Console.Out.Flush();
-        }
-        catch (Exception ex)
+        _ = _bridge.SendEventAsync(new GameEvent
         {
-            Console.Error.WriteLine($"[Sim] Error in OnPlayerConnected: {ex.Message}");
-            Console.Error.Flush();
-        }
+            EventType = "player_connected",
+            PlayerId  = session.UserId,
+            Data      = new Dictionary<string, object>
+            {
+                ["conv_id"]    = session.ConvId,
+                ["hwid"]       = session.Hwid,
+                ["ip_address"] = session.RemoteEndPoint.Address.ToString(),
+            },
+        });
     }
 
     public void OnPlayerDisconnected(uint convId)
@@ -77,17 +78,27 @@ internal sealed class SimulationLoop
         {
             _grid.Remove(convId);
             Console.WriteLine($"[Sim] Disconnected  user={s.UserId}  conv={convId}");
+
+            _ = _bridge.SendEventAsync(new GameEvent
+            {
+                EventType = "player_disconnected",
+                PlayerId  = s.UserId,
+                Data      = new Dictionary<string, object>
+                {
+                    ["conv_id"] = convId,
+                },
+            });
         }
     }
 
     // ── Main loop ─────────────────────────────────────────────────────────────
+
     public Task RunAsync(CancellationToken ct) =>
         Task.Factory.StartNew(() => Loop(ct),
             ct, TaskCreationOptions.LongRunning, TaskScheduler.Default);
 
     private void Loop(CancellationToken ct)
     {
-        var sw          = Stopwatch.StartNew();
         long nextTickUs = GetMicroseconds();
 
         while (!ct.IsCancellationRequested)
@@ -95,7 +106,6 @@ internal sealed class SimulationLoop
             long now = GetMicroseconds();
             if (now < nextTickUs)
             {
-                // Busy-wait for remaining sub-millisecond time; yield for longer waits
                 long waitMs = (nextTickUs - now) / 1_000;
                 if (waitMs > 1) Thread.Sleep((int)(waitMs - 1));
                 continue;
@@ -104,22 +114,19 @@ internal sealed class SimulationLoop
             nextTickUs += TICK_US;
             _tick++;
 
-            uint currentMs = (uint)(sw.ElapsedMilliseconds);
-            Tick(currentMs);
+            Tick(Environment.TickCount64);
         }
     }
 
     // ── Single simulation tick ────────────────────────────────────────────────
-    private void Tick(uint currentMs)
+
+    private void Tick(long nowMs)
     {
-        long nowMs = Environment.TickCount64;
-
-        foreach (var (convId, session) in _sessions)
+        // 1. Drain receive channels + advance KCP clocks
+        foreach (var (_, session) in _sessions)
         {
-            // Drive KCP clock
-            session.Kcp?.Update(currentMs);
+            session.Kcp?.Update((uint)(nowMs & 0xFFFF_FFFF));
 
-            // Drain receive channel — process all queued packets this tick
             while (session.ReceiveChannel.Reader.TryRead(out var item))
             {
                 try
@@ -130,7 +137,7 @@ internal sealed class SimulationLoop
                         {
                             int n = session.Kcp!.Recv(_recvBuf.AsSpan());
                             if (n <= 0) break;
-                            ProcessMessage(session, _recvBuf.AsSpan(0, n), currentMs);
+                            ProcessMessage(session, _recvBuf.AsSpan(0, n), nowMs);
                         }
                 }
                 finally { ArrayPool<byte>.Shared.Return(item.buf); }
@@ -142,56 +149,258 @@ internal sealed class SimulationLoop
                 KickPlayer(session, "timeout");
                 continue;
             }
-
-            // Update spatial grid with current position
-            _grid.Upsert(convId, session.Position.X, session.Position.Y);
         }
 
-        // Send WorldSnapshot to every player (interest-managed)
-        if (_tick % 1 == 0)  // every tick at 30 Hz
-            BroadcastSnapshots();
+        // 2. Player respawn tick (before movement so respawned players can act this tick)
+        foreach (var (_, session) in _sessions)
+        {
+            if (session.IsDead)
+                TryRespawnPlayer(session, nowMs);
+        }
+
+        // 3. Advance player movement
+        foreach (var (_, session) in _sessions)
+        {
+            if (session.IsDead) continue;
+
+            bool arrived = MovementController.StepPlayer(session, TICK_DELTA);
+            if (arrived) MovementController.StopMovement(session);
+
+            _grid.Upsert(session.ConvId, session.Position.X, session.Position.Y);
+            UpdatePlayerFlags(session);
+        }
+
+        // 4. Player combat tick (Chasing / Attacking)
+        foreach (var (_, session) in _sessions)
+        {
+            if (session.IsDead) continue;
+            TickPlayerCombat(session, nowMs);
+        }
+
+        // 5. NPC AI tick
+        _npcs.Tick(_sessions, TICK_DELTA, nowMs);
+
+        // 6. Broadcast WorldSnapshot (every tick at 30 Hz)
+        BroadcastSnapshots();
     }
 
     // ── Message dispatch ──────────────────────────────────────────────────────
 
-    private void ProcessMessage(PlayerSession session, ReadOnlySpan<byte> data, uint currentMs)
+    private void ProcessMessage(PlayerSession session, ReadOnlySpan<byte> data, long nowMs)
     {
         if (data.IsEmpty) return;
         byte msgType = data[0];
+        var  payload = data[1..];
 
         switch (msgType)
         {
-            case 1:  // C2S_Move
-                HandleMove(session, data[1..]);
-                break;
-            case 2:  // C2S_Action
-                HandleAction(session, data[1..]);
-                break;
-            case 0xFF: // ping / heartbeat
-                session.LastHeartbeatMs = Environment.TickCount64;
-                break;
+            case 0x01: HandleLegacyMove(session, payload);         break;  // C2S_Move (legacy)
+            case 0x02: HandleLegacyAction(session, payload);       break;  // C2S_Action (legacy)
+            case 0x03: HandleMoveTo(session, payload);             break;  // C2S_MoveTo
+            case 0x04: HandleAttackTarget(session, payload, nowMs);break;  // C2S_AttackTarget
+            case 0x05: HandleStopAction(session);                  break;  // C2S_StopAction
+            case 0x06: HandleUseSkill(session, payload, nowMs);   break;  // C2S_UseSkill
+            case 0xFF: session.LastHeartbeatMs = nowMs;            break;  // ping/heartbeat
         }
     }
 
-    private void HandleMove(PlayerSession session, ReadOnlySpan<byte> payload)
+    // Click-to-move: server takes ownership of position from this point on
+    private void HandleMoveTo(PlayerSession session, ReadOnlySpan<byte> payload)
+    {
+        C2S_MoveTo msg;
+        try { msg = C2S_MoveTo.Parser.ParseFrom(payload.ToArray()); }
+        catch { return; }
+
+        // MoveTo cancels any active combat
+        session.CombatTargetId = 0;
+        MovementController.SetDestination(session, msg.DestX, msg.DestY);
+        session.LastHeartbeatMs = Environment.TickCount64;
+    }
+
+    // Lock onto a target → begin Chase-to-Attack
+    private void HandleAttackTarget(PlayerSession session, ReadOnlySpan<byte> payload, long nowMs)
+    {
+        C2S_AttackTarget msg;
+        try { msg = C2S_AttackTarget.Parser.ParseFrom(payload.ToArray()); }
+        catch { return; }
+
+        session.CombatTargetId  = msg.TargetId;
+        session.State     = CombatState.Chasing;
+        session.IsMoving        = false;  // movement driven by chase loop, not click
+        session.LastHeartbeatMs = nowMs;
+
+        SendCombatStateChanged(session);
+    }
+
+    // Cancel movement and combat
+    private void HandleStopAction(PlayerSession session)
+    {
+        session.CombatTargetId = 0;
+        MovementController.StopMovement(session);
+        session.State = CombatState.Idle;
+        session.LastHeartbeatMs = Environment.TickCount64;
+
+        SendCombatStateChanged(session);
+    }
+
+    // Activate a skill: validate cooldown, apply effect, notify Django
+    private void HandleUseSkill(PlayerSession session, ReadOnlySpan<byte> payload, long nowMs)
+    {
+        if (session.IsDead) return;
+
+        C2S_UseSkill msg;
+        try { msg = C2S_UseSkill.Parser.ParseFrom(payload.ToArray()); }
+        catch { return; }
+
+        if (!SkillRegistry.TryGet(msg.SkillId, out var skill) || skill is null) return;
+
+        // Cooldown check
+        if (session.SkillCooldowns.TryGetValue(msg.SkillId, out long readyAt) && nowMs < readyAt)
+            return;
+
+        long cooldownMs = (long)(skill.CooldownSec * 1000);
+        session.SkillCooldowns[msg.SkillId] = nowMs + cooldownMs;
+        session.LastHeartbeatMs = nowMs;
+
+        // ── Heal (self-targeted) ──────────────────────────────────────────────
+        if (skill.Targeting == SkillTargeting.Self && skill.HealAmount > 0)
+        {
+            session.CurrentHp = Math.Min(session.CurrentHp + skill.HealAmount, session.MaxHp);
+            // Broadcast as a negative-damage event (heal = negative damage)
+            BroadcastDamageEventWithSkill(session.ConvId, session.ConvId,
+                                          -skill.HealAmount, session.CurrentHp, msg.SkillId);
+            NotifyDjangoSkillUsed(session, msg.SkillId);
+            return;
+        }
+
+        // ── AoE ───────────────────────────────────────────────────────────────
+        if (skill.AoeRadius > 0)
+        {
+            EntityPosition center = msg.TargetId == 0
+                ? session.Position
+                : GetEntityPosition(msg.TargetId) ?? session.Position;
+
+            int skillRange = skill.Range > 0 ? skill.Range : session.AttackRange;
+            if (MovementController.Distance(session.Position, center) > skillRange) return;
+
+            // Hit every entity in AoE radius
+            _neighbourScratch.Clear();
+            _grid.GetNeighbours(center.X, center.Y, _neighbourScratch);
+
+            int baseDamage = (int)(session.AttackDamage * skill.DamageMultiplier);
+
+            foreach (uint entityId in _neighbourScratch)
+            {
+                if (entityId == session.ConvId) continue;
+                float dist = MovementController.Distance(center, GetEntityPosition(entityId) ?? center);
+                if (dist > skill.AoeRadius) continue;
+
+                ApplySkillDamageTo(entityId, session, baseDamage, msg.SkillId, nowMs);
+            }
+
+            NotifyDjangoSkillUsed(session, msg.SkillId);
+            return;
+        }
+
+        // ── Single target ─────────────────────────────────────────────────────
+        if (msg.TargetId == 0) return;
+
+        int effectiveRange = skill.Range > 0 ? skill.Range : session.AttackRange;
+        EntityPosition? targetPos = GetEntityPosition(msg.TargetId);
+        if (targetPos is null) return;
+        if (MovementController.Distance(session.Position, targetPos.Value) > effectiveRange) return;
+
+        int singleDamage = (int)(session.AttackDamage * skill.DamageMultiplier);
+        ApplySkillDamageTo(msg.TargetId, session, singleDamage, msg.SkillId, nowMs);
+        NotifyDjangoSkillUsed(session, msg.SkillId);
+    }
+
+    private void ApplySkillDamageTo(uint targetId, PlayerSession attacker, int damage, uint skillId, long nowMs)
+    {
+        if (IsNpcId(targetId))
+        {
+            _npcs.ApplyDamage(targetId, attacker.ConvId, damage, nowMs);
+            // damage event emitted via NpcManager.OnDamageDealt callback — skill_id not set there
+            // broadcast a corrected event here
+            if (_npcs.TryGet(targetId, out var npc) && npc is not null)
+                BroadcastDamageEventWithSkill(attacker.ConvId, targetId, damage,
+                                              Math.Max(npc.CurrentHp, 0), skillId);
+        }
+        else if (_sessions.TryGetValue(targetId, out var targetPlayer))
+        {
+            targetPlayer.CurrentHp -= damage;
+            int remaining = Math.Max(targetPlayer.CurrentHp, 0);
+
+            BroadcastDamageEventWithSkill(attacker.ConvId, targetId, damage, remaining, skillId);
+
+            if (targetPlayer.CurrentHp <= 0)
+            {
+                targetPlayer.CurrentHp   = 0;
+                targetPlayer.State       = CombatState.Dead;
+                targetPlayer.DeathTimeMs = nowMs;
+                targetPlayer.Flags      |= 0b0100u;
+                BroadcastEntityDied(targetPlayer.ConvId, attacker.ConvId, 0);
+
+                _ = _bridge.SendEventAsync(new GameEvent
+                {
+                    EventType = "player_killed",
+                    PlayerId  = attacker.UserId,
+                    Data      = new Dictionary<string, object>
+                    {
+                        ["victim_user_id"] = targetPlayer.UserId,
+                    },
+                });
+            }
+        }
+    }
+
+    private void BroadcastDamageEventWithSkill(
+        uint attackerId, uint targetId, int damage, int remainingHp, uint skillId)
+    {
+        var evt = new S2C_DamageEvent
+        {
+            AttackerId  = attackerId,
+            TargetId    = targetId,
+            Damage      = damage,
+            RemainingHp = remainingHp,
+            SkillId     = skillId,
+        };
+
+        EntityPosition? pos = GetEntityPosition(targetId);
+        if (pos is null) return;
+        BroadcastEventToArea(pos.Value, 0x11, evt);
+    }
+
+    private void NotifyDjangoSkillUsed(PlayerSession session, uint skillId)
+    {
+        _ = _bridge.SendEventAsync(new GameEvent
+        {
+            EventType = "use_skill",
+            PlayerId  = session.UserId,
+            Data      = new Dictionary<string, object> { ["skill_id"] = skillId },
+        });
+    }
+
+    // Legacy: client-reported position (kept for backwards compat)
+    private void HandleLegacyMove(PlayerSession session, ReadOnlySpan<byte> payload)
     {
         C2S_Move move;
         try { move = C2S_Move.Parser.ParseFrom(payload.ToArray()); }
         catch { return; }
 
-        session.Position.X     = move.X;
-        session.Position.Y     = move.Y;
-        session.Flags          = (session.Flags & ~1u) | 1u;  // set moving flag
+        // Treat as MoveTo with the reported position as destination
+        session.CombatTargetId = 0;
+        MovementController.SetDestination(session, move.X, move.Y);
         session.LastHeartbeatMs = Environment.TickCount64;
     }
 
-    private void HandleAction(PlayerSession session, ReadOnlySpan<byte> payload)
+    // Legacy: generic action → fire-and-forget to Django
+    private void HandleLegacyAction(PlayerSession session, ReadOnlySpan<byte> payload)
     {
         C2S_Action action;
         try { action = C2S_Action.Parser.ParseFrom(payload.ToArray()); }
         catch { return; }
 
-        // Fire-and-forget: notify Django of the action (XP, item drop, etc.)
         _ = _bridge.SendEventAsync(new GameEvent
         {
             EventType = "player_action",
@@ -204,7 +413,157 @@ internal sealed class SimulationLoop
         });
     }
 
-    // ── Snapshot broadcast ───────────────────────────────────────────────────
+    // ── Player combat state machine ───────────────────────────────────────────
+
+    private void TickPlayerCombat(PlayerSession session, long nowMs)
+    {
+        switch (session.State)
+        {
+            case CombatState.Chasing:
+                TickPlayerChase(session, nowMs);
+                break;
+
+            case CombatState.Attacking:
+                TickPlayerAttack(session, nowMs);
+                break;
+        }
+    }
+
+    private void TickPlayerChase(PlayerSession session, long nowMs)
+    {
+        if (!TryResolveTarget(session, out var targetPos, out bool targetDead))
+        {
+            // Target gone
+            session.CombatTargetId = 0;
+            session.State    = CombatState.Idle;
+            SendCombatStateChanged(session);
+            return;
+        }
+
+        if (targetDead)
+        {
+            session.CombatTargetId = 0;
+            session.State    = CombatState.Idle;
+            SendCombatStateChanged(session);
+            return;
+        }
+
+        float dist = MovementController.Distance(session.Position, targetPos);
+
+        if (dist <= session.AttackRange)
+        {
+            // Entered attack range — stop movement and start attacking
+            session.State = CombatState.Attacking;
+            session.IsMoving    = false;
+            UpdatePlayerFlags(session);
+            SendCombatStateChanged(session);
+        }
+        else
+        {
+            // Tick-based destination update: keep chasing current target pos
+            session.Destination = targetPos;
+            session.IsMoving    = true;
+        }
+    }
+
+    private void TickPlayerAttack(PlayerSession session, long nowMs)
+    {
+        if (!TryResolveTarget(session, out var targetPos, out bool targetDead))
+        {
+            session.CombatTargetId = 0;
+            session.State    = CombatState.Idle;
+            SendCombatStateChanged(session);
+            return;
+        }
+
+        if (targetDead)
+        {
+            session.CombatTargetId = 0;
+            session.State    = CombatState.Idle;
+            SendCombatStateChanged(session);
+            return;
+        }
+
+        float dist = MovementController.Distance(session.Position, targetPos);
+
+        if (dist > session.AttackRange)
+        {
+            // Target escaped — resume chase
+            session.State = CombatState.Chasing;
+            SendCombatStateChanged(session);
+            return;
+        }
+
+        // Attack cooldown check
+        long cooldownMs = (long)(session.AttackCooldownSec * 1000);
+        if (nowMs - session.LastAttackMs < cooldownMs) return;
+
+        session.LastAttackMs = nowMs;
+
+        // Apply damage to target (player or NPC)
+        if (IsNpcId(session.CombatTargetId))
+        {
+            _npcs.ApplyDamage(session.CombatTargetId, session.ConvId, session.AttackDamage, nowMs);
+        }
+        else if (_sessions.TryGetValue(session.CombatTargetId, out var targetPlayer))
+        {
+            targetPlayer.CurrentHp -= session.AttackDamage;
+            int remaining = Math.Max(targetPlayer.CurrentHp, 0);
+
+            BroadcastDamageEvent(session.ConvId, targetPlayer.ConvId, session.AttackDamage, remaining);
+
+            if (targetPlayer.CurrentHp <= 0)
+            {
+                targetPlayer.CurrentHp   = 0;
+                targetPlayer.State       = CombatState.Dead;
+                targetPlayer.DeathTimeMs = nowMs;
+                targetPlayer.Flags      |= 0b0100u;
+                BroadcastEntityDied(targetPlayer.ConvId, session.ConvId, 0);
+
+                // Notify Django of PvP kill
+                _ = _bridge.SendEventAsync(new GameEvent
+                {
+                    EventType = "player_killed",
+                    PlayerId  = session.UserId,
+                    Data      = new Dictionary<string, object>
+                    {
+                        ["victim_user_id"] = targetPlayer.UserId,
+                    },
+                });
+            }
+        }
+    }
+
+    // Resolve the target entity's current position and alive state
+    private bool TryResolveTarget(PlayerSession session, out EntityPosition pos, out bool dead)
+    {
+        uint targetId = session.CombatTargetId;
+        dead = false;
+        pos  = default;
+
+        if (targetId == 0) return false;
+
+        if (IsNpcId(targetId))
+        {
+            if (!_npcs.TryGet(targetId, out var npc) || npc is null) return false;
+            dead = npc.IsDead;
+            pos  = npc.Position;
+            return true;
+        }
+
+        if (_sessions.TryGetValue(targetId, out var player))
+        {
+            dead = player.IsDead;
+            pos  = player.Position;
+            return true;
+        }
+
+        return false;
+    }
+
+    private static bool IsNpcId(uint id) => id >= NpcManager.NPC_ID_BASE;
+
+    // ── Snapshot broadcast ────────────────────────────────────────────────────
 
     private void BroadcastSnapshots()
     {
@@ -217,44 +576,201 @@ internal sealed class SimulationLoop
 
             foreach (uint neighbourId in _neighbourScratch)
             {
-                if (!_sessions.TryGetValue(neighbourId, out var n)) continue;
-                _snapshotScratch.Add(new EntityState
-                {
-                    EntityId = neighbourId,
-                    X        = n.Position.X,
-                    Y        = n.Position.Y,
-                    Flags    = n.Flags,
-                });
+                EntityState? es = BuildEntityState(neighbourId);
+                if (es is not null) _snapshotScratch.Add(es);
             }
 
             var snapshot = new S2C_WorldSnapshot { ServerTick = _tick };
             snapshot.Entities.AddRange(_snapshotScratch);
 
-            byte[] payload = snapshot.ToByteArray();
-            byte[] packet  = ArrayPool<byte>.Shared.Rent(1 + payload.Length);
-            packet[0] = 0x10;  // message type: WorldSnapshot
-            payload.CopyTo(packet, 1);
-            session.Kcp?.Send(packet.AsSpan(0, 1 + payload.Length));
-            ArrayPool<byte>.Shared.Return(packet);
+            SendToSession(session, 0x10, snapshot);
         }
+    }
+
+    private EntityState? BuildEntityState(uint entityId)
+    {
+        if (IsNpcId(entityId))
+        {
+            if (!_npcs.TryGet(entityId, out var npc) || npc is null) return null;
+            return new EntityState
+            {
+                EntityId    = npc.EntityId,
+                X           = npc.Position.X,
+                Y           = npc.Position.Y,
+                Flags       = npc.Flags,
+                Hp          = npc.CurrentHp,
+                MaxHp       = npc.MaxHp,
+                TargetId    = npc.CombatTargetId,
+                CombatState = (uint)npc.State,
+            };
+        }
+
+        if (_sessions.TryGetValue(entityId, out var player))
+        {
+            return new EntityState
+            {
+                EntityId    = player.ConvId,
+                X           = player.Position.X,
+                Y           = player.Position.Y,
+                Flags       = player.Flags,
+                Hp          = player.CurrentHp,
+                MaxHp       = player.MaxHp,
+                TargetId    = player.CombatTargetId,
+                CombatState = (uint)player.State,
+            };
+        }
+
+        return null;
+    }
+
+    // ── Combat event broadcasts ───────────────────────────────────────────────
+
+    private void BroadcastDamageEvent(uint attackerId, uint targetId, int damage, int remainingHp)
+    {
+        var evt = new S2C_DamageEvent
+        {
+            AttackerId  = attackerId,
+            TargetId    = targetId,
+            Damage      = damage,
+            RemainingHp = remainingHp,
+        };
+
+        // Broadcast to all players in range of the target entity
+        EntityPosition? targetPos = GetEntityPosition(targetId);
+        if (targetPos is null) return;
+
+        BroadcastEventToArea(targetPos.Value, 0x11, evt);
+    }
+
+    private void BroadcastEntityDied(uint entityId, uint killerId, int xpReward)
+    {
+        var evt = new S2C_EntityDied
+        {
+            EntityId = entityId,
+            KillerId = killerId,
+            XpReward = (uint)xpReward,
+        };
+
+        EntityPosition? pos = GetEntityPosition(entityId);
+        if (pos is null) return;
+
+        BroadcastEventToArea(pos.Value, 0x12, evt);
+
+        // Notify Django to persist XP and handle loot
+        if (xpReward > 0 && _sessions.TryGetValue(killerId, out var killer))
+        {
+            _ = _bridge.SendEventAsync(new GameEvent
+            {
+                EventType = "xp_gained",
+                PlayerId  = killer.UserId,
+                Data      = new Dictionary<string, object> { ["amount"] = xpReward },
+            });
+        }
+    }
+
+    private void SendCombatStateChanged(PlayerSession session)
+    {
+        var msg = new S2C_CombatStateChanged
+        {
+            EntityId    = session.ConvId,
+            CombatState = (uint)session.State,
+            TargetId    = session.CombatTargetId,
+        };
+        SendToSession(session, 0x13, msg);
+    }
+
+    // ── Area broadcast helper ─────────────────────────────────────────────────
+
+    private void BroadcastEventToArea(EntityPosition center, byte msgType, IMessage msg)
+    {
+        _neighbourScratch.Clear();
+        _grid.GetNeighbours(center.X, center.Y, _neighbourScratch);
+
+        foreach (uint neighbourId in _neighbourScratch)
+        {
+            if (IsNpcId(neighbourId)) continue;
+            if (!_sessions.TryGetValue(neighbourId, out var s)) continue;
+            SendToSession(s, msgType, msg);
+        }
+    }
+
+    private static void SendToSession(PlayerSession session, byte msgType, IMessage msg)
+    {
+        byte[] payload = msg.ToByteArray();
+        byte[] packet  = ArrayPool<byte>.Shared.Rent(1 + payload.Length);
+        packet[0] = msgType;
+        payload.CopyTo(packet, 1);
+        session.Kcp?.Send(packet.AsSpan(0, 1 + payload.Length));
+        ArrayPool<byte>.Shared.Return(packet);
+    }
+
+    // ── Position lookup ───────────────────────────────────────────────────────
+
+    private EntityPosition? GetEntityPosition(uint entityId)
+    {
+        if (IsNpcId(entityId))
+        {
+            if (_npcs.TryGet(entityId, out var npc) && npc is not null)
+                return npc.Position;
+            return null;
+        }
+
+        if (_sessions.TryGetValue(entityId, out var player))
+            return player.Position;
+
+        return null;
+    }
+
+    // ── Flag helpers ──────────────────────────────────────────────────────────
+
+    private static void UpdatePlayerFlags(PlayerSession s)
+    {
+        bool moving    = s.IsMoving;
+        bool attacking = s.State == CombatState.Attacking;
+        bool dead      = s.State == CombatState.Dead;
+
+        uint f = s.Flags & ~0b0111u;  // clear bits 0-2
+        if (moving)    f |= 0b0001u;
+        if (attacking) f |= 0b0010u;
+        if (dead)      f |= 0b0100u;
+        s.Flags = f;
+    }
+
+    // ── Respawn ───────────────────────────────────────────────────────────────
+
+    private void TryRespawnPlayer(PlayerSession session, long nowMs)
+    {
+        if (nowMs - session.DeathTimeMs < PlayerSession.RESPAWN_DELAY_MS) return;
+
+        session.CurrentHp      = session.MaxHp;
+        session.State          = CombatState.Idle;
+        session.CombatTargetId = 0;
+        session.IsMoving       = false;
+        session.Position       = session.SpawnPoint;
+        session.Flags         &= ~0b0110u;  // clear dead (bit2) and attacking (bit1)
+
+        _grid.Upsert(session.ConvId, session.Position.X, session.Position.Y);
+
+        var respawnMsg = new S2C_CombatStateChanged
+        {
+            EntityId    = session.ConvId,
+            CombatState = (uint)CombatState.Idle,
+            TargetId    = 0,
+        };
+        SendToSession(session, 0x13, respawnMsg);
     }
 
     // ── Kick ─────────────────────────────────────────────────────────────────
 
     private void KickPlayer(PlayerSession session, string reason)
     {
-        var evt = new S2C_Event { EventType = "kicked", Payload = Google.Protobuf.ByteString.CopyFromUtf8(reason) };
-        byte[] payload = evt.ToByteArray();
-        byte[] packet  = ArrayPool<byte>.Shared.Rent(1 + payload.Length);
-        packet[0] = 0x20;
-        payload.CopyTo(packet, 1);
-        session.Kcp?.Send(packet.AsSpan(0, 1 + payload.Length));
-        session.Kcp?.Update((uint)Environment.TickCount64);
-        ArrayPool<byte>.Shared.Return(packet);
-
+        var evt = new S2C_Event { EventType = "kicked",
+                                  Payload = Google.Protobuf.ByteString.CopyFromUtf8(reason) };
+        SendToSession(session, 0x20, evt);
+        session.Kcp?.Update((uint)(Environment.TickCount64 & 0xFFFF_FFFF));
         OnPlayerDisconnected(session.ConvId);
     }
 
-    private static long GetMicroseconds() => 
+    private static long GetMicroseconds() =>
         Stopwatch.GetTimestamp() * 1_000_000L / Stopwatch.Frequency;
 }

@@ -1,34 +1,80 @@
-# Projeto Ravenna - Game Ecosystem
+# Projeto Ravenna — Game Ecosystem
 
-Bem-vindo ao **Projeto Ravenna**, um ecossistema completo para jogos multiplayer integrado à Unity. Este projeto combina alta performance em tempo real com uma infraestrutura robusta de persistência e comunidade.
-
----
-
-## 📚 Documentação Detalhada
-
-Para facilitar a navegação, a documentação foi separada por módulos:
-
-*   🚀 **[Guia de Início Rápido](./docs/infrastructure.md)**: Como subir o ambiente e gerenciar a infraestrutura.
-*   🐍 **[Backend & API](./docs/backend.md)**: Detalhes sobre a lógica Django, Banco de Dados e Segurança.
-*   ⚛️ **[Portal do Jogador](./docs/frontend.md)**: Tudo sobre a interface Next.js e o Dashboard.
-*   🎮 **[Game Server](./docs/gameserver.md)**: Análise técnica do servidor autoritativo em C#.
-*   🛡️ **[Arquitetura & Segurança](./ARCHITECTURE.md)**: Fluxo de dados e medidas anti-cheat.
+Ecossistema completo para jogo MMO multiplayer com portal web integrado e servidor de jogo headless.
 
 ---
 
-## 🛠️ Tecnologias Principais
-*   **Backend**: Django, DRF, PostgreSQL, Redis, Celery.
-*   **Frontend**: Next.js 15, Tailwind CSS, TanStack Query.
-*   **Game Server**: .NET 8 (C#), KCP (Reliable UDP), Protobuf.
+## Documentação
+
+| Arquivo | Conteúdo |
+|---|---|
+| [docs/infrastructure.md](./docs/infrastructure.md) | Setup local, Docker, variáveis de ambiente |
+| [docs/backend.md](./docs/backend.md) | API Django, modelos, tarefas assíncronas |
+| [docs/frontend.md](./docs/frontend.md) | Interface Next.js, páginas, hooks |
+| [docs/gameserver.md](./docs/gameserver.md) | Servidor C# KCP/UDP |
+| [ARCHITECTURE.md](./ARCHITECTURE.md) | Fluxo de dados e segurança |
+| [DEPLOYMENT.md](./DEPLOYMENT.md) | Deploy completo em produção |
 
 ---
 
-## 📂 Visão Geral da Estrutura
-*   `Backend/`: Core da aplicação (API).
-*   `frontend/`: Interface Web do Jogador.
-*   `gameserver/`: Servidor autoritativo para Unity.
-*   `proto/`: Definições de mensagens binárias.
-*   `docs/`: Documentação técnica detalhada.
+## Stack
+
+| Camada | Tecnologia |
+|---|---|
+| **Backend** | Django 5, DRF, PostgreSQL 16, Redis 7, Celery, Channels |
+| **Frontend** | Next.js 15, TanStack Query, Tailwind CSS v4 |
+| **Game Server** | .NET 8 (C#), KCP/UDP, Protobuf |
+| **Infra** | Docker Compose, GitHub Actions CI/CD, NGINX |
 
 ---
-© 2026 Projeto Ravenna. Desenvolvido para alta performance e escalabilidade.
+
+## Estrutura do Repositório
+
+```
+ProjetoRavenna/
+├── backend/            # Django API (porta 8000)
+├── frontend/           # Next.js portal (porta 3000)
+├── gameserver/         # C# servidor headless (porta 7777/UDP)
+├── proto/              # Definições Protobuf compartilhadas
+├── docs/               # Documentação técnica por módulo
+├── ARCHITECTURE.md     # Fluxo de dados e segurança
+├── DEPLOYMENT.md       # Guia de produção
+└── .github/workflows/  # CI/CD (ci.yml + deploy.yml)
+```
+
+---
+
+## Início Rápido (Desenvolvimento)
+
+### Pré-requisitos
+- Docker Desktop em execução
+- Node.js 20+ e npm
+- Python 3.11+
+
+### Subir o backend (Docker)
+
+```bash
+cd backend
+docker-compose up -d          # postgres + redis + web + celery
+docker exec ravenna_web python manage.py seed_dev   # dados de teste
+```
+
+### Subir o frontend
+
+```bash
+cd frontend
+npm install
+npm run dev                    # http://localhost:3000
+```
+
+### Credenciais de teste (após seed_dev)
+
+| Campo | Valor |
+|---|---|
+| Email | `admin@ravenna.gg` |
+| Senha | `admin123` |
+| Django Admin | http://localhost:8000/admin/ |
+
+---
+
+© 2026 Projeto Ravenna.

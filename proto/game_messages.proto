@@ -10,13 +10,39 @@ message C2S_Handshake {
     string hwid      = 2;  // hardware ID for multi-client detection
 }
 
-// Quantized position update — sent every tick the player moves
-message C2S_Move {
-    int32  x        = 1;  // world position in centimetres
-    int32  y        = 2;
-    int32  sequence = 3;  // monotonic client tick counter
+// Click-to-move: client sends world-space destination on XZ plane
+message C2S_MoveTo {
+    int32 dest_x    = 1;  // destination in centimetres
+    int32 dest_y    = 2;
+    int32 sequence  = 3;  // monotonic client tick counter
 }
 
+// Lock onto a target to begin chase-to-attack
+message C2S_AttackTarget {
+    uint32 target_id   = 1;  // entity_id of the target (player or NPC)
+    int32  sequence    = 2;
+}
+
+// Cancel current action (stop moving / stop attacking)
+message C2S_StopAction {
+    int32 sequence = 1;
+}
+
+// Activate a learned skill against a target (or self for buffs)
+message C2S_UseSkill {
+    uint32 skill_id  = 1;
+    uint32 target_id = 2;  // 0 for self-targeted skills
+    int32  sequence  = 3;
+}
+
+// Legacy: raw position report (still accepted; treated same as C2S_MoveTo)
+message C2S_Move {
+    int32  x        = 1;
+    int32  y        = 2;
+    int32  sequence = 3;
+}
+
+// Generic game action (ability use, item pickup, etc.)
 message C2S_Action {
     uint32 action_id = 1;
     uint32 target_id = 2;
@@ -37,11 +63,40 @@ message S2C_WorldSnapshot {
     repeated EntityState entities   = 2;
 }
 
+// Extended entity state — includes combat fields for the client to render
 message EntityState {
-    uint32 entity_id = 1;
-    int32  x         = 2;
-    int32  y         = 3;
-    uint32 flags     = 4;  // bit0=moving, bit1=attacking, bit2=dead
+    uint32 entity_id    = 1;
+    int32  x            = 2;
+    int32  y            = 3;
+    uint32 flags        = 4;  // bit0=moving, bit1=attacking, bit2=dead, bit3=npc
+    int32  hp           = 5;
+    int32  max_hp       = 6;
+    uint32 target_id    = 7;  // current combat target (0 = none)
+    uint32 combat_state = 8;  // 0=idle, 1=moving, 2=chasing, 3=attacking, 4=dead
+}
+
+// Sent to all players in range when a hit lands
+message S2C_DamageEvent {
+    uint32 attacker_id  = 1;
+    uint32 target_id    = 2;
+    int32  damage       = 3;
+    int32  remaining_hp = 4;
+    bool   is_critical  = 5;
+    uint32 skill_id     = 6;  // 0 = auto-attack; >0 = skill that triggered this hit
+}
+
+// Sent to all players in range when an entity dies
+message S2C_EntityDied {
+    uint32 entity_id  = 1;
+    uint32 killer_id  = 2;
+    uint32 xp_reward  = 3;  // only populated when a player killed an NPC
+}
+
+// Sent to a player when its own combat state changes (for client-side UI)
+message S2C_CombatStateChanged {
+    uint32 entity_id    = 1;
+    uint32 combat_state = 2;  // mirrors EntityState.combat_state
+    uint32 target_id    = 3;
 }
 
 // Generic server-push event (XP, items, kick, etc.)

@@ -243,12 +243,23 @@ class GameEventWebhookView(APIView):
 
         elif event_type == "player_action":
             action_id = int(data.get("action_id", 0))
-            # Action IDs defined in proto C2S_Action:
-            #   1 = melee_attack, 2 = ranged_attack, 3 = use_skill, 4 = pickup_item
+            # Action IDs: 1=melee, 2=ranged, 3=use_skill, 4=pickup
             XP_PER_ACTION = {1: 5, 2: 5, 3: 10, 4: 2}
             xp = XP_PER_ACTION.get(action_id, 0)
             if xp:
                 GameLogicService.gain_experience(target, xp)
+
+        elif event_type == "player_disconnected":
+            GameLogicService.end_game_session(target)
+
+        elif event_type == "player_killed":
+            victim_user_id = data.get("victim_user_id")
+            if victim_user_id:
+                try:
+                    victim = User.objects.get(id=victim_user_id)
+                    GameLogicService.record_pvp_kill(killer=target, victim=victim)
+                except User.DoesNotExist:
+                    pass
 
         print(f"[Webhook] Event {event_type} processed for {target.email}")
         return Response({"ok": True})

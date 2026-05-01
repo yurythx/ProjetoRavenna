@@ -238,6 +238,19 @@ class GameLogicService:
 
     @staticmethod
     @transaction.atomic
+    def record_pvp_kill(killer: User, victim: User):
+        """Increment pvp_kills for killer and pvp_deaths for victim atomically."""
+        from apps.game_logic.models import PlayerStats
+        killer_stats, _ = PlayerStats.objects.select_for_update().get_or_create(owner=killer)
+        killer_stats.pvp_kills += 1
+        killer_stats.save(update_fields=["pvp_kills", "updated_at"])
+
+        victim_stats, _ = PlayerStats.objects.select_for_update().get_or_create(owner=victim)
+        victim_stats.pvp_deaths += 1
+        victim_stats.save(update_fields=["pvp_deaths", "updated_at"])
+
+    @staticmethod
+    @transaction.atomic
     def start_quest(user: User, quest_id: str) -> QuestProgress:
         progress, created = QuestProgress.objects.select_for_update().get_or_create(
             owner=user, quest_id=quest_id, defaults={"status": "in_progress", "started_at": timezone.now()}

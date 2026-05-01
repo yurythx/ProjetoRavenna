@@ -123,6 +123,8 @@ class PlayerStats(UUIDModel):
     intelligence = models.IntegerField(default=10)
     vitality = models.IntegerField(default=10)
     points_remaining = models.IntegerField(default=0)
+    pvp_kills  = models.IntegerField(default=0)
+    pvp_deaths = models.IntegerField(default=0)
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 
