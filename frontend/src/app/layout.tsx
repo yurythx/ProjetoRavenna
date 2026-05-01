@@ -1,5 +1,5 @@
-import type { Metadata } from "next";
-import { Geist, Geist_Mono } from "next/font/google";
+import type { Metadata, Viewport } from "next";
+import { Exo_2, Rajdhani, JetBrains_Mono } from "next/font/google";
 import "./globals.css";
 
 import { AppHeader } from "@/components/app-header";
@@ -12,20 +12,40 @@ import { ToastProvider } from "@/hooks/use-toast";
 import { getSiteBaseUrl } from "@/lib/env";
 import { Toaster as SonnerToaster } from "sonner";
 
-const geistSans = Geist({
-  variable: "--font-geist-sans",
+const exo2 = Exo_2({
+  variable: "--font-display",
   subsets: ["latin"],
+  weight: ["300", "400", "500", "600", "700", "800", "900"],
 });
 
-const geistMono = Geist_Mono({
-  variable: "--font-geist-mono",
+const rajdhani = Rajdhani({
+  variable: "--font-body",
   subsets: ["latin"],
+  weight: ["400", "500", "600", "700"],
 });
+
+const jetbrainsMono = JetBrains_Mono({
+  variable: "--font-mono",
+  subsets: ["latin"],
+  weight: ["400", "500", "700"],
+});
+
+export const viewport: Viewport = {
+  themeColor: "#050508",
+};
 
 export const metadata: Metadata = {
-  title: "Projeto Ravenna",
-  description: "Portal do jogador - Projeto Ravenna",
+  title: {
+    template: "%s | RAVENNA",
+    default: "RAVENNA — Portal do Herói",
+  },
+  description: "Forje sua lenda. O ecossistema completo para o universo Ravenna — portal do jogador, comunidade e lore.",
   metadataBase: new URL(getSiteBaseUrl()),
+  openGraph: {
+    title: "RAVENNA — Portal do Herói",
+    description: "Forje sua lenda.",
+    type: "website",
+  },
 };
 
 export default function RootLayout({
@@ -36,20 +56,14 @@ export default function RootLayout({
   return (
     <html
       lang="pt-BR"
+      data-theme="dark"
       suppressHydrationWarning
-      className={`${geistSans.variable} ${geistMono.variable} h-full antialiased`}
+      className={`${exo2.variable} ${rajdhani.variable} ${jetbrainsMono.variable} h-full`}
     >
       <head>
-        <link rel="alternate" type="application/rss+xml" title="Projeto Ravenna - Blog" href="/rss.xml" />
-        <script
-          id="theme-init"
-          dangerouslySetInnerHTML={{
-            __html:
-              "(function(){try{var k='ravenna.theme';var t=localStorage.getItem(k)||'system';var r=document.documentElement;if(t==='light'||t==='dark'){r.dataset.theme=t}else{delete r.dataset.theme}}catch(e){}})();",
-          }}
-        />
+        <link rel="alternate" type="application/rss+xml" title="Ravenna — Blog" href="/rss.xml" />
       </head>
-      <body className="min-h-full flex flex-col">
+      <body className="min-h-full flex flex-col bg-[var(--rv-dark)] text-[var(--rv-text-primary)] antialiased">
         <ThemeProvider>
           <AuthProvider>
             <QueryProvider>
@@ -59,7 +73,18 @@ export default function RootLayout({
                   <ErrorBoundary>{children}</ErrorBoundary>
                 </main>
                 <UiToaster />
-                <SonnerToaster richColors />
+                <SonnerToaster
+                  richColors
+                  theme="dark"
+                  toastOptions={{
+                    style: {
+                      background: "var(--rv-surface)",
+                      border: "1px solid var(--rv-border)",
+                      color: "var(--rv-text-primary)",
+                      fontFamily: "var(--font-display)",
+                    },
+                  }}
+                />
               </ToastProvider>
             </QueryProvider>
           </AuthProvider>

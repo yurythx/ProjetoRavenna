@@ -15,7 +15,7 @@ APP_BUILD_TIME = os.environ.get("APP_BUILD_TIME", "")
 
 DEBUG = os.environ.get("DEBUG", "True").lower() == "true"
 
-ALLOWED_HOSTS = os.environ.get("ALLOWED_HOSTS", "localhost,127.0.0.1").split(",")
+ALLOWED_HOSTS = os.environ.get("ALLOWED_HOSTS", "localhost,127.0.0.1,web,gameserver").split(",")
 
 INSTALLED_APPS = [
     "django.contrib.admin",
@@ -364,3 +364,23 @@ if SENTRY_DSN:
 # ---------------------------------------------------------------------------
 LEADERBOARD_CACHE_KEY = "game:leaderboard"
 LEADERBOARD_SIZE = int(os.environ.get("LEADERBOARD_SIZE", "100"))
+
+# ---------------------------------------------------------------------------
+# Celery Beat — periodic tasks (static schedule; database entries win on conflict)
+# ---------------------------------------------------------------------------
+from celery.schedules import crontab  # noqa: E402
+
+CELERY_BEAT_SCHEDULE = {
+    "rebuild-leaderboard-cache": {
+        "task": "apps.game_logic.tasks.rebuild_leaderboard_cache",
+        "schedule": 600,  # every 10 minutes
+    },
+    "cleanup-stale-game-sessions": {
+        "task": "apps.game_logic.tasks.cleanup_stale_game_sessions",
+        "schedule": 120,  # every 2 minutes
+    },
+    "cleanup-expired-otps": {
+        "task": "apps.accounts.tasks.cleanup_expired_otps",
+        "schedule": crontab(minute=0, hour="*/6"),  # every 6 hours
+    },
+}

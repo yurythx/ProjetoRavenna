@@ -29,7 +29,7 @@ class PublicCommentsTestCase(TestCase):
         player.save(update_fields=["is_verified"])
         self.client.force_authenticate(user=player)
         response = self.client.post(
-            "/api/blog/public/comments/",
+            "/api/v1/blog/public/comments/",
             {"post_slug": "hello", "content": "Nice!"},
             format="json",
         )
@@ -39,7 +39,7 @@ class PublicCommentsTestCase(TestCase):
         self.assertFalse(payload["is_approved"])
 
         self.client.force_authenticate(user=None)
-        response = self.client.get("/api/blog/public/comments/?post_slug=hello")
+        response = self.client.get("/api/v1/blog/public/comments/?post_slug=hello")
         self.assertEqual(response.status_code, 200)
         items = response.json()
         self.assertEqual(len(items.get("results", [])), 0)
@@ -61,7 +61,7 @@ class PublicCommentsTestCase(TestCase):
         player.save(update_fields=["is_verified"])
         self.client.force_authenticate(user=player)
         response = self.client.post(
-            "/api/blog/public/comments/",
+            "/api/v1/blog/public/comments/",
             {"post_slug": "draft", "content": "Nice!"},
             format="json",
         )

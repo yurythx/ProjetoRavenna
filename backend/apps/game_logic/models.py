@@ -7,6 +7,47 @@ from django.db import models
 from apps.common.models import UUIDModel
 
 
+class QuestTemplate(UUIDModel):
+    """Static definition of a quest — what objectives it has and what rewards it gives."""
+
+    QUEST_TYPES = [
+        ("main", "Main Story"),
+        ("side", "Side Quest"),
+        ("daily", "Daily"),
+        ("repeatable", "Repeatable"),
+    ]
+
+    name = models.CharField(max_length=255)
+    description = models.TextField(blank=True)
+    quest_type = models.CharField(max_length=20, choices=QUEST_TYPES, default="side")
+    objectives = models.JSONField(
+        default=list,
+        help_text='[{"key": "kill_wolf", "description": "Kill wolves", "target_count": 5}]',
+    )
+    rewards = models.JSONField(
+        default=dict,
+        help_text='{"xp": 500, "gold": 100, "items": [{"item_template_id": "<uuid>", "quantity": 1}]}',
+    )
+    level_required = models.IntegerField(default=1)
+    is_repeatable = models.BooleanField(default=False)
+    is_active = models.BooleanField(default=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        db_table = "quest_templates"
+        verbose_name = "Quest Template"
+        verbose_name_plural = "Quest Templates"
+        ordering = ["level_required", "name"]
+        indexes = [
+            models.Index(fields=["quest_type", "is_active"]),
+            models.Index(fields=["level_required"]),
+        ]
+
+    def __str__(self):
+        return f"[{self.get_quest_type_display()}] {self.name}"
+
+
 class PlayerInventory(UUIDModel):
     """Player inventory instance."""
 

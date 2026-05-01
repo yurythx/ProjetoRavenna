@@ -70,6 +70,60 @@ export type PlayerInventory = {
 };
 
 export type LeaderboardEntry = {
-  name: string;
+  rank?: number;
+  name?: string;
+  display_name?: string;
   score: number;
+};
+
+export type ItemRarity = "common" | "uncommon" | "rare" | "epic" | "legendary";
+
+export type ItemTemplate = {
+  id: UUID;
+  name: string;
+  description: string;
+  item_type: string;
+  rarity: ItemRarity;
+  base_damage: number;
+  base_defense: number;
+  base_health: number;
+  base_mana: number;
+  icon_path: string;
+  stack_size: number;
+  is_droppable: boolean;
+  is_tradable: boolean;
+  price: number;
+  level_required: number;
+  updated_at: string;
+};
+
+export type PaginatedResponse<T> = {
+  count: number;
+  next: string | null;
+  previous: string | null;
+  results: T[];
+};
+
+export type QuestObjective = {
+  key: string;
+  description: string;
+  target_count: number;
+};
+
+export type QuestRewards = {
+  xp?: number;
+  gold?: number;
+  items?: { item_template_id: UUID; quantity: number }[];
+};
+
+export type QuestTemplate = {
+  id: UUID;
+  name: string;
+  description: string;
+  quest_type: "main" | "side" | "daily" | "repeatable";
+  quest_type_display: string;
+  objectives: QuestObjective[];
+  rewards: QuestRewards;
+  level_required: number;
+  is_repeatable: boolean;
 };

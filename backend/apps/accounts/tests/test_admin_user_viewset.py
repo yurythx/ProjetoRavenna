@@ -15,24 +15,24 @@ class AdminUserViewSetTestCase(TestCase):
         self.user = User.objects.create_user(email="user1@example.com", username="user1", password="Pass1234!")
 
     def test_list_supports_page_size_and_filtering(self):
-        res = self.client.get("/api/accounts/users/?page=1&page_size=1")
+        res = self.client.get("/api/v1/accounts/users/?page=1&page_size=1")
         self.assertEqual(res.status_code, 200)
         payload = res.json()
         self.assertEqual(len(payload.get("results", [])), 1)
 
-        res2 = self.client.get("/api/accounts/users/?is_active=true&page=1&page_size=50")
+        res2 = self.client.get("/api/v1/accounts/users/?is_active=true&page=1&page_size=50")
         self.assertEqual(res2.status_code, 200)
 
     def test_cannot_ban_or_deactivate_self(self):
-        res = self.client.post(f"/api/accounts/users/{self.admin.id}/deactivate/")
+        res = self.client.post(f"/api/v1/accounts/users/{self.admin.id}/deactivate/")
         self.assertEqual(res.status_code, 403)
 
-        res2 = self.client.post(f"/api/accounts/users/{self.admin.id}/ban/", {"reason": "Motivo válido para banimento"}, format="json")
+        res2 = self.client.post(f"/api/v1/accounts/users/{self.admin.id}/ban/", {"reason": "Motivo válido para banimento"}, format="json")
         self.assertEqual(res2.status_code, 403)
 
     def test_update_records_audit_with_ip_and_user_agent(self):
         res = self.client.patch(
-            f"/api/accounts/users/{self.user.id}/",
+            f"/api/v1/accounts/users/{self.user.id}/",
             {"is_staff": True},
             format="json",
             HTTP_X_FORWARDED_FOR="203.0.113.10, 10.0.0.1",

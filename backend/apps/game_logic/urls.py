@@ -10,6 +10,7 @@ from apps.game_logic.views import (
     PlayerSkillsView,
     QuestCompleteView,
     QuestProgressView,
+    QuestTemplatesView,
     StatsView,
     GameSessionView,
 )
@@ -26,5 +27,6 @@ urlpatterns = [
     path("skills/", PlayerSkillsView.as_view(), name="skills"),
     path("leaderboard/", LeaderboardView.as_view(), name="leaderboard"),
     path("session/",     GameSessionView.as_view(),      name="game-session"),
+    path("quest-templates/", QuestTemplatesView.as_view(), name="quest-templates"),
     path("events/",      GameEventWebhookView.as_view(), name="game-events-webhook"),
 ]

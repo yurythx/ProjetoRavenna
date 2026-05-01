@@ -97,13 +97,14 @@ services:
 
   gameserver:
     build:
-      context: ../gameserver
-      dockerfile: Dockerfile
+      context: ..
+      dockerfile: gameserver/Dockerfile
     container_name: ravenna_gameserver
     env_file:
       - ../gameserver/.env.example   # override with .env in production
     environment:
       DJANGO_URL: http://web:8000
+      DJANGO_WEBHOOK_SECRET: ravenna-secret-123
       JWT_PUBLIC_KEY_PATH: /app/keys/public.pem
     volumes:
       - keys_data:/app/keys:ro        # shares RSA public key from Django container

@@ -1,6 +1,5 @@
 import Link from "next/link";
 import { backendFetch } from "@/lib/backend";
-import { MessageSquare, Eye, Clock } from "lucide-react";
 
 type Topic = {
   id: string;
@@ -8,54 +7,87 @@ type Topic = {
   slug: string;
   author_name: string;
   category_name: string;
+  category_slug?: string;
   reply_count: number;
   view_count: number;
   last_reply_at: string;
   is_pinned: boolean;
 };
 
+/** Safely extract an array from any API response shape (list or paginated) */
+function extractList<T>(data: unknown): T[] {
+  if (!data) return [];
+  if (Array.isArray(data)) return data as T[];
+  if (typeof data === "object") {
+    const obj = data as Record<string, unknown>;
+    if (Array.isArray(obj.results)) return obj.results as T[];
+    if (Array.isArray(obj.data)) return obj.data as T[];
+  }
+  return [];
+}
+
 export async function RecentTopicsList() {
-  const res = await backendFetch<{ results: Topic[] }>("/api/v1/forum/public/topics/popular/?limit=5", {
-    method: "GET",
-    next: { revalidate: 60 },
-  });
+  // Try v1 endpoint first, then fallback to legacy
+  const res = await backendFetch<unknown>(
+    "/api/v1/forum/public/topics/popular/?limit=5",
+    { method: "GET", next: { revalidate: 60 } }
+  );
 
   if (!res.ok) return null;
 
+  const topics = extractList<Topic>(res.data);
+  if (topics.length === 0) return null;
+
   return (
-    <div className="space-y-4">
-      <h2 className="text-xl font-bold text-white mb-6 flex items-center gap-2">
-        <Clock className="h-5 w-5 text-purple-500" />
-        Tópicos em Destaque
-      </h2>
+    <div>
+      <div className="flex items-center gap-3 mb-6">
+        <span className="rv-badge rv-badge-gold">◆ Tópicos em Destaque</span>
+      </div>
+
       <div className="space-y-3">
-        {res.data.results.map((topic) => (
+        {topics.map((topic) => (
           <Link
             key={topic.id}
             href={`/forum/t/${topic.slug}`}
-            className="group flex flex-col md:flex-row md:items-center justify-between p-5 rounded-2xl border border-white/5 bg-white/[0.02] hover:bg-white/[0.05] transition-all"
+            className="rv-card group flex flex-col sm:flex-row sm:items-center justify-between p-4 sm:p-5 gap-3 sm:gap-4 hover:scale-[1.005] transition-all duration-200"
           >
-            <div className="flex flex-col gap-1">
-              <div className="flex items-center gap-2">
-                {topic.is_pinned && <span className="text-[10px] bg-purple-500/20 text-purple-400 px-2 py-0.5 rounded-full font-bold uppercase">Fixado</span>}
-                <span className="text-sm font-bold text-white group-hover:text-purple-400 transition-colors">{topic.title}</span>
+            {/* Left */}
+            <div className="flex flex-col gap-1.5 flex-1 min-w-0">
+              <div className="flex items-center gap-2 flex-wrap">
+                {topic.is_pinned && (
+                  <span className="rv-badge rv-badge-gold text-[8px]">📌 Fixado</span>
+                )}
+                <span className="rv-badge rv-badge-cyan text-[8px]">{topic.category_name}</span>
               </div>
-              <span className="text-xs text-gray-500">por {topic.author_name} em <span className="text-gray-400">{topic.category_name}</span></span>
+              <h3 className="rv-display text-sm sm:text-base text-white group-hover:text-[var(--rv-accent)] transition-colors line-clamp-1">
+                {topic.title}
+              </h3>
+              <span className="rv-label text-[9px] text-[var(--rv-text-dim)]">
+                por {topic.author_name}
+              </span>
             </div>
-            
-            <div className="flex items-center gap-6 mt-3 md:mt-0">
-              <div className="flex items-center gap-1.5 text-gray-500">
-                <MessageSquare className="h-3.5 w-3.5" />
-                <span className="text-xs font-medium">{topic.reply_count}</span>
+
+            {/* Right stats */}
+            <div className="flex items-center gap-4 sm:gap-6 flex-shrink-0">
+              <div className="text-center">
+                <div className="rv-display text-sm text-[var(--rv-text-primary)]">{topic.reply_count}</div>
+                <div className="rv-label text-[8px] text-[var(--rv-text-dim)]">Resp.</div>
               </div>
-              <div className="flex items-center gap-1.5 text-gray-500">
-                <Eye className="h-3.5 w-3.5" />
-                <span className="text-xs font-medium">{topic.view_count}</span>
+              <div className="text-center">
+                <div className="rv-display text-sm text-[var(--rv-text-primary)]">{topic.view_count}</div>
+                <div className="rv-label text-[8px] text-[var(--rv-text-dim)]">Views</div>
               </div>
-              <div className="hidden md:block w-24 text-right">
-                <span className="text-[10px] text-gray-600 font-bold uppercase">Última Resp.</span>
-                <p className="text-[10px] text-gray-400">{new Date(topic.last_reply_at).toLocaleDateString()}</p>
+              <div className="hidden sm:block text-right">
+                <div className="rv-label text-[8px] text-[var(--rv-text-dim)]">Última resp.</div>
+                <div className="rv-label text-[9px] text-[var(--rv-text-muted)]">
+                  {topic.last_reply_at
+                    ? new Date(topic.last_reply_at).toLocaleDateString("pt-BR")
+                    : "—"}
+                </div>
               </div>
+              <span className="text-[var(--rv-accent)] group-hover:translate-x-1 transition-transform inline-block text-sm">
+                →
+              </span>
             </div>
           </Link>
         ))}

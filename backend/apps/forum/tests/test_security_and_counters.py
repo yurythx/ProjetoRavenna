@@ -47,12 +47,12 @@ class ForumSecurityAndCountersTestCase(TestCase):
             category=self.category,
         )
 
-        res = self.client.get(f"/api/forum/topics/{topic.slug}/reactions/")
+        res = self.client.get(f"/api/v1/forum/topics/{topic.slug}/reactions/")
         self.assertEqual(res.status_code, 200)
 
     def test_topic_reaction_viewset_does_not_allow_listing(self):
         self.client.force_authenticate(user=self.player)
-        res = self.client.get("/api/forum/topic-reactions/")
+        res = self.client.get("/api/v1/forum/topic-reactions/")
         self.assertEqual(res.status_code, 405)
 
     def test_delete_reply_updates_denormalized_counters(self):
@@ -75,7 +75,7 @@ class ForumSecurityAndCountersTestCase(TestCase):
         self.assertEqual(topic.reply_count, 1)
         self.assertEqual(self.category.reply_count, 1)
 
-        res = self.client.delete(f"/api/forum/replies/{reply.id}/")
+        res = self.client.delete(f"/api/v1/forum/replies/{reply.id}/")
         self.assertEqual(res.status_code, 204)
 
         topic.refresh_from_db()
@@ -101,7 +101,7 @@ class ForumSecurityAndCountersTestCase(TestCase):
         self.assertEqual(self.category.reply_count, 2)
         self.assertEqual(topic.reply_count, 2)
 
-        res = self.client.delete(f"/api/forum/topics/{topic.slug}/")
+        res = self.client.delete(f"/api/v1/forum/topics/{topic.slug}/")
         self.assertEqual(res.status_code, 204)
 
         self.category.refresh_from_db()
@@ -117,9 +117,9 @@ class ForumSecurityAndCountersTestCase(TestCase):
             "content": "<p>x</p>",
             "category": str(self.category.id),
         }
-        res1 = self.client.post("/api/forum/topics/", payload, format="json")
+        res1 = self.client.post("/api/v1/forum/topics/", payload, format="json")
         self.assertEqual(res1.status_code, 201)
 
         payload2 = {**payload, "title": "Second"}
-        res2 = self.client.post("/api/forum/topics/", payload2, format="json")
+        res2 = self.client.post("/api/v1/forum/topics/", payload2, format="json")
         self.assertEqual(res2.status_code, 400)

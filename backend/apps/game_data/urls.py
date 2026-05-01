@@ -13,9 +13,9 @@ from apps.game_data.views import (
 )
 
 router = DefaultRouter()
-router.register(r"items", ItemTemplateViewSet)
-router.register(r"skills", SkillTemplateViewSet)
-router.register(r"maps", MapDataViewSet)
+router.register(r"items",  ItemTemplateViewSet,  basename="item-template")
+router.register(r"skills", SkillTemplateViewSet, basename="skill-template")
+router.register(r"maps",   MapDataViewSet)
 
 urlpatterns = [
     path("manifest/", GameDataManifestView.as_view(), name="game-data-manifest"),

@@ -8,7 +8,7 @@ from rest_framework.permissions import AllowAny, IsAdminUser, IsAuthenticated
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
-from apps.game_logic.models import PlayerInventory, PlayerSkill, PlayerStats, QuestProgress
+from apps.game_logic.models import PlayerInventory, PlayerSkill, PlayerStats, QuestProgress, QuestTemplate
 from apps.game_logic.serializers import (
     AddItemSerializer,
     AllocatePointsSerializer,
@@ -18,6 +18,7 @@ from apps.game_logic.serializers import (
     PlayerSkillSerializer,
     PlayerStatsSerializer,
     QuestProgressSerializer,
+    QuestTemplateSerializer,
     UpdateStatsSerializer,
 )
 from apps.game_logic.services import GameLogicService
@@ -45,17 +46,20 @@ class InventoryView(APIView):
         serializer = AddItemSerializer(data=request.data)
         if serializer.is_valid():
             try:
+                from apps.game_data.models import ItemTemplate as _ItemTemplate
                 target_user = request.user
                 user_id = request.data.get("user_id")
                 if user_id and request.user.is_staff:
                     target_user = User.objects.get(id=user_id)
-                
+
                 inventory = GameLogicService.add_item_to_inventory(
                     target_user,
                     serializer.validated_data["item_template_id"],
                     serializer.validated_data["quantity"]
                 )
                 return Response(PlayerInventorySerializer(inventory).data, status=status.HTTP_201_CREATED)
+            except _ItemTemplate.DoesNotExist:
+                return Response({"error": "Item template not found"}, status=status.HTTP_404_NOT_FOUND)
             except Exception as e:
                 return Response({"error": str(e)}, status=status.HTTP_400_BAD_REQUEST)
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
@@ -155,11 +159,29 @@ class PlayerSkillsView(APIView):
         serializer = LearnSkillSerializer(data=request.data)
         if serializer.is_valid():
             try:
+                from apps.game_data.models import SkillTemplate as _SkillTemplate
                 skill = GameLogicService.learn_skill(request.user, serializer.validated_data["skill_template_id"])
                 return Response(PlayerSkillSerializer(skill).data, status=201)
+            except _SkillTemplate.DoesNotExist:
+                return Response({"error": "Skill template not found"}, status=status.HTTP_404_NOT_FOUND)
             except Exception as e:
                 return Response({"error": str(e)}, status=400)
         return Response(serializer.errors, status=400)
+
+
+class QuestTemplatesView(APIView):
+    """Public list of active quest templates — used by Unity and frontend."""
+    permission_classes = [AllowAny]
+
+    def get(self, request):
+        level = request.query_params.get("level")
+        quest_type = request.query_params.get("quest_type")
+        qs = QuestTemplate.objects.filter(is_active=True)
+        if level and level.isdigit():
+            qs = qs.filter(level_required__lte=int(level))
+        if quest_type:
+            qs = qs.filter(quest_type=quest_type)
+        return Response(QuestTemplateSerializer(qs, many=True).data)
 
 
 class GameEventWebhookView(APIView):
@@ -182,7 +204,11 @@ class GameEventWebhookView(APIView):
             hashlib.sha256,
         ).hexdigest()
         if not hmac.compare_digest(signature, expected):
+            print(f"[Webhook] Signature mismatch! Received: {signature}, Expected: {expected}")
             return Response({"error": "forbidden"}, status=status.HTTP_403_FORBIDDEN)
+
+        print(f"[Webhook] Body: {body.decode()}")
+        print(f"[Webhook] Data: {request.data}")
 
         event_type = request.data.get("event_type")
         player_id  = request.data.get("player_id")
@@ -207,7 +233,22 @@ class GameEventWebhookView(APIView):
             if item_id:
                 GameLogicService.add_item_to_inventory(target, item_id, quantity)
 
-        elif event_type == "player_action":
-            pass
+        elif event_type == "player_connected":
+            GameLogicService.start_game_session(
+                user=target,
+                hwid=data.get("hwid", ""),
+                ip=data.get("ip_address", ""),
+                map_key=data.get("map_key", "world_main")
+            )
 
+        elif event_type == "player_action":
+            action_id = int(data.get("action_id", 0))
+            # Action IDs defined in proto C2S_Action:
+            #   1 = melee_attack, 2 = ranged_attack, 3 = use_skill, 4 = pickup_item
+            XP_PER_ACTION = {1: 5, 2: 5, 3: 10, 4: 2}
+            xp = XP_PER_ACTION.get(action_id, 0)
+            if xp:
+                GameLogicService.gain_experience(target, xp)
+
+        print(f"[Webhook] Event {event_type} processed for {target.email}")
         return Response({"ok": True})

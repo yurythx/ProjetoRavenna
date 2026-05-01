@@ -1,36 +1,321 @@
 @import "tailwindcss";
+@import url('https://fonts.googleapis.com/css2?family=Rajdhani:wght@400;500;600;700&family=Exo+2:wght@300;400;500;600;700;800;900&family=JetBrains+Mono:wght@400;500;700&display=swap');
+
+/* ===================================================================
+   RAVENNA GAMING — DESIGN SYSTEM
+   Dark-first, HFR-ready, Ultra-premium palette
+=================================================================== */
 
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
+  /* Core Palette */
+  --rv-black:         #050508;
+  --rv-dark:          #0b0b12;
+  --rv-surface:       #111118;
+  --rv-surface-2:     #181825;
+  --rv-border:        rgba(139, 92, 246, 0.12);
+  --rv-border-hover:  rgba(139, 92, 246, 0.30);
+
+  /* Accent — Violet / Purple gradient */
+  --rv-accent:        #8b5cf6;
+  --rv-accent-2:      #6d28d9;
+  --rv-accent-glow:   rgba(139, 92, 246, 0.25);
+
+  /* Secondary — Cyan / Electric Blue */
+  --rv-cyan:          #06b6d4;
+  --rv-cyan-glow:     rgba(6, 182, 212, 0.18);
+
+  /* Danger */
+  --rv-red:           #ef4444;
+  --rv-red-glow:      rgba(239, 68, 68, 0.18);
+
+  /* Gold — Rare / Boss */
+  --rv-gold:          #f59e0b;
+  --rv-gold-glow:     rgba(245, 158, 11, 0.18);
+
+  /* Text */
+  --rv-text-primary:  #f0f0ff;
+  --rv-text-muted:    rgba(240, 240, 255, 0.50);
+  --rv-text-dim:      rgba(240, 240, 255, 0.25);
+
+  /* Semantic tokens (Tailwind compat) */
+  --background: var(--rv-dark);
+  --foreground: var(--rv-text-primary);
+
+  /* Fonts */
+  --font-display:  'Exo 2', sans-serif;
+  --font-body:     'Rajdhani', sans-serif;
+  --font-mono:     'JetBrains Mono', monospace;
+}
+
+/* Force dark always — Gaming UI */
+html, html[data-theme="dark"], html[data-theme="light"] {
+  --background: var(--rv-dark);
+  --foreground: var(--rv-text-primary);
 }
 
 @theme inline {
   --color-background: var(--background);
   --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
+  --font-sans: var(--font-display);
+  --font-mono: var(--font-mono);
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
+/* ===================================================================
+   GLOBAL RESET & BASE
+=================================================================== */
+*, *::before, *::after {
+  box-sizing: border-box;
 }
 
-html[data-theme="light"] {
-  --background: #ffffff;
-  --foreground: #171717;
-}
-
-html[data-theme="dark"] {
-  --background: #0a0a0a;
-  --foreground: #ededed;
+html {
+  scroll-behavior: smooth;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
 }
 
 body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  background-color: var(--rv-dark);
+  color: var(--rv-text-primary);
+  font-family: var(--font-display);
+  min-height: 100dvh;
+  overflow-x: hidden;
 }
+
+/* ===================================================================
+   NOISE & SCANLINE TEXTURE (subtle depth effect)
+=================================================================== */
+body::before {
+  content: '';
+  position: fixed;
+  inset: 0;
+  background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)' opacity='0.035'/%3E%3C/svg%3E");
+  pointer-events: none;
+  z-index: 9999;
+  opacity: 0.6;
+}
+
+/* ===================================================================
+   SCROLLBAR
+=================================================================== */
+::-webkit-scrollbar { width: 6px; height: 6px; }
+::-webkit-scrollbar-track { background: var(--rv-black); }
+::-webkit-scrollbar-thumb { background: var(--rv-accent); border-radius: 3px; }
+::-webkit-scrollbar-thumb:hover { background: #a78bfa; }
+
+/* ===================================================================
+   SELECTION
+=================================================================== */
+::selection {
+  background: rgba(139, 92, 246, 0.35);
+  color: #fff;
+}
+
+/* ===================================================================
+   TYPOGRAPHY SCALE
+=================================================================== */
+.rv-display {
+  font-family: var(--font-display);
+  font-weight: 900;
+  letter-spacing: -0.03em;
+  line-height: 0.9;
+}
+
+.rv-label {
+  font-family: var(--font-body);
+  font-weight: 700;
+  letter-spacing: 0.25em;
+  text-transform: uppercase;
+  font-size: 0.65rem;
+}
+
+/* ===================================================================
+   CARD / SURFACE SYSTEM
+=================================================================== */
+.rv-card {
+  background: var(--rv-surface);
+  border: 1px solid var(--rv-border);
+  border-radius: 1.5rem;
+  transition: border-color 0.2s, box-shadow 0.2s;
+}
+
+.rv-card:hover {
+  border-color: var(--rv-border-hover);
+  box-shadow: 0 0 24px var(--rv-accent-glow);
+}
+
+.rv-card-glass {
+  background: rgba(17, 17, 24, 0.6);
+  border: 1px solid var(--rv-border);
+  border-radius: 1.5rem;
+  backdrop-filter: blur(24px);
+  -webkit-backdrop-filter: blur(24px);
+}
+
+/* ===================================================================
+   BUTTONS
+=================================================================== */
+.rv-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-family: var(--font-display);
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  font-size: 0.8rem;
+  border-radius: 0.75rem;
+  padding: 0 1.75rem;
+  height: 3rem;
+  transition: all 0.2s;
+  cursor: pointer;
+  position: relative;
+  overflow: hidden;
+}
+
+.rv-btn-primary {
+  background: linear-gradient(135deg, var(--rv-accent), var(--rv-accent-2));
+  color: #fff;
+  border: 1px solid rgba(139, 92, 246, 0.4);
+  box-shadow: 0 0 20px var(--rv-accent-glow);
+}
+
+.rv-btn-primary:hover {
+  box-shadow: 0 0 36px var(--rv-accent-glow), 0 0 8px var(--rv-accent-glow);
+  transform: translateY(-1px);
+}
+
+.rv-btn-ghost {
+  background: rgba(139, 92, 246, 0.08);
+  color: var(--rv-text-primary);
+  border: 1px solid var(--rv-border);
+}
+
+.rv-btn-ghost:hover {
+  background: rgba(139, 92, 246, 0.16);
+  border-color: var(--rv-border-hover);
+}
+
+.rv-btn:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+  transform: none !important;
+}
+
+/* ===================================================================
+   FORM INPUTS
+=================================================================== */
+.rv-input {
+  width: 100%;
+  height: 3rem;
+  background: var(--rv-surface);
+  border: 1px solid var(--rv-border);
+  border-radius: 0.75rem;
+  padding: 0 1rem;
+  color: var(--rv-text-primary);
+  font-family: var(--font-display);
+  font-size: 0.95rem;
+  transition: border-color 0.2s, box-shadow 0.2s;
+  outline: none;
+}
+
+.rv-input::placeholder {
+  color: var(--rv-text-dim);
+}
+
+.rv-input:focus {
+  border-color: var(--rv-accent);
+  box-shadow: 0 0 0 3px var(--rv-accent-glow);
+}
+
+.rv-label-field {
+  font-family: var(--font-body);
+  font-weight: 700;
+  font-size: 0.7rem;
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+  color: var(--rv-text-muted);
+  margin-bottom: 0.4rem;
+  display: block;
+}
+
+/* ===================================================================
+   GLOW ACCENTS
+=================================================================== */
+.rv-glow-purple { box-shadow: 0 0 40px var(--rv-accent-glow); }
+.rv-glow-cyan   { box-shadow: 0 0 40px var(--rv-cyan-glow);   }
+.rv-glow-gold   { box-shadow: 0 0 40px var(--rv-gold-glow);   }
+.rv-glow-red    { box-shadow: 0 0 40px var(--rv-red-glow);    }
+
+.rv-text-gradient {
+  background: linear-gradient(135deg, #fff 0%, #c4b5fd 50%, #818cf8 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+.rv-text-accent {
+  background: linear-gradient(135deg, var(--rv-accent), var(--rv-cyan));
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+/* ===================================================================
+   DIVIDERS
+=================================================================== */
+.rv-divider {
+  height: 1px;
+  background: linear-gradient(to right, transparent, var(--rv-border), transparent);
+}
+
+/* ===================================================================
+   BADGE / PILL
+=================================================================== */
+.rv-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  padding: 0.25rem 0.75rem;
+  border-radius: 999px;
+  font-size: 0.65rem;
+  font-weight: 700;
+  letter-spacing: 0.15em;
+  text-transform: uppercase;
+}
+
+.rv-badge-purple { background: rgba(139, 92, 246, 0.15); color: #c4b5fd; border: 1px solid rgba(139, 92, 246, 0.25); }
+.rv-badge-cyan   { background: rgba(6, 182, 212, 0.12);  color: #67e8f9; border: 1px solid rgba(6, 182, 212, 0.20); }
+.rv-badge-gold   { background: rgba(245, 158, 11, 0.12); color: #fcd34d; border: 1px solid rgba(245, 158, 11, 0.20); }
+.rv-badge-red    { background: rgba(239, 68, 68, 0.12);  color: #fca5a5; border: 1px solid rgba(239, 68, 68, 0.20); }
+
+/* ===================================================================
+   AMBIENT ORBS (decorative bg elements)
+=================================================================== */
+.rv-orb {
+  position: absolute;
+  border-radius: 50%;
+  pointer-events: none;
+  filter: blur(120px);
+  opacity: 0.35;
+}
+
+/* ===================================================================
+   ANIMATIONS
+=================================================================== */
+@keyframes rv-pulse-glow {
+  0%, 100% { opacity: 0.35; }
+  50%       { opacity: 0.65; }
+}
+
+@keyframes rv-float {
+  0%, 100% { transform: translateY(0px); }
+  50%       { transform: translateY(-8px); }
+}
+
+@keyframes rv-scanline {
+  0%   { transform: translateY(-100%); }
+  100% { transform: translateY(100vh); }
+}
+
+.rv-animate-pulse-glow { animation: rv-pulse-glow 3s ease-in-out infinite; }
+.rv-animate-float      { animation: rv-float 4s ease-in-out infinite; }

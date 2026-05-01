@@ -1,7 +1,7 @@
-export async function jsonFetch(
+export async function jsonFetch<T = any>(
   path: string,
   init?: RequestInit & { json?: unknown }
-): Promise<{ ok: boolean; status: number; data: unknown }> {
+): Promise<{ ok: boolean; status: number; data: T | null }> {
   const headers = new Headers(init?.headers);
   headers.set("Accept", "application/json");
   if (init?.json !== undefined) headers.set("Content-Type", "application/json");

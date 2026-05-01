@@ -1,77 +1,99 @@
 "use client";
 
 import { PlayerInventory } from "@/types";
-import { motion } from "framer-motion";
 
-type Props = {
-  inventory: PlayerInventory;
+type Props = { inventory: PlayerInventory };
+
+const RARITY_COLORS: Record<string, string> = {
+  common:    "var(--rv-text-dim)",
+  uncommon:  "var(--rv-cyan)",
+  rare:      "var(--rv-accent)",
+  epic:      "#a855f7",
+  legendary: "var(--rv-gold)",
 };
 
 export function PlayerInventoryCard({ inventory }: Props) {
-  // Fill the grid with empty slots up to max_slots
   const totalSlots = Math.max(inventory.max_slots, 20);
-  const slots = Array.from({ length: totalSlots }).map((_, i) => {
-    return inventory.items.find((item) => item.slot_index === i);
-  });
+  const slots = Array.from({ length: totalSlots }).map((_, i) =>
+    inventory.items.find((item) => item.slot_index === i)
+  );
+  const capacityPct = Math.min((inventory.slots_used / inventory.max_slots) * 100, 100);
 
   return (
-    <motion.div
-      initial={{ opacity: 0, scale: 0.95 }}
-      animate={{ opacity: 1, scale: 1 }}
-      className="rounded-3xl border border-white/10 bg-black/40 p-6 backdrop-blur-xl"
-    >
-      <div className="flex items-center justify-between mb-6">
-        <h3 className="text-xl font-bold text-white">Inventário</h3>
-        <div className="flex items-center gap-2 rounded-full bg-yellow-500/10 px-4 py-1 border border-yellow-500/20">
-          <span className="text-sm font-bold text-yellow-500">{inventory.gold.toLocaleString()}</span>
-          <span className="text-xs font-bold text-yellow-600">OURO</span>
+    <div className="rv-card p-6 space-y-6">
+      {/* Header */}
+      <div className="flex items-center justify-between">
+        <div>
+          <span className="rv-badge rv-badge-gold mb-2 inline-flex">🎒 Inventário</span>
+          <h3 className="rv-display text-xl text-white">Itens</h3>
+        </div>
+        <div className="rv-card px-4 py-2 border-[var(--rv-gold)]/30 text-center"
+          style={{ background: "rgba(234,179,8,0.07)" }}>
+          <div className="rv-display text-lg text-[var(--rv-gold)]">{inventory.gold.toLocaleString()}</div>
+          <div className="rv-label text-[8px] text-[var(--rv-text-dim)]">Ouro</div>
         </div>
       </div>
 
-      <div className="grid grid-cols-4 sm:grid-cols-5 gap-3">
+      {/* Capacity bar */}
+      <div>
+        <div className="flex items-center justify-between mb-1.5">
+          <span className="rv-label text-[9px] text-[var(--rv-text-dim)]">Capacidade</span>
+          <span className="rv-label text-[9px] text-[var(--rv-text-muted)]">{inventory.slots_used}/{inventory.max_slots}</span>
+        </div>
+        <div className="h-1.5 w-full rounded-full bg-[var(--rv-surface-2)] overflow-hidden">
+          <div
+            className="h-full rounded-full transition-all duration-700"
+            style={{
+              width: `${capacityPct}%`,
+              background: capacityPct > 90
+                ? "var(--rv-red)"
+                : capacityPct > 70
+                ? "var(--rv-gold)"
+                : "linear-gradient(90deg, var(--rv-accent), var(--rv-cyan))"
+            }}
+          />
+        </div>
+      </div>
+
+      {/* Grid */}
+      <div className="grid grid-cols-4 sm:grid-cols-5 gap-2">
         {slots.map((item, i) => (
           <div
             key={i}
-            className={`group relative aspect-square rounded-2xl border transition-all ${
-              item 
-                ? "border-purple-500/30 bg-purple-500/5 shadow-[0_0_15px_rgba(168,85,247,0.1)] hover:border-purple-500/50 hover:bg-purple-500/10" 
-                : "border-white/5 bg-white/[0.02] hover:bg-white/[0.05]"
+            title={item ? `${item.name}${item.quantity > 1 ? ` (x${item.quantity})` : ""}` : "Slot vazio"}
+            className={`group relative aspect-square rounded-xl border transition-all duration-200 ${
+              item
+                ? "border-[var(--rv-border-hover)] bg-[var(--rv-surface-2)] hover:scale-105"
+                : "border-[var(--rv-border)] bg-[var(--rv-surface)]/50 hover:bg-[var(--rv-surface-2)]"
             }`}
+            style={item ? { boxShadow: `0 0 12px rgba(139,92,246,0.1)` } : {}}
           >
-            {item && (
-              <div className="flex h-full w-full flex-col items-center justify-center p-2">
-                {/* Placeholder for item icon */}
-                <div className="h-8 w-8 rounded-lg bg-gradient-to-br from-purple-400 to-pink-500 opacity-80 group-hover:opacity-100 transition-opacity" />
-                <span className="mt-2 text-[10px] font-bold text-gray-400 truncate max-w-full">
-                  {item.name}
+            {item ? (
+              <div className="flex h-full w-full flex-col items-center justify-center p-1.5 gap-1">
+                <div
+                  className="h-7 w-7 rounded-lg"
+                  style={{
+                    background: `linear-gradient(135deg, ${RARITY_COLORS[item.name?.toLowerCase()] ?? "var(--rv-accent)"}, var(--rv-cyan))`,
+                    opacity: 0.85,
+                  }}
+                />
+                <span className="text-[8px] font-bold text-[var(--rv-text-muted)] truncate w-full text-center leading-none">
+                  {item.name.slice(0, 8)}
                 </span>
                 {item.quantity > 1 && (
-                  <span className="absolute bottom-1 right-2 text-[10px] font-black text-white">
-                    x{item.quantity}
+                  <span className="absolute bottom-0.5 right-1 text-[8px] font-black text-[var(--rv-gold)]">
+                    ×{item.quantity}
                   </span>
                 )}
               </div>
-            )}
-            
-            {!item && (
-              <div className="flex h-full w-full items-center justify-center text-white/5">
-                <div className="h-4 w-4 rounded-full border-2 border-current opacity-20" />
+            ) : (
+              <div className="flex h-full w-full items-center justify-center">
+                <div className="h-3 w-3 rounded-full border border-[var(--rv-border)] opacity-30" />
               </div>
             )}
           </div>
         ))}
       </div>
-
-      <div className="mt-6 flex justify-between items-center text-[10px] font-bold tracking-widest text-gray-600 uppercase">
-        <span>Capacidade</span>
-        <span>{inventory.slots_used} / {inventory.max_slots}</span>
-      </div>
-      <div className="mt-2 h-1 w-full rounded-full bg-white/5 overflow-hidden">
-        <div 
-          className="h-full bg-purple-500 transition-all duration-500" 
-          style={{ width: `${(inventory.slots_used / inventory.max_slots) * 100}%` }}
-        />
-      </div>
-    </motion.div>
+    </div>
   );
 }

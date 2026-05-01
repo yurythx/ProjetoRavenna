@@ -40,21 +40,21 @@ class GameDataViewsTestCase(TestCase):
         )
 
     def test_items_list_is_public(self):
-        response = self.client.get("/api/game-data/items/")
+        response = self.client.get("/api/v1/game-data/items/")
         self.assertEqual(response.status_code, 200)
         payload = response.json()
         results = payload.get("results", payload)
         self.assertTrue(any(r["id"] == str(self.item.id) for r in results))
 
     def test_skills_list_is_public(self):
-        response = self.client.get("/api/game-data/skills/")
+        response = self.client.get("/api/v1/game-data/skills/")
         self.assertEqual(response.status_code, 200)
         payload = response.json()
         results = payload.get("results", payload)
         self.assertTrue(any(r["id"] == str(self.skill.id) for r in results))
 
     def test_maps_list_only_returns_enabled(self):
-        response = self.client.get("/api/game-data/maps/")
+        response = self.client.get("/api/v1/game-data/maps/")
         self.assertEqual(response.status_code, 200)
         payload = response.json()
         results = payload.get("results", payload)
@@ -63,16 +63,16 @@ class GameDataViewsTestCase(TestCase):
         self.assertNotIn(str(self.map_disabled.id), ids)
 
     def test_manifest_returns_etag_and_supports_304(self):
-        res1 = self.client.get("/api/game-data/manifest/")
+        res1 = self.client.get("/api/v1/game-data/manifest/")
         self.assertEqual(res1.status_code, 200)
         etag = res1.headers.get("ETag")
         self.assertTrue(bool(etag))
 
-        res2 = self.client.get("/api/game-data/manifest/", HTTP_IF_NONE_MATCH=etag)
+        res2 = self.client.get("/api/v1/game-data/manifest/", HTTP_IF_NONE_MATCH=etag)
         self.assertEqual(res2.status_code, 304)
 
     def test_bootstrap_returns_all(self):
-        res = self.client.get("/api/game-data/bootstrap/")
+        res = self.client.get("/api/v1/game-data/bootstrap/")
         self.assertEqual(res.status_code, 200)
         payload = res.json()
         self.assertIn("items", payload)
@@ -84,13 +84,14 @@ class GameDataViewsTestCase(TestCase):
         self.assertFalse(any(r["id"] == str(self.map_disabled.id) for r in payload["maps"]))
 
     def test_bootstrap_supports_since_and_validation(self):
-        res_bad = self.client.get("/api/game-data/bootstrap/?since=not-a-date")
+        res_bad = self.client.get("/api/v1/game-data/bootstrap/?since=not-a-date")
         self.assertEqual(res_bad.status_code, 400)
 
         from django.utils import timezone
 
         since = timezone.now().isoformat()
-        res_ok = self.client.get(f"/api/game-data/bootstrap/?since={since}")
+        # Use dict form so the test client URL-encodes the + in the timezone offset correctly
+        res_ok = self.client.get("/api/v1/game-data/bootstrap/", {"since": since})
         self.assertEqual(res_ok.status_code, 200)
         payload = res_ok.json()
         self.assertEqual(payload["items"], [])

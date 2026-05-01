@@ -35,7 +35,7 @@ class GameLogicViewsTestCase(TestCase):
         )
 
     def test_get_player_instances(self):
-        response = self.client.get("/api/game-logic/")
+        response = self.client.get("/api/v1/game-logic/")
         self.assertEqual(response.status_code, 200)
         payload = response.json()
         self.assertIn("inventory", payload)
@@ -43,7 +43,7 @@ class GameLogicViewsTestCase(TestCase):
 
     def test_add_item_to_inventory_success(self):
         response = self.client.post(
-            "/api/game-logic/inventory/",
+            "/api/v1/game-logic/inventory/",
             {"item_template_id": str(self.item.id), "quantity": 1},
             format="json",
         )
@@ -51,19 +51,19 @@ class GameLogicViewsTestCase(TestCase):
 
     def test_add_item_to_inventory_not_found(self):
         response = self.client.post(
-            "/api/game-logic/inventory/",
+            "/api/v1/game-logic/inventory/",
             {"item_template_id": "11111111-1111-1111-1111-111111111111", "quantity": 1},
             format="json",
         )
         self.assertEqual(response.status_code, 403)
 
     def test_remove_item_invalid_index_returns_400(self):
-        response = self.client.delete("/api/game-logic/inventory/0/")
-        self.assertEqual(response.status_code, 403)
+        response = self.client.delete("/api/v1/game-logic/inventory/0/")
+        self.assertEqual(response.status_code, 400)
 
     def test_learn_skill_success(self):
         response = self.client.post(
-            "/api/game-logic/skills/",
+            "/api/v1/game-logic/skills/",
             {"skill_template_id": str(self.skill.id)},
             format="json",
         )
@@ -71,7 +71,7 @@ class GameLogicViewsTestCase(TestCase):
 
     def test_learn_skill_not_found(self):
         response = self.client.post(
-            "/api/game-logic/skills/",
+            "/api/v1/game-logic/skills/",
             {"skill_template_id": "11111111-1111-1111-1111-111111111111"},
             format="json",
         )
@@ -79,7 +79,7 @@ class GameLogicViewsTestCase(TestCase):
 
     def test_allocate_points_requires_points_remaining(self):
         response = self.client.post(
-            "/api/game-logic/stats/allocate/",
+            "/api/v1/game-logic/stats/allocate/",
             {"strength": 1},
             format="json",
         )
@@ -93,7 +93,7 @@ class GameLogicViewsTestCase(TestCase):
         stats.save(update_fields=["points_remaining", "updated_at"])
 
         response = self.client.post(
-            "/api/game-logic/stats/allocate/",
+            "/api/v1/game-logic/stats/allocate/",
             {"strength": 2, "vitality": 3},
             format="json",
         )
@@ -127,7 +127,7 @@ class GameLogicAdminViewsTestCase(TestCase):
 
     def test_add_item_to_inventory_success(self):
         response = self.client.post(
-            "/api/game-logic/inventory/",
+            "/api/v1/game-logic/inventory/",
             {"item_template_id": str(self.item.id), "quantity": 1},
             format="json",
         )
@@ -138,19 +138,19 @@ class GameLogicAdminViewsTestCase(TestCase):
 
     def test_add_item_to_inventory_not_found(self):
         response = self.client.post(
-            "/api/game-logic/inventory/",
+            "/api/v1/game-logic/inventory/",
             {"item_template_id": "11111111-1111-1111-1111-111111111111", "quantity": 1},
             format="json",
         )
         self.assertEqual(response.status_code, 404)
 
     def test_remove_item_invalid_index_returns_400(self):
-        response = self.client.delete("/api/game-logic/inventory/0/")
+        response = self.client.delete("/api/v1/game-logic/inventory/0/")
         self.assertEqual(response.status_code, 400)
 
     def test_learn_skill_success(self):
         response = self.client.post(
-            "/api/game-logic/skills/",
+            "/api/v1/game-logic/skills/",
             {"skill_template_id": str(self.skill.id)},
             format="json",
         )
@@ -159,7 +159,7 @@ class GameLogicAdminViewsTestCase(TestCase):
 
     def test_learn_skill_not_found(self):
         response = self.client.post(
-            "/api/game-logic/skills/",
+            "/api/v1/game-logic/skills/",
             {"skill_template_id": "11111111-1111-1111-1111-111111111111"},
             format="json",
         )
@@ -167,7 +167,7 @@ class GameLogicAdminViewsTestCase(TestCase):
 
     def test_gain_xp_requires_admin(self):
         response = self.client.post(
-            "/api/game-logic/stats/gain-xp/",
+            "/api/v1/game-logic/stats/gain-xp/",
             {"amount": 100},
             format="json",
         )

@@ -79,70 +79,70 @@ class PublicPostFiltersTestCase(TestCase):
     def test_public_list_filter_by_category_slug_and_uuid(self):
         self.client.force_authenticate(user=None)
 
-        res_slug = self.client.get(f"/api/blog/posts/?category={self.cat_a.slug}&page_size=50")
+        res_slug = self.client.get(f"/api/v1/blog/posts/?category={self.cat_a.slug}&page_size=50")
         self.assertEqual(res_slug.status_code, 200)
         self.assertEqual(self._slugs_from_list(res_slug.json()), ["post-1"])
 
-        res_uuid = self.client.get(f"/api/blog/posts/?category={self.cat_a.id}&page_size=50")
+        res_uuid = self.client.get(f"/api/v1/blog/posts/?category={self.cat_a.id}&page_size=50")
         self.assertEqual(res_uuid.status_code, 200)
         self.assertEqual(self._slugs_from_list(res_uuid.json()), ["post-1"])
 
-        res_slug_articles = self.client.get(f"/api/articles/articles/?category={self.cat_a.slug}&page_size=50")
+        res_slug_articles = self.client.get(f"/api/v1/blog/articles/?category={self.cat_a.slug}&page_size=50")
         self.assertEqual(res_slug_articles.status_code, 200)
         self.assertEqual(self._slugs_from_list(res_slug_articles.json()), ["post-1"])
 
-        res_uuid_articles = self.client.get(f"/api/articles/articles/?category={self.cat_a.id}&page_size=50")
+        res_uuid_articles = self.client.get(f"/api/v1/blog/articles/?category={self.cat_a.id}&page_size=50")
         self.assertEqual(res_uuid_articles.status_code, 200)
         self.assertEqual(self._slugs_from_list(res_uuid_articles.json()), ["post-1"])
 
     def test_public_list_filter_by_tag_slug_and_uuid(self):
         self.client.force_authenticate(user=None)
 
-        res_slug = self.client.get(f"/api/blog/posts/?tag={self.tag_one.slug}&page_size=50")
+        res_slug = self.client.get(f"/api/v1/blog/posts/?tag={self.tag_one.slug}&page_size=50")
         self.assertEqual(res_slug.status_code, 200)
         self.assertEqual(self._slugs_from_list(res_slug.json()), ["post-1", "post-2"])
 
-        res_uuid = self.client.get(f"/api/blog/posts/?tag={self.tag_one.id}&page_size=50")
+        res_uuid = self.client.get(f"/api/v1/blog/posts/?tag={self.tag_one.id}&page_size=50")
         self.assertEqual(res_uuid.status_code, 200)
         self.assertEqual(self._slugs_from_list(res_uuid.json()), ["post-1", "post-2"])
 
-        res_slug_articles = self.client.get(f"/api/articles/articles/?tag={self.tag_one.slug}&page_size=50")
+        res_slug_articles = self.client.get(f"/api/v1/blog/articles/?tag={self.tag_one.slug}&page_size=50")
         self.assertEqual(res_slug_articles.status_code, 200)
         self.assertEqual(self._slugs_from_list(res_slug_articles.json()), ["post-1", "post-2"])
 
-        res_uuid_articles = self.client.get(f"/api/articles/articles/?tag={self.tag_one.id}&page_size=50")
+        res_uuid_articles = self.client.get(f"/api/v1/blog/articles/?tag={self.tag_one.id}&page_size=50")
         self.assertEqual(res_uuid_articles.status_code, 200)
         self.assertEqual(self._slugs_from_list(res_uuid_articles.json()), ["post-1", "post-2"])
 
     def test_public_list_excludes_private_posts_for_anonymous(self):
         self.client.force_authenticate(user=None)
-        res = self.client.get("/api/blog/posts/?page_size=50")
+        res = self.client.get("/api/v1/blog/posts/?page_size=50")
         self.assertEqual(res.status_code, 200)
         self.assertNotIn("private-published", self._slugs_from_list(res.json()))
 
-        res2 = self.client.get("/api/blog/public/posts/?page_size=50")
+        res2 = self.client.get("/api/v1/blog/public/posts/?page_size=50")
         self.assertEqual(res2.status_code, 200)
         self.assertNotIn("private-published", self._slugs_from_list(res2.json()))
 
     def test_private_post_requires_auth_for_detail(self):
         self.client.force_authenticate(user=None)
-        res_anon = self.client.get("/api/blog/posts/private-published/")
+        res_anon = self.client.get("/api/v1/blog/posts/private-published/")
         self.assertEqual(res_anon.status_code, 404)
 
         self.client.force_authenticate(user=self.reader)
-        res_auth = self.client.get("/api/blog/posts/private-published/")
+        res_auth = self.client.get("/api/v1/blog/posts/private-published/")
         self.assertEqual(res_auth.status_code, 200)
 
     def test_public_detail_does_not_expose_editor_fields(self):
         self.client.force_authenticate(user=None)
-        res = self.client.get("/api/blog/posts/post-1/")
+        res = self.client.get("/api/v1/blog/posts/post-1/")
         self.assertEqual(res.status_code, 200)
         data = res.json()
         self.assertNotIn("rejection_reason", data)
         self.assertNotIn("author_email", data)
         self.assertNotIn("status", data)
 
-        res2 = self.client.get("/api/blog/public/posts/post-1/")
+        res2 = self.client.get("/api/v1/blog/public/posts/post-1/")
         self.assertEqual(res2.status_code, 200)
         data2 = res2.json()
         self.assertNotIn("rejection_reason", data2)
@@ -151,13 +151,13 @@ class PublicPostFiltersTestCase(TestCase):
 
     def test_public_categories_post_count_ignores_private_posts(self):
         self.client.force_authenticate(user=None)
-        res = self.client.get("/api/blog/categories/")
+        res = self.client.get("/api/v1/blog/categories/")
         self.assertEqual(res.status_code, 200)
         categories = res.json()
         cat_a = next(c for c in categories if c["slug"] == self.cat_a.slug)
         self.assertEqual(cat_a["post_count"], 1)
 
-        res2 = self.client.get("/api/blog/public/categories/")
+        res2 = self.client.get("/api/v1/blog/public/categories/")
         self.assertEqual(res2.status_code, 200)
         categories2 = res2.json()
         cat_a2 = next(c for c in categories2 if c["slug"] == self.cat_a.slug)
@@ -165,12 +165,12 @@ class PublicPostFiltersTestCase(TestCase):
 
     def test_public_tags_excludes_tags_only_used_in_private_posts(self):
         self.client.force_authenticate(user=None)
-        res = self.client.get("/api/blog/tags/")
+        res = self.client.get("/api/v1/blog/tags/")
         self.assertEqual(res.status_code, 200)
         slugs = sorted([t["slug"] for t in res.json()])
         self.assertNotIn("private-tag", slugs)
 
-        res2 = self.client.get("/api/blog/public/tags/")
+        res2 = self.client.get("/api/v1/blog/public/tags/")
         self.assertEqual(res2.status_code, 200)
         slugs2 = sorted([t["slug"] for t in res2.json()])
         self.assertNotIn("private-tag", slugs2)

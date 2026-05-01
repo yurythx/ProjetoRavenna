@@ -1,8 +1,12 @@
+import logging
+
 from django.db import transaction
 from django.utils import timezone
 from apps.accounts.models import User
 from apps.game_data.models import ItemTemplate
-from apps.game_logic.models import PlayerInventory, PlayerItem, PlayerSkill, PlayerStats, QuestProgress
+from apps.game_logic.models import PlayerInventory, PlayerItem, PlayerSkill, PlayerStats, QuestProgress, QuestTemplate
+
+logger = logging.getLogger(__name__)
 
 class GameLogicService:
     """Service class for game logic operations with concurrency and anti-cheat."""
@@ -129,7 +133,7 @@ class GameLogicService:
 
     @staticmethod
     @transaction.atomic
-    def gain_experience(user: User, amount: int, hwid: str = "") -> PlayerStats:
+    def gain_experience(user: User, amount: int, hwid: str = "", bypass_anticheat: bool = False) -> PlayerStats:
         """Grant experience with basic anti-cheat."""
         stats, _ = PlayerStats.objects.select_for_update().get_or_create(owner=user)
 
@@ -139,7 +143,7 @@ class GameLogicService:
         if hwid and user.hwid and user.hwid != hwid:
             pass
 
-        if amount > 10000:
+        if not bypass_anticheat and amount > 10000:
             raise ValueError("Impossible experience gain detected")
 
         stats.experience += amount
@@ -247,11 +251,44 @@ class GameLogicService:
     @staticmethod
     @transaction.atomic
     def complete_quest(user: User, quest_id: str) -> QuestProgress:
-        from django.utils import timezone
         progress = QuestProgress.objects.select_for_update().get(owner=user, quest_id=quest_id)
         progress.status = "completed"
         progress.completed_at = timezone.now()
         progress.save(update_fields=["status", "completed_at", "updated_at"])
+
+        # Deliver rewards when quest_id is a valid QuestTemplate UUID
+        try:
+            template = QuestTemplate.objects.get(id=quest_id)
+        except Exception:
+            return progress  # Non-UUID or unknown id — no rewards, just mark complete
+
+        rewards = template.rewards or {}
+        xp   = int(rewards.get("xp",   0))
+        gold = int(rewards.get("gold", 0))
+        items = list(rewards.get("items", []))
+
+        if xp > 0:
+            GameLogicService.gain_experience(user, xp, bypass_anticheat=True)
+
+        if gold > 0:
+            inventory, _ = PlayerInventory.objects.select_for_update().get_or_create(owner=user)
+            inventory.gold += gold
+            inventory.save(update_fields=["gold", "updated_at"])
+
+        for item_reward in items:
+            item_id = item_reward.get("item_template_id")
+            qty = int(item_reward.get("quantity", 1))
+            if item_id and qty > 0:
+                try:
+                    GameLogicService.add_item_to_inventory(user, item_id, qty)
+                except Exception as exc:
+                    logger.warning("complete_quest: failed to deliver item %s: %s", item_id, exc)
+
+        if template.is_repeatable:
+            progress.status = "in_progress"
+            progress.completed_at = None
+            progress.save(update_fields=["status", "completed_at", "updated_at"])
+
         return progress
 
     @staticmethod

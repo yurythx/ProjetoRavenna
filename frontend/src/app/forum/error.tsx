@@ -4,26 +4,24 @@ import Link from "next/link";
 
 export default function ForumError({ reset }: { reset: () => void }) {
   return (
-    <div className="mx-auto w-full max-w-3xl px-4 py-10">
-      <Link href="/forum" className="text-sm font-medium text-foreground hover:underline">
-        Voltar
-      </Link>
-      <div className="mt-6 rounded-2xl border border-foreground/10 bg-background p-5 text-sm text-foreground/80">
-        Ocorreu um erro ao carregar esta página.
-        <div className="mt-3 flex gap-3">
-          <button
-            type="button"
-            onClick={() => reset()}
-            className="rounded-xl border border-foreground/15 bg-background px-3 py-2 text-sm font-medium text-foreground hover:bg-foreground/5"
-          >
-            Tentar novamente
-          </button>
-          <Link href="/forum" className="self-center text-sm font-medium text-foreground hover:underline">
-            Ir para o fórum
-          </Link>
-        </div>
+    <div className="flex min-h-[60vh] flex-col items-center justify-center gap-6 px-4 text-center">
+      <div className="rv-badge rv-badge-red inline-flex">⚠ Erro ao carregar</div>
+      <h1 className="rv-display text-4xl text-white">Algo deu errado</h1>
+      <p className="text-[var(--rv-text-muted)] max-w-sm text-sm" style={{ fontFamily: "var(--font-body)" }}>
+        Não foi possível carregar esta página do fórum. Tente novamente ou volte ao início.
+      </p>
+      <div className="flex flex-wrap gap-3 justify-center">
+        <button
+          type="button"
+          onClick={() => reset()}
+          className="rv-btn rv-btn-primary px-8 h-11 text-xs"
+        >
+          Tentar novamente
+        </button>
+        <Link href="/forum" className="rv-btn rv-btn-ghost px-8 h-11 text-xs">
+          Ir ao Fórum
+        </Link>
       </div>
     </div>
   );
 }
-

@@ -7,7 +7,7 @@ import hashlib
 from django.db.models import Count, Max
 from django.utils.dateparse import parse_datetime
 from django.utils.timezone import is_naive, make_aware
-from rest_framework import viewsets
+from rest_framework import filters, viewsets
 from rest_framework.permissions import AllowAny
 from rest_framework.response import Response
 from rest_framework.views import APIView
@@ -21,19 +21,48 @@ from apps.game_data.serializers import (
 
 
 class ItemTemplateViewSet(viewsets.ReadOnlyModelViewSet):
-    """Read-only viewset for item templates."""
+    """Read-only viewset for item templates. Supports ?rarity=, ?item_type=, ?search=, ?ordering=."""
 
-    queryset = ItemTemplate.objects.all()
     serializer_class = ItemTemplateSerializer
     permission_classes = [AllowAny]
+    filter_backends = [filters.SearchFilter, filters.OrderingFilter]
+    search_fields = ["name", "description"]
+    ordering_fields = ["name", "level_required", "price", "rarity"]
+    ordering = ["name"]
+
+    def get_queryset(self):
+        qs = ItemTemplate.objects.all()
+        rarity = self.request.query_params.get("rarity", "").strip()
+        item_type = self.request.query_params.get("item_type", "").strip()
+        min_level = self.request.query_params.get("min_level", "").strip()
+        max_level = self.request.query_params.get("max_level", "").strip()
+        if rarity:
+            qs = qs.filter(rarity=rarity)
+        if item_type:
+            qs = qs.filter(item_type=item_type)
+        if min_level.isdigit():
+            qs = qs.filter(level_required__gte=int(min_level))
+        if max_level.isdigit():
+            qs = qs.filter(level_required__lte=int(max_level))
+        return qs
 
 
 class SkillTemplateViewSet(viewsets.ReadOnlyModelViewSet):
-    """Read-only viewset for skill templates."""
+    """Read-only viewset for skill templates. Supports ?skill_type=, ?search=."""
 
-    queryset = SkillTemplate.objects.all()
     serializer_class = SkillTemplateSerializer
     permission_classes = [AllowAny]
+    filter_backends = [filters.SearchFilter, filters.OrderingFilter]
+    search_fields = ["name", "description"]
+    ordering_fields = ["name", "level_required", "mana_cost", "damage"]
+    ordering = ["name"]
+
+    def get_queryset(self):
+        qs = SkillTemplate.objects.all()
+        skill_type = self.request.query_params.get("skill_type", "").strip()
+        if skill_type:
+            qs = qs.filter(skill_type=skill_type)
+        return qs
 
 
 class MapDataViewSet(viewsets.ReadOnlyModelViewSet):

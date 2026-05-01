@@ -3,7 +3,7 @@ Admin configuration for game_logic app.
 """
 from django.contrib import admin
 
-from apps.game_logic.models import PlayerInventory, PlayerItem, PlayerSkill, PlayerStats, QuestProgress
+from apps.game_logic.models import PlayerInventory, PlayerItem, PlayerSkill, PlayerStats, QuestProgress, QuestTemplate, GameSession
 
 
 @admin.register(PlayerInventory)
@@ -52,3 +52,19 @@ class PlayerSkillAdmin(admin.ModelAdmin):
     list_filter = ["is_equipped", "skill_template__skill_type"]
     search_fields = ["owner__username", "skill_template__name"]
     raw_id_fields = ["owner", "skill_template"]
+
+
+@admin.register(QuestTemplate)
+class QuestTemplateAdmin(admin.ModelAdmin):
+    list_display = ["name", "quest_type", "level_required", "is_repeatable", "is_active", "updated_at"]
+    list_filter = ["quest_type", "is_active", "is_repeatable"]
+    search_fields = ["name", "description"]
+
+
+@admin.register(GameSession)
+class GameSessionAdmin(admin.ModelAdmin):
+    list_display = ["player", "last_map_key", "is_active", "started_at", "last_heartbeat_at", "ended_at"]
+    list_filter = ["is_active", "last_map_key"]
+    search_fields = ["player__username", "player__email", "hwid"]
+    raw_id_fields = ["player"]
+    date_hierarchy = "started_at"

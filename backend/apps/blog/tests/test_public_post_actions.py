@@ -25,15 +25,15 @@ class PublicPostActionsTestCase(TestCase):
         )
 
     def test_featured_is_public(self):
-        res = self.client.get("/api/blog/posts/featured/")
+        res = self.client.get("/api/v1/blog/posts/featured/")
         self.assertEqual(res.status_code, 200)
 
     def test_search_is_public(self):
-        res = self.client.get("/api/blog/posts/search/?q=hello&page_size=10")
+        res = self.client.get("/api/v1/blog/posts/search/?q=hello&page_size=10")
         self.assertEqual(res.status_code, 200)
 
     def test_author_email_not_exposed_publicly(self):
-        res = self.client.get("/api/blog/posts/hello/")
+        res = self.client.get("/api/v1/blog/posts/hello/")
         self.assertEqual(res.status_code, 200)
         payload = res.json()
         self.assertNotIn("author_email", payload)

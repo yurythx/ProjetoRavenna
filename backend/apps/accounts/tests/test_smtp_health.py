@@ -13,7 +13,7 @@ class SMTPHealthTestCase(TestCase):
         self.client.force_authenticate(user=self.admin)
 
     def test_health_disabled_when_not_configured(self):
-        res = self.client.get("/api/accounts/smtp-settings/health/")
+        res = self.client.get("/api/v1/accounts/smtp-settings/health/")
         self.assertEqual(res.status_code, 200)
         self.assertEqual(res.json().get("status"), "disabled")
 

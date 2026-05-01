@@ -13,7 +13,7 @@ class AdminDiagnosticsTestCase(TestCase):
         self.client.force_authenticate(user=self.admin)
 
     def test_admin_diagnostics_does_not_expose_secrets(self):
-        res = self.client.get("/api/accounts/admin/diagnostics/")
+        res = self.client.get("/api/v1/accounts/admin/diagnostics/")
         self.assertIn(res.status_code, [200, 503])
         payload = res.json()
         self.assertIn("smtp", payload)

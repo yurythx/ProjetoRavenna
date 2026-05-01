@@ -23,7 +23,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [isLoading, setIsLoading] = useState(true);
 
   const refreshSession = useCallback(async () => {
-    const result = await jsonFetch("/api/auth/session", { method: "GET" });
+    const result = await jsonFetch<{ user: AuthUser } | null>("/api/auth/session", { method: "GET" });
     setUser(result.data?.user ?? null);
   }, []);
 
@@ -38,14 +38,14 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   }, [refreshSession]);
 
   const login = useCallback(async (payload: Record<string, unknown>) => {
-    const result = await jsonFetch("/api/auth/login", { method: "POST", json: payload });
+    const result = await jsonFetch<{ user: AuthUser } | null>("/api/auth/login", { method: "POST", json: payload });
     if (!result.ok) return { ok: false as const, error: result.data };
     setUser(result.data?.user ?? null);
     return { ok: true as const };
   }, []);
 
   const register = useCallback(async (payload: Record<string, unknown>) => {
-    const result = await jsonFetch("/api/auth/register", { method: "POST", json: payload });
+    const result = await jsonFetch<{ user: AuthUser } | null>("/api/auth/register", { method: "POST", json: payload });
     if (!result.ok) return { ok: false as const, error: result.data };
     setUser(result.data?.user ?? null);
     return { ok: true as const };

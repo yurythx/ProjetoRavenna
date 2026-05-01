@@ -1,16 +1,10 @@
 "use client";
 
 import { Component, ReactNode } from "react";
+import Link from "next/link";
 
-interface Props {
-  children: ReactNode;
-  fallback?: ReactNode;
-}
-
-interface State {
-  hasError: boolean;
-  errorMessage: string;
-}
+interface Props { children: ReactNode; fallback?: ReactNode; }
+interface State { hasError: boolean; errorMessage: string; }
 
 export class ErrorBoundary extends Component<Props, State> {
   state: State = { hasError: false, errorMessage: "" };
@@ -23,17 +17,24 @@ export class ErrorBoundary extends Component<Props, State> {
     if (this.state.hasError) {
       return (
         this.props.fallback ?? (
-          <div className="flex min-h-[60vh] flex-col items-center justify-center px-4 text-center">
-            <h1 className="text-2xl font-semibold text-foreground">Algo deu errado</h1>
-            <p className="mt-2 text-sm text-foreground/60">
+          <div className="flex min-h-[70vh] flex-col items-center justify-center px-4 text-center gap-6">
+            <div className="rv-badge rv-badge-red inline-flex">⚠ Erro Crítico</div>
+            <h1 className="rv-display text-4xl text-white">Algo deu errado</h1>
+            <p className="text-[var(--rv-text-muted)] max-w-sm text-sm" style={{ fontFamily: "var(--font-body)" }}>
               Ocorreu um erro inesperado. Tente recarregar a página.
             </p>
-            <button
-              onClick={() => window.location.reload()}
-              className="mt-6 rounded-lg bg-foreground px-5 py-2 text-sm font-medium text-background hover:opacity-90"
-            >
-              Recarregar
-            </button>
+            <div className="flex gap-3">
+              <button
+                type="button"
+                onClick={() => window.location.reload()}
+                className="rv-btn rv-btn-primary px-8 h-11 text-xs"
+              >
+                Recarregar
+              </button>
+              <Link href="/" className="rv-btn rv-btn-ghost px-8 h-11 text-xs">
+                Início
+              </Link>
+            </div>
           </div>
         )
       );

@@ -18,7 +18,7 @@ class EmailVerificationAndPasswordResetTestCase(TestCase):
 
     def test_register_sends_code_and_verify_activates_user(self):
         res = self.client.post(
-            "/api/accounts/register/",
+            "/api/v1/accounts/register/",
             {
                 "email": "new@example.com",
                 "username": "newuser",
@@ -39,7 +39,7 @@ class EmailVerificationAndPasswordResetTestCase(TestCase):
         self.assertTrue(AdminAuditEvent.objects.filter(action="email_verify_sent", target=user).exists())
 
         res2 = self.client.post(
-            "/api/accounts/email/verify/",
+            "/api/v1/accounts/email/verify/",
             {"email": "new@example.com", "code": code},
             format="json",
         )
@@ -59,14 +59,14 @@ class EmailVerificationAndPasswordResetTestCase(TestCase):
         user.save(update_fields=["is_verified", "is_active"])
 
         mail.outbox = []
-        res = self.client.post("/api/accounts/password-reset/", {"email": "u@example.com"}, format="json")
+        res = self.client.post("/api/v1/accounts/password-reset/", {"email": "u@example.com"}, format="json")
         self.assertEqual(res.status_code, 200)
         self.assertEqual(len(mail.outbox), 1)
         code = self._extract_code(mail.outbox[0].body)
         self.assertTrue(AdminAuditEvent.objects.filter(action="password_reset_sent", target=user).exists())
 
         res2 = self.client.post(
-            "/api/accounts/password-reset/confirm/",
+            "/api/v1/accounts/password-reset/confirm/",
             {
                 "email": "u@example.com",
                 "code": code,
@@ -90,10 +90,10 @@ class EmailVerificationAndPasswordResetTestCase(TestCase):
 
         with override_settings(ACCOUNTS_OTP_COOLDOWN_SECONDS=0, ACCOUNTS_OTP_MAX_PER_HOUR_PER_IP=2, ACCOUNTS_OTP_MAX_PER_HOUR=999):
             mail.outbox = []
-            r1 = self.client.post("/api/accounts/password-reset/", {"email": "ip@example.com"}, format="json", HTTP_X_FORWARDED_FOR="203.0.113.99")
+            r1 = self.client.post("/api/v1/accounts/password-reset/", {"email": "ip@example.com"}, format="json", HTTP_X_FORWARDED_FOR="203.0.113.99")
             self.assertEqual(r1.status_code, 200)
-            r2 = self.client.post("/api/accounts/password-reset/", {"email": "ip@example.com"}, format="json", HTTP_X_FORWARDED_FOR="203.0.113.99")
+            r2 = self.client.post("/api/v1/accounts/password-reset/", {"email": "ip@example.com"}, format="json", HTTP_X_FORWARDED_FOR="203.0.113.99")
             self.assertEqual(r2.status_code, 200)
-            r3 = self.client.post("/api/accounts/password-reset/", {"email": "ip@example.com"}, format="json", HTTP_X_FORWARDED_FOR="203.0.113.99")
+            r3 = self.client.post("/api/v1/accounts/password-reset/", {"email": "ip@example.com"}, format="json", HTTP_X_FORWARDED_FOR="203.0.113.99")
             self.assertEqual(r3.status_code, 200)
             self.assertEqual(len(mail.outbox), 2)

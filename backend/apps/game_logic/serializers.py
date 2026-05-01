@@ -3,7 +3,7 @@ Serializers for game_logic app.
 """
 from rest_framework import serializers
 
-from apps.game_logic.models import PlayerInventory, PlayerItem, PlayerSkill, PlayerStats, QuestProgress
+from apps.game_logic.models import PlayerInventory, PlayerItem, PlayerSkill, PlayerStats, QuestProgress, QuestTemplate
 
 
 class PlayerInventorySerializer(serializers.ModelSerializer):
@@ -129,3 +129,23 @@ class LearnSkillSerializer(serializers.Serializer):
     """Serializer for learning a skill."""
 
     skill_template_id = serializers.UUIDField()
+
+
+class QuestTemplateSerializer(serializers.ModelSerializer):
+    """Public serializer for quest templates."""
+
+    quest_type_display = serializers.CharField(source="get_quest_type_display", read_only=True)
+
+    class Meta:
+        model = QuestTemplate
+        fields = [
+            "id",
+            "name",
+            "description",
+            "quest_type",
+            "quest_type_display",
+            "objectives",
+            "rewards",
+            "level_required",
+            "is_repeatable",
+        ]

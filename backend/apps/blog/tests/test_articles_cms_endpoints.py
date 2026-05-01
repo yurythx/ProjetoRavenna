@@ -18,7 +18,7 @@ class ArticlesCmsEndpointsTestCase(TestCase):
         self.client.force_authenticate(user=self.editor)
 
         create_res = self.client.post(
-            "/api/articles/articles/",
+            "/api/v1/blog/articles/",
             {
                 "title": "Primeiro",
                 "slug": "primeiro",
@@ -32,13 +32,13 @@ class ArticlesCmsEndpointsTestCase(TestCase):
         )
         self.assertEqual(create_res.status_code, 201)
 
-        hist_res = self.client.get("/api/articles/articles/primeiro/history/")
+        hist_res = self.client.get("/api/v1/blog/articles/primeiro/history/")
         self.assertEqual(hist_res.status_code, 200)
         versions = hist_res.json()
         self.assertTrue(len(versions) >= 1)
 
         update_res = self.client.put(
-            "/api/articles/articles/primeiro/",
+            "/api/v1/blog/articles/primeiro/",
             {
                 "title": "Primeiro",
                 "slug": "primeiro",
@@ -52,34 +52,34 @@ class ArticlesCmsEndpointsTestCase(TestCase):
         )
         self.assertEqual(update_res.status_code, 200)
 
-        hist_res2 = self.client.get("/api/articles/articles/primeiro/history/")
+        hist_res2 = self.client.get("/api/v1/blog/articles/primeiro/history/")
         self.assertEqual(hist_res2.status_code, 200)
         versions2 = hist_res2.json()
         self.assertTrue(len(versions2) >= 2)
 
         oldest = versions2[-1]
         revert_res = self.client.post(
-            "/api/articles/articles/primeiro/revert/",
+            "/api/v1/blog/articles/primeiro/revert/",
             {"version_id": oldest["id"]},
             format="json",
         )
         self.assertEqual(revert_res.status_code, 200)
 
-        detail_res = self.client.get("/api/articles/articles/primeiro/")
+        detail_res = self.client.get("/api/v1/blog/articles/primeiro/")
         self.assertEqual(detail_res.status_code, 200)
         self.assertEqual(detail_res.json().get("content"), "conteudo original")
 
-        publish_res = self.client.post("/api/articles/articles/primeiro/publish/", {}, format="json")
+        publish_res = self.client.post("/api/v1/blog/articles/primeiro/publish/", {}, format="json")
         self.assertEqual(publish_res.status_code, 200)
 
         self.client.force_authenticate(user=None)
-        view_res = self.client.get("/api/articles/articles/primeiro/")
+        view_res = self.client.get("/api/v1/blog/articles/primeiro/")
         self.assertEqual(view_res.status_code, 200)
-        view_res2 = self.client.get("/api/articles/articles/primeiro/")
+        view_res2 = self.client.get("/api/v1/blog/articles/primeiro/")
         self.assertEqual(view_res2.status_code, 200)
 
         self.client.force_authenticate(user=self.editor)
-        analytics_res = self.client.get("/api/articles/articles/analytics/")
+        analytics_res = self.client.get("/api/v1/blog/articles/analytics/")
         self.assertEqual(analytics_res.status_code, 200)
         data = analytics_res.json()
         self.assertTrue(data.get("total_articles", 0) >= 1)
@@ -105,7 +105,7 @@ class ArticlesCmsEndpointsTestCase(TestCase):
 
         self.client.force_authenticate(user=player)
         create_res = self.client.post(
-            "/api/articles/public/comments/",
+            "/api/v1/blog/public/comments/",
             {"post_slug": "hello", "content": "Nice!"},
             format="json",
         )
@@ -113,15 +113,15 @@ class ArticlesCmsEndpointsTestCase(TestCase):
         comment_id = create_res.json()["id"]
 
         self.client.force_authenticate(user=None)
-        list_res = self.client.get("/api/articles/public/comments/?post_slug=hello")
+        list_res = self.client.get("/api/v1/blog/public/comments/?post_slug=hello")
         self.assertEqual(list_res.status_code, 200)
         self.assertEqual(len(list_res.json().get("results", [])), 0)
 
         self.client.force_authenticate(user=self.editor)
-        approve_res = self.client.post(f"/api/articles/comments/{comment_id}/approve/", {}, format="json")
+        approve_res = self.client.post(f"/api/v1/blog/comments/{comment_id}/approve/", {}, format="json")
         self.assertEqual(approve_res.status_code, 200)
 
         self.client.force_authenticate(user=None)
-        list_res2 = self.client.get("/api/articles/public/comments/?post_slug=hello")
+        list_res2 = self.client.get("/api/v1/blog/public/comments/?post_slug=hello")
         self.assertEqual(list_res2.status_code, 200)
         self.assertEqual(len(list_res2.json().get("results", [])), 1)

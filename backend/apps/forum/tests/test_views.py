@@ -93,7 +93,7 @@ class ForumViewsTestCase(TestCase):
         )
 
     def test_categories_list_is_public_and_only_active(self):
-        response = self.client.get("/api/forum/categories/")
+        response = self.client.get("/api/v1/forum/categories/")
         self.assertEqual(response.status_code, 200)
         payload = response.json()
         results = payload.get("results", payload)
@@ -104,7 +104,7 @@ class ForumViewsTestCase(TestCase):
     def test_create_category_requires_moderator(self):
         self.client.force_authenticate(user=self.player)
         response = self.client.post(
-            "/api/forum/categories/",
+            "/api/v1/forum/categories/",
             {"name": "News", "slug": "news", "description": "Updates"},
             format="json",
         )
@@ -112,7 +112,7 @@ class ForumViewsTestCase(TestCase):
 
         self.client.force_authenticate(user=self.moderator)
         response = self.client.post(
-            "/api/forum/categories/",
+            "/api/v1/forum/categories/",
             {"name": "News", "slug": "news", "description": "Updates"},
             format="json",
         )
@@ -128,16 +128,16 @@ class ForumViewsTestCase(TestCase):
         }
 
         self.client.force_authenticate(user=self.regular_user)
-        response = self.client.post("/api/forum/topics/", payload, format="json")
+        response = self.client.post("/api/v1/forum/topics/", payload, format="json")
         self.assertEqual(response.status_code, 403)
 
         self.client.force_authenticate(user=self.player)
-        response = self.client.post("/api/forum/topics/", payload, format="json")
+        response = self.client.post("/api/v1/forum/topics/", payload, format="json")
         self.assertEqual(response.status_code, 201)
         self.assertTrue(Topic.objects.filter(slug="player-topic").exists())
 
     def test_topics_list_can_filter_by_category(self):
-        response = self.client.get(f"/api/forum/topics/?category={self.active_category.slug}")
+        response = self.client.get(f"/api/v1/forum/topics/?category={self.active_category.slug}")
         self.assertEqual(response.status_code, 200)
         payload = response.json()
         results = payload.get("results", payload)
@@ -145,7 +145,7 @@ class ForumViewsTestCase(TestCase):
         self.assertIn(self.topic.slug, slugs)
         self.assertNotIn(self.other_topic.slug, slugs)
 
-        response = self.client.get(f"/api/forum/topics/?category={self.other_active_category.id}")
+        response = self.client.get(f"/api/v1/forum/topics/?category={self.other_active_category.id}")
         self.assertEqual(response.status_code, 200)
         payload = response.json()
         results = payload.get("results", payload)
@@ -155,11 +155,11 @@ class ForumViewsTestCase(TestCase):
 
     def test_pin_topic_requires_moderator(self):
         self.client.force_authenticate(user=self.player)
-        response = self.client.post(f"/api/forum/topics/{self.topic.slug}/pin/")
+        response = self.client.post(f"/api/v1/forum/topics/{self.topic.slug}/pin/")
         self.assertEqual(response.status_code, 403)
 
         self.client.force_authenticate(user=self.moderator)
-        response = self.client.post(f"/api/forum/topics/{self.topic.slug}/pin/")
+        response = self.client.post(f"/api/v1/forum/topics/{self.topic.slug}/pin/")
         self.assertEqual(response.status_code, 200)
         self.topic.refresh_from_db()
         self.assertTrue(self.topic.is_pinned)
@@ -168,66 +168,66 @@ class ForumViewsTestCase(TestCase):
         payload = {"content": "Reply text", "topic": str(self.topic.id)}
 
         self.client.force_authenticate(user=self.regular_user)
-        response = self.client.post("/api/forum/replies/", payload, format="json")
+        response = self.client.post("/api/v1/forum/replies/", payload, format="json")
         self.assertEqual(response.status_code, 403)
 
         self.client.force_authenticate(user=self.player)
-        response = self.client.post("/api/forum/replies/", payload, format="json")
+        response = self.client.post("/api/v1/forum/replies/", payload, format="json")
         self.assertEqual(response.status_code, 201)
 
     def test_mark_solution_requires_moderator_and_is_unique(self):
         self.client.force_authenticate(user=self.player)
-        response = self.client.post(f"/api/forum/replies/{self.reply1.id}/mark_solution/")
+        response = self.client.post(f"/api/v1/forum/replies/{self.reply1.id}/mark_solution/")
         self.assertEqual(response.status_code, 403)
 
         self.client.force_authenticate(user=self.moderator)
-        response = self.client.post(f"/api/forum/replies/{self.reply1.id}/mark_solution/")
+        response = self.client.post(f"/api/v1/forum/replies/{self.reply1.id}/mark_solution/")
         self.assertEqual(response.status_code, 200)
         self.reply1.refresh_from_db()
         self.reply2.refresh_from_db()
         self.assertTrue(self.reply1.is_solution)
         self.assertFalse(self.reply2.is_solution)
 
-        response = self.client.post(f"/api/forum/replies/{self.reply2.id}/mark_solution/")
+        response = self.client.post(f"/api/v1/forum/replies/{self.reply2.id}/mark_solution/")
         self.assertEqual(response.status_code, 200)
         self.reply1.refresh_from_db()
         self.reply2.refresh_from_db()
         self.assertFalse(self.reply1.is_solution)
         self.assertTrue(self.reply2.is_solution)
 
-        response = self.client.post(f"/api/forum/replies/{self.reply2.id}/unmark_solution/")
+        response = self.client.post(f"/api/v1/forum/replies/{self.reply2.id}/unmark_solution/")
         self.assertEqual(response.status_code, 200)
         self.reply2.refresh_from_db()
         self.assertFalse(self.reply2.is_solution)
 
     def test_hide_and_unhide_reply_requires_moderator(self):
         self.client.force_authenticate(user=self.player)
-        response = self.client.post(f"/api/forum/replies/{self.reply1.id}/hide/", {"reason": "spam"}, format="json")
+        response = self.client.post(f"/api/v1/forum/replies/{self.reply1.id}/hide/", {"reason": "spam"}, format="json")
         self.assertEqual(response.status_code, 403)
 
         self.client.force_authenticate(user=self.moderator)
-        response = self.client.post(f"/api/forum/replies/{self.reply1.id}/hide/", {"reason": "spam"}, format="json")
+        response = self.client.post(f"/api/v1/forum/replies/{self.reply1.id}/hide/", {"reason": "spam"}, format="json")
         self.assertEqual(response.status_code, 200)
         self.reply1.refresh_from_db()
         self.assertTrue(self.reply1.is_hidden)
 
-        response = self.client.post(f"/api/forum/replies/{self.reply1.id}/unhide/")
+        response = self.client.post(f"/api/v1/forum/replies/{self.reply1.id}/unhide/")
         self.assertEqual(response.status_code, 200)
         self.reply1.refresh_from_db()
         self.assertFalse(self.reply1.is_hidden)
 
     def test_list_replies_include_hidden_requires_moderator(self):
         self.client.force_authenticate(user=self.moderator)
-        self.client.post(f"/api/forum/replies/{self.reply1.id}/hide/", {"reason": "spam"}, format="json")
+        self.client.post(f"/api/v1/forum/replies/{self.reply1.id}/hide/", {"reason": "spam"}, format="json")
         self.reply1.refresh_from_db()
         self.assertTrue(self.reply1.is_hidden)
 
         self.client.force_authenticate(user=self.player)
-        response = self.client.get(f"/api/forum/replies/?topic={self.topic.slug}&include_hidden=1")
+        response = self.client.get(f"/api/v1/forum/replies/?topic={self.topic.slug}&include_hidden=1")
         self.assertEqual(response.status_code, 403)
 
         self.client.force_authenticate(user=self.moderator)
-        response = self.client.get(f"/api/forum/replies/?topic={self.topic.slug}&include_hidden=1")
+        response = self.client.get(f"/api/v1/forum/replies/?topic={self.topic.slug}&include_hidden=1")
         self.assertEqual(response.status_code, 200)
         payload = response.json()
         results = payload.get("results", payload)
@@ -235,7 +235,7 @@ class ForumViewsTestCase(TestCase):
         self.assertIn(str(self.reply1.id), ids)
 
     def test_public_endpoints_exist_and_hide_hidden_content(self):
-        res_cats = self.client.get("/api/forum/public/categories/")
+        res_cats = self.client.get("/api/v1/forum/public/categories/")
         self.assertEqual(res_cats.status_code, 200)
         payload = res_cats.json()
         results = payload.get("results", payload)
@@ -243,7 +243,7 @@ class ForumViewsTestCase(TestCase):
         self.assertIn("general", slugs)
         self.assertNotIn("hidden", slugs)
 
-        res_topics = self.client.get(f"/api/forum/public/topics/?category={self.active_category.slug}")
+        res_topics = self.client.get(f"/api/v1/forum/public/topics/?category={self.active_category.slug}")
         self.assertEqual(res_topics.status_code, 200)
         payload = res_topics.json()
         results = payload.get("results", payload)
@@ -252,12 +252,12 @@ class ForumViewsTestCase(TestCase):
         self.assertNotIn(self.other_topic.slug, topic_slugs)
 
         self.client.force_authenticate(user=self.moderator)
-        self.client.post(f"/api/forum/replies/{self.reply1.id}/hide/", {"reason": "spam"}, format="json")
+        self.client.post(f"/api/v1/forum/replies/{self.reply1.id}/hide/", {"reason": "spam"}, format="json")
         self.reply1.refresh_from_db()
         self.assertTrue(self.reply1.is_hidden)
         self.client.force_authenticate(user=None)
 
-        res_replies = self.client.get(f"/api/forum/public/replies/?topic={self.topic.slug}&page_size=100")
+        res_replies = self.client.get(f"/api/v1/forum/public/replies/?topic={self.topic.slug}&page_size=100")
         self.assertEqual(res_replies.status_code, 200)
         payload = res_replies.json()
         results = payload.get("results", payload)
@@ -265,7 +265,7 @@ class ForumViewsTestCase(TestCase):
         self.assertNotIn(str(self.reply1.id), ids)
 
     def test_public_categories_supports_page_size(self):
-        res = self.client.get("/api/forum/public/categories/?page=1&page_size=1")
+        res = self.client.get("/api/v1/forum/public/categories/?page=1&page_size=1")
         self.assertEqual(res.status_code, 200)
         payload = res.json()
         results = payload.get("results", payload)
@@ -280,15 +280,15 @@ class ForumViewsTestCase(TestCase):
         self.assertTrue(ReplyViewSet.throttle_classes)
 
     def test_public_topics_supports_search_and_ordering_allowlist(self):
-        res_search = self.client.get("/api/forum/public/topics/?q=Welcome&page=1&page_size=50")
+        res_search = self.client.get("/api/v1/forum/public/topics/?q=Welcome&page=1&page_size=50")
         self.assertEqual(res_search.status_code, 200)
         payload = res_search.json()
         results = payload.get("results", payload)
         slugs = [item["slug"] for item in results]
         self.assertIn(self.topic.slug, slugs)
 
-        res_order = self.client.get("/api/forum/public/topics/?ordering=-view_count&page=1&page_size=50")
+        res_order = self.client.get("/api/v1/forum/public/topics/?ordering=-view_count&page=1&page_size=50")
         self.assertEqual(res_order.status_code, 200)
 
-        res_bad = self.client.get("/api/forum/public/topics/?ordering=-__class__&page=1&page_size=50")
+        res_bad = self.client.get("/api/v1/forum/public/topics/?ordering=-__class__&page=1&page_size=50")
         self.assertEqual(res_bad.status_code, 200)

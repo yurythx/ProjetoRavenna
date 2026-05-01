@@ -3,12 +3,12 @@ FROM mcr.microsoft.com/dotnet/sdk:8.0 AS build
 WORKDIR /src
 
 # Restore dependencies first (layer cache)
-COPY src/RavennaServer/RavennaServer.csproj ./RavennaServer/
-COPY ../proto/ /proto/
+COPY gameserver/src/RavennaServer/RavennaServer.csproj ./RavennaServer/
+COPY proto/ /proto/
 RUN dotnet restore RavennaServer/RavennaServer.csproj
 
 # Build
-COPY src/RavennaServer/ ./RavennaServer/
+COPY gameserver/src/RavennaServer/ ./RavennaServer/
 RUN dotnet publish RavennaServer/RavennaServer.csproj \
     -c Release -o /app/publish \
     --no-restore

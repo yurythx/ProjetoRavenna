@@ -5,7 +5,7 @@ from django.test import TestCase
 
 from apps.accounts.models import User
 from apps.game_data.models import ItemTemplate, SkillTemplate
-from apps.game_logic.models import PlayerItem, PlayerSkill, QuestProgress
+from apps.game_logic.models import PlayerInventory, PlayerItem, PlayerSkill, PlayerStats, QuestProgress, QuestTemplate
 from apps.game_logic.services import GameLogicService
 
 
@@ -105,13 +105,70 @@ class GameLogicServiceTestCase(TestCase):
         self.assertEqual(updated.strength, 12)
         self.assertEqual(updated.vitality, 13)
 
-    def test_start_and_complete_quest(self):
+    def test_start_and_complete_quest_no_template(self):
+        """String quest_ids with no matching template complete cleanly with no rewards."""
         progress = GameLogicService.start_quest(self.user, "quest_001")
         self.assertEqual(progress.status, "in_progress")
 
         completed = GameLogicService.complete_quest(self.user, "quest_001")
         self.assertEqual(completed.status, "completed")
         self.assertIsNotNone(completed.completed_at)
+
+    def test_complete_quest_delivers_xp_rewards(self):
+        template = QuestTemplate.objects.create(
+            name="Kill 5 Wolves",
+            quest_type="side",
+            rewards={"xp": 250},
+            level_required=1,
+        )
+        GameLogicService.start_quest(self.user, str(template.id))
+        GameLogicService.complete_quest(self.user, str(template.id))
+
+        stats = PlayerStats.objects.get(owner=self.user)
+        # 250 XP → level 3 (100 per level) + 50 remaining
+        self.assertEqual(stats.level, 3)
+        self.assertEqual(stats.experience, 50)
+
+    def test_complete_quest_delivers_gold_rewards(self):
+        template = QuestTemplate.objects.create(
+            name="Gather Resources",
+            quest_type="side",
+            rewards={"gold": 500},
+            level_required=1,
+        )
+        GameLogicService.start_quest(self.user, str(template.id))
+        GameLogicService.complete_quest(self.user, str(template.id))
+
+        inventory = PlayerInventory.objects.get(owner=self.user)
+        self.assertEqual(inventory.gold, 500)
+
+    def test_complete_quest_delivers_item_rewards(self):
+        template = QuestTemplate.objects.create(
+            name="Hero's Trial",
+            quest_type="main",
+            rewards={"items": [{"item_template_id": str(self.non_stackable_item.id), "quantity": 1}]},
+            level_required=1,
+        )
+        GameLogicService.start_quest(self.user, str(template.id))
+        GameLogicService.complete_quest(self.user, str(template.id))
+
+        inventory = PlayerInventory.objects.get(owner=self.user)
+        self.assertEqual(inventory.slots_used, 1)
+        self.assertEqual(PlayerItem.objects.filter(inventory=inventory).count(), 1)
+
+    def test_complete_quest_repeatable_resets_status(self):
+        template = QuestTemplate.objects.create(
+            name="Daily Hunt",
+            quest_type="daily",
+            rewards={"xp": 50},
+            level_required=1,
+            is_repeatable=True,
+        )
+        GameLogicService.start_quest(self.user, str(template.id))
+        progress = GameLogicService.complete_quest(self.user, str(template.id))
+
+        self.assertEqual(progress.status, "in_progress")
+        self.assertIsNone(progress.completed_at)
 
     def test_learn_skill_creates_and_levels_up(self):
         skill1 = GameLogicService.learn_skill(self.user, str(self.skill.id))

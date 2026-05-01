@@ -1,7 +1,6 @@
 "use client";
 
 import Link from "next/link";
-
 import { useAuth } from "@/components/auth-provider";
 
 export function BlogHeaderActions() {
@@ -12,11 +11,8 @@ export function BlogHeaderActions() {
   if (!canEdit) return null;
 
   return (
-    <Link
-      href="/dashboard/blog/new"
-      className="inline-flex h-10 items-center justify-center rounded-xl bg-foreground px-4 text-sm font-medium text-background hover:opacity-90"
-    >
-      Novo post
+    <Link href="/dashboard/blog/new" className="rv-btn rv-btn-primary text-xs px-8 h-11 gap-2">
+      <span>+</span> Novo Post
     </Link>
   );
 }

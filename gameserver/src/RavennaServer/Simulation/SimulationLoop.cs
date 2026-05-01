@@ -44,8 +44,31 @@ internal sealed class SimulationLoop
     // ── Called by UdpSocketListener on handshake success ─────────────────────
     public void OnPlayerConnected(PlayerSession session)
     {
-        _sessions[session.ConvId] = session;
-        Console.WriteLine($"[Sim] Connected  user={session.UserId}  conv={session.ConvId}");
+        try
+        {
+            _sessions[session.ConvId] = session;
+            Console.WriteLine($"[Sim] Connected  user={session.UserId}  conv={session.ConvId}");
+
+            // Notify Django of the connection
+            Console.WriteLine($"[Sim] Sending player_connected for {session.UserId}");
+            _ = _bridge.SendEventAsync(new GameEvent
+            {
+                EventType = "player_connected",
+                PlayerId  = session.UserId,
+                Data      = new Dictionary<string, object>
+                {
+                    ["conv_id"]   = session.ConvId,
+                    ["hwid"]      = session.Hwid,
+                    ["ip_address"] = session.RemoteEndPoint.Address.ToString()
+                }
+            });
+            Console.Out.Flush();
+        }
+        catch (Exception ex)
+        {
+            Console.Error.WriteLine($"[Sim] Error in OnPlayerConnected: {ex.Message}");
+            Console.Error.Flush();
+        }
     }
 
     public void OnPlayerDisconnected(uint convId)
@@ -65,11 +88,11 @@ internal sealed class SimulationLoop
     private void Loop(CancellationToken ct)
     {
         var sw          = Stopwatch.StartNew();
-        long nextTickUs = sw.ElapsedMicroseconds();
+        long nextTickUs = GetMicroseconds();
 
         while (!ct.IsCancellationRequested)
         {
-            long now = sw.ElapsedMicroseconds();
+            long now = GetMicroseconds();
             if (now < nextTickUs)
             {
                 // Busy-wait for remaining sub-millisecond time; yield for longer waits
@@ -231,4 +254,7 @@ internal sealed class SimulationLoop
 
         OnPlayerDisconnected(session.ConvId);
     }
+
+    private static long GetMicroseconds() => 
+        Stopwatch.GetTimestamp() * 1_000_000L / Stopwatch.Frequency;
 }

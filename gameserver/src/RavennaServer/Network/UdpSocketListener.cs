@@ -2,6 +2,7 @@ using System.Buffers;
 using System.Collections.Concurrent;
 using System.Net;
 using System.Net.Sockets;
+using Google.Protobuf;
 using RavennaServer.Bridge;
 using RavennaServer.Proto;
 using RavennaServer.Simulation;

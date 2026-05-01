@@ -17,7 +17,7 @@ class LoginFlowTestCase(TestCase):
 
     def test_login_sets_last_login_ip(self):
         res = self.client.post(
-            "/api/accounts/login/",
+            "/api/v1/accounts/login/",
             {"email": "user@example.com", "password": "Pass1234!"},
             format="json",
             REMOTE_ADDR="203.0.113.10",
