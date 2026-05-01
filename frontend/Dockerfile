@@ -1,17 +1,11 @@
-FROM node:22-slim AS deps
+FROM node:22 AS deps
 WORKDIR /app
 
-# Instalar dependências necessárias para builds nativos
-RUN apt-get update && apt-get install -y --no-install-recommends \
-    python3 \
-    make \
-    g++ \
-    && rm -rf /var/lib/apt/lists/*
-
-COPY package.json package-lock.json ./
+# Copiar apenas o package.json para ignorar restrições do lockfile de outra plataforma
+COPY package.json ./
 RUN npm install
 
-FROM node:22-slim AS builder
+FROM node:22 AS builder
 WORKDIR /app
 COPY --from=deps /app/node_modules ./node_modules
 COPY . .
