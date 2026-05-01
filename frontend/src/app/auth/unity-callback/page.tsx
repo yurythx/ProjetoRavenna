@@ -1,12 +1,8 @@
 "use client";
 
-import { useEffect, useState } from "react";
-import { useSearchParams, useRouter } from "next/navigation";
-import { useAuth } from "@/components/auth-provider";
+import { Suspense, useEffect, useState } from "react";
 
-type Step = "checking-auth" | "requesting-token" | "redirecting" | "error";
-
-export default function UnityCallbackPage() {
+function UnityCallbackContent() {
   const searchParams = useSearchParams();
   const router = useRouter();
   const { user, isLoading } = useAuth();
@@ -91,6 +87,14 @@ export default function UnityCallbackPage() {
         )}
       </div>
     </div>
+  );
+}
+
+export default function UnityCallbackPage() {
+  return (
+    <Suspense fallback={<div>Carregando...</div>}>
+      <UnityCallbackContent />
+    </Suspense>
   );
 }
 

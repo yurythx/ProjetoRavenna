@@ -1,12 +1,9 @@
 "use client";
 
 import { useRouter, useSearchParams } from "next/navigation";
-import { useState } from "react";
+import { Suspense } from "react";
 
-import { useAuth } from "@/components/auth-provider";
-import { jsonFetch } from "@/lib/fetch";
-
-export default function VerifyEmailPage() {
+function VerifyEmailForm() {
   const router = useRouter();
   const params = useSearchParams();
   const { refreshSession } = useAuth();
@@ -107,6 +104,14 @@ export default function VerifyEmailPage() {
         </button>
       </form>
     </div>
+  );
+}
+
+export default function VerifyEmailPage() {
+  return (
+    <Suspense fallback={<div>Carregando...</div>}>
+      <VerifyEmailForm />
+    </Suspense>
   );
 }
 
