@@ -1,345 +1,184 @@
-"use client"
+/**
+ * @module ArticlesAdminPage
+ * 
+ * Gestão administrativa de artigos do Blog com estética Premium RV.
+ */
+"use client";
 
-import { useState, useEffect, Suspense, useMemo } from "react"
-import { useSearchParams } from "next/navigation"
-import { useQuery, useInfiniteQuery } from "@tanstack/react-query"
-import { api } from "@/lib/axios"
-import dynamic from "next/dynamic"
-import { Article, Category } from "@/types"
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
-import { Input } from "@/components/ui/input"
-import { Button } from "@/components/ui/button"
-import { PublicArticleCard } from "@/components/public/article-card"
-import { Skeleton } from "@/components/ui/skeleton"
-import { Search, BookOpen, Plus } from "lucide-react"
-import { cn } from "@/lib/utils"
-import { ModuleGuard } from "@/components/module-guard"
-import { ArticleModeration } from "@/features/articles/article-moderation"
+import { useState } from "react";
+import { useQuery } from "@tanstack/react-query";
+import Link from "next/link";
+import { format } from "date-fns";
+import { ptBR } from "date-fns/locale";
 
-import Link from "next/link"
-import { useRouter } from "next/navigation"
-import { useAuth } from "@/hooks/use-auth"
-import { useDebounce } from "@/hooks/use-debounce"
+// ── Types ────────────────────────────────────────────────────────────────────
 
-const TagList = dynamic(
-    () => import("@/features/articles/tag-list").then((m) => m.TagList),
-    {
-        ssr: false,
-        loading: () => (
-            <div className="space-y-4" role="status" aria-live="polite" aria-label="Carregando tags e categorias">
-                <Skeleton className="h-10 w-64 rounded-2xl" />
-                <Skeleton className="h-[520px] w-full rounded-2xl" />
-            </div>
-        ),
-    }
-)
+type Article = {
+  id: string;
+  title: string;
+  category_name: string;
+  author_name: string;
+  status: "draft" | "published" | "archived";
+  created_at: string;
+  view_count: number;
+};
 
-const ArticleAnalytics = dynamic(
-    () => import("@/features/articles/article-analytics").then((m) => m.ArticleAnalytics),
-    {
-        ssr: false,
-        loading: () => (
-            <div className="space-y-4" role="status" aria-live="polite" aria-label="Carregando analytics de artigos">
-                <Skeleton className="h-10 w-64 rounded-2xl" />
-                <Skeleton className="h-[520px] w-full rounded-2xl" />
-            </div>
-        ),
-    }
-)
+// ── Data Fetch ───────────────────────────────────────────────────────────────
 
-function ArtigosPageContent() {
-    const searchParams = useSearchParams()
-    const router = useRouter()
-    const [searchTerm, setSearchTerm] = useState(() => searchParams.get('q') ?? "")
-    const debouncedSearchTerm = useDebounce(searchTerm, 250)
-    const [activeTab, setActiveTab] = useState<'articles' | 'tags' | 'analytics' | 'moderation'>(() => {
-        const t = (searchParams.get("tab") || "").toLowerCase()
-        if (t === "moderation") return "moderation"
-        if (t === "tags") return "tags"
-        if (t === "analytics") return "analytics"
-        return "articles"
-    })
-    const [statusFilter, setStatusFilter] = useState<'all' | 'pending'>(() => {
-        const v = searchParams.get('status')
-        if (v === 'pending') return 'pending'
-        return 'all'
-    })
-    const [categoryId, setCategoryId] = useState<string | null>(() => searchParams.get('category') || null)
-
-    const { user: me, isLoading } = useAuth()
-    const u = (me ?? null) as Record<string, unknown> | null
-    const canEdit = Boolean(u?.is_admin || u?.is_blog_editor || u?.is_staff || u?.is_superuser)
-
-    const { data: categories } = useQuery<Category[]>({
-        queryKey: ['categories'],
-        queryFn: async () => {
-            const res = await api.get<Category[] | { results: Category[] }>('/api/articles/categories/')
-            const data = Array.isArray(res.data) ? res.data : res.data.results || []
-            return Array.isArray(data) ? data : []
-        }
-    })
-
-    const {
-        data,
-        isFetching,
-        isFetchingNextPage,
-        fetchNextPage,
-        hasNextPage,
-        error,
-    } = useInfiniteQuery({
-        queryKey: ['dashboard-articles-grid', statusFilter, debouncedSearchTerm, categoryId],
-        queryFn: async ({ pageParam }) => {
-            const params = new URLSearchParams()
-            if (statusFilter === 'pending') params.set('status', 'pending')
-            if (debouncedSearchTerm.trim()) params.set('search', debouncedSearchTerm.trim())
-            if (categoryId) params.set('category', String(categoryId))
-            if (pageParam) params.set('page', String(pageParam))
-            const url = `/api/articles/articles/?${params.toString()}`
-            const res = await api.get(url)
-            return res.data
-        },
-        initialPageParam: 1,
-        getNextPageParam: (lastPage) => {
-            const next = lastPage?.next
-            if (!next) return undefined
-            try {
-                const u = new URL(next)
-                const p = u.searchParams.get('page')
-                return p ? Number(p) : undefined
-            } catch {
-                const m = /[?&]page=(\d+)/.exec(next)
-                return m ? Number(m[1]) : undefined
-            }
-        },
-        enabled: !isLoading && !!me,
-    })
-    const list: Article[] = (data?.pages ?? []).flatMap((pg: unknown) => {
-        if (Array.isArray(pg)) return pg as Article[]
-        const p = pg as { results?: unknown }
-        return Array.isArray(p?.results) ? (p.results as Article[]) : []
-    })
-    const mergedList: Article[] = useMemo(() => list, [list])
-
-    useEffect(() => {
-        const params = new URLSearchParams()
-        if (debouncedSearchTerm.trim()) params.set('q', debouncedSearchTerm.trim())
-        if (statusFilter === 'pending' && canEdit) params.set('status', 'pending')
-        if (categoryId) params.set('category', categoryId)
-        const qs = params.toString()
-        router.replace(qs ? `?${qs}` : '?', { scroll: false })
-    }, [debouncedSearchTerm, statusFilter, categoryId, router, canEdit])
-
-    useEffect(() => {
-        const q = searchParams.get('q') ?? ""
-        const cRaw = searchParams.get('category')
-        const c = cRaw || null
-        const status = searchParams.get('status') === 'pending' ? 'pending' : 'all'
-        if (q !== searchTerm) setSearchTerm(q)
-        if (canEdit && status !== statusFilter) setStatusFilter(status)
-        if (c !== categoryId) setCategoryId(c)
-        // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [searchParams])
-
-    useEffect(() => {
-        if (!canEdit && activeTab !== 'articles') setActiveTab('articles')
-        // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [canEdit])
-
-    if (isLoading || !me) {
-        return <div className="flex items-center justify-center h-full">Carregando...</div>
-    }
-
-    return (
-        <div className="h-full space-y-8">
-            <div className="flex flex-col md:flex-row md:items-end justify-between gap-8 bg-white/5 backdrop-blur-xl border border-white/10 p-8 rounded-[3rem] shadow-2xl relative overflow-hidden">
-                <div className="absolute top-0 right-0 p-12 opacity-5 rotate-12">
-                   <BookOpen className="h-40 w-40 text-primary" />
-                </div>
-                <div className="relative z-10 space-y-2">
-                    <h1 className="text-5xl font-black tracking-tighter flex items-center gap-6">
-                        <div className="h-16 w-16 rounded-3xl bg-primary/10 border border-primary/20 flex items-center justify-center shadow-lg shadow-primary/10">
-                            <BookOpen className="h-8 w-8 text-primary" />
-                        </div>
-                        Blog
-                    </h1>
-                    <p className="text-muted-foreground text-lg font-medium max-w-xl">Gestão editorial, base de conhecimento e comunicação estratégica do ecossistema Atlas.</p>
-                </div>
-                <div className="flex items-center gap-4 relative z-10">
-                    {canEdit ? (
-                        <Button
-                            variant="outline"
-                            asChild
-                            className="rounded-2xl border-white/10 bg-white/5 hover:bg-white/10 font-black uppercase tracking-widest h-14 px-8 shadow-lg"
-                        >
-                            <Link href="/dashboard/blog/new" className="flex items-center gap-3">
-                                <Plus className="h-5 w-5 text-primary" aria-hidden="true" />
-                                Novo Post
-                            </Link>
-                        </Button>
-                    ) : null}
-                </div>
-            </div>
-
-            <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as 'articles' | 'tags' | 'analytics' | 'moderation')} className="w-full">
-                <TabsList className="bg-white/5 p-1.5 rounded-2xl border border-white/5 backdrop-blur-md mb-8">
-                    <TabsTrigger value="articles" className="rounded-xl px-8 h-12 font-black uppercase tracking-widest text-[11px] data-[state=active]:bg-primary data-[state=active]:text-primary-foreground transition-all duration-300">Posts</TabsTrigger>
-                    {canEdit ? (
-                        <>
-                            <TabsTrigger value="tags" className="rounded-xl px-8 h-12 font-black uppercase tracking-widest text-[11px] data-[state=active]:bg-primary data-[state=active]:text-primary-foreground transition-all duration-300">Tags & Categorias</TabsTrigger>
-                            <TabsTrigger value="moderation" className="rounded-xl px-8 h-12 font-black uppercase tracking-widest text-[11px] data-[state=active]:bg-primary data-[state=active]:text-primary-foreground transition-all duration-300">Moderação</TabsTrigger>
-                            <TabsTrigger value="analytics" className="rounded-xl px-8 h-12 font-black uppercase tracking-widest text-[11px] data-[state=active]:bg-primary data-[state=active]:text-primary-foreground transition-all duration-300">Analytics</TabsTrigger>
-                        </>
-                    ) : null}
-                </TabsList>
-
-                <TabsContent value="articles" className="mt-6">
-                    <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3 sm:gap-4 mb-6">
-                        <div className="relative flex-1 group" role="search" aria-label="Pesquisar artigos">
-                            <Search className="absolute left-5 top-1/2 -translate-y-1/2 h-5 w-5 text-muted-foreground transition-all group-focus-within:text-primary group-focus-within:scale-110" aria-hidden="true" />
-                            <Input
-                                type="search"
-                                placeholder="Buscar no acervo de conhecimento..."
-                                className="pl-14 h-16 rounded-2xl bg-white/5 backdrop-blur-md border-white/10 focus-visible:ring-primary/20 text-lg font-medium"
-                                value={searchTerm}
-                                onChange={(e) => { setSearchTerm(e.target.value) }}
-                                aria-label="Buscar artigos"
-                            />
-                        </div>
-                        <div className="flex items-center gap-2">
-                            <button
-                                type="button"
-                                className={`h-10 px-3 rounded-full text-sm font-medium border ${statusFilter === 'all' ? 'bg-primary text-primary-foreground border-primary' : 'bg-background border-border'}`}
-                                onClick={() => { setStatusFilter('all') }}
-                            >
-                                Todos
-                            </button>
-                            {canEdit ? (
-                                <button
-                                    type="button"
-                                    className={`h-10 px-3 rounded-full text-sm font-medium border ${statusFilter === 'pending' ? 'bg-amber-500 text-white border-amber-500' : 'bg-background border-border'}`}
-                                    onClick={() => { setStatusFilter('pending') }}
-                                >
-                                    Pendente
-                                </button>
-                            ) : null}
-                        </div>
-                    </div>
-                    <div className="flex items-center gap-3 overflow-x-auto pb-4 mb-8 scrollbar-hide">
-                        <Button
-                            variant={categoryId === null ? 'default' : 'outline'}
-                            onClick={() => setCategoryId(null)}
-                            className={cn("h-10 px-6 rounded-full text-[11px] font-black uppercase tracking-widest transition-all", categoryId === null ? 'bg-primary text-primary-foreground shadow-lg shadow-primary/20' : 'bg-white/5 border-white/10 text-muted-foreground hover:text-foreground')}
-                            aria-label="Todas as categorias"
-                        >
-                            Todas as categorias
-                        </Button>
-                        {categories?.map((cat) => (
-                            <Button
-                                key={cat.id}
-                                variant={categoryId === cat.id ? 'default' : 'outline'}
-                                onClick={() => setCategoryId(cat.id)}
-                                className={cn("h-10 px-6 rounded-full text-[11px] font-black uppercase tracking-widest transition-all", categoryId === cat.id ? 'bg-primary text-primary-foreground shadow-lg shadow-primary/20' : 'bg-white/5 border-white/10 text-muted-foreground hover:text-foreground')}
-                                aria-label={`Filtrar por ${cat.name}`}
-                            >
-                                {cat.name}
-                            </Button>
-                        ))}
-                    </div>
-
-                    {error && (
-                        <div className="text-center py-12 border-2 border-destructive/20 rounded-3xl bg-destructive/5" role="alert" aria-live="assertive" aria-label="Erro ao carregar artigos">
-                            <p className="text-destructive font-medium">
-                                Erro ao carregar artigos. Tente novamente mais tarde.
-                            </p>
-                        </div>
-                    )}
-
-                    {isFetching && list.length === 0 && (
-                        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6" role="status" aria-live="polite" aria-label="Carregando artigos">
-                            {[...Array(6)].map((_, i) => (
-                                <div key={i} className="space-y-4">
-                                    <Skeleton className="aspect-video w-full rounded-2xl" />
-                                    <div className="space-y-2">
-                                        <Skeleton className="h-6 w-3/4" />
-                                        <Skeleton className="h-4 w-full" />
-                                        <Skeleton className="h-4 w-5/6" />
-                                    </div>
-                                </div>
-                            ))}
-                        </div>
-                    )}
-
-                    {!error && mergedList.length > 0 && (
-                        <div
-                            className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6"
-                            role="list"
-                            aria-label={`${mergedList.length} artigos encontrados`}
-                        >
-                            {mergedList.map((article: Article) => (
-                                <PublicArticleCard key={article.id} article={article} showStatusBadge={canEdit} useDashboardPreview />
-                            ))}
-                        </div>
-                    )}
-
-                    {!isFetching && !error && mergedList.length === 0 && (
-                        <div className="text-center py-16 sm:py-20 border-2 border-dashed rounded-3xl bg-muted/10">
-                            <div className="h-16 w-16 rounded-full bg-muted/30 mx-auto mb-4 flex items-center justify-center">
-                                <BookOpen className="h-8 w-8 text-muted-foreground/50" aria-hidden="true" />
-                            </div>
-                            <h3 className="text-lg font-semibold mb-2">Nenhum artigo encontrado</h3>
-                            <p className="text-muted-foreground max-w-md mx-auto">
-                                {searchTerm
-                                    ? `Não encontramos artigos com "${searchTerm}". Tente ajustar sua busca ou limpar o filtro.`
-                                    : "Nenhum artigo disponível no momento."}
-                            </p>
-                        </div>
-                    )}
-
-                    {!error && hasNextPage && (
-                        <div className="flex items-center justify-center mt-6">
-                            <button
-                                type="button"
-                                className="h-10 px-6 rounded-full border bg-background hover:bg-muted transition-colors disabled:opacity-50"
-                                onClick={() => {
-                                    if (hasNextPage) fetchNextPage()
-                                }}
-                                disabled={isFetchingNextPage}
-                                aria-label="Carregar mais artigos"
-                            >
-                                {isFetchingNextPage ? 'Carregando...' : 'Carregar mais'}
-                            </button>
-                        </div>
-                    )}
-                </TabsContent>
-
-                {canEdit ? (
-                    <TabsContent value="tags" className="mt-6">
-                        {activeTab === 'tags' && <TagList />}
-                    </TabsContent>
-                ) : null}
-
-                {canEdit ? (
-                    <TabsContent value="moderation" className="mt-6">
-                        {activeTab === 'moderation' && <ArticleModeration />}
-                    </TabsContent>
-                ) : null}
-
-                {canEdit ? (
-                    <TabsContent value="analytics" className="mt-6">
-                        {activeTab === 'analytics' && <ArticleAnalytics />}
-                    </TabsContent>
-                ) : null}
-            </Tabs>
-        </div>
-    )
+async function fetchArticles() {
+  const res = await fetch("/api/v1/blog/articles?page=1");
+  if (!res.ok) throw new Error("Erro ao carregar artigos");
+  return res.json();
 }
 
-export default function ArtigosPage() {
-    return (
-        <ModuleGuard moduleCode="articles">
-            <Suspense fallback={null}>
-                <ArtigosPageContent />
-            </Suspense>
-        </ModuleGuard>
-    )
+// ── Page ─────────────────────────────────────────────────────────────────────
+
+export default function ArticlesAdminPage() {
+  const [searchTerm, setSearchTerm] = useState("");
+  
+  const { data, isLoading, error } = useQuery({
+    queryKey: ["admin-articles"],
+    queryFn: fetchArticles,
+  });
+
+  const articles = (data?.results || []) as Article[];
+
+  return (
+    <div className="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-700">
+      {/* ── Header ── */}
+      <header className="flex flex-col md:flex-row md:items-center justify-between gap-6">
+        <div>
+          <div className="flex items-center gap-3 mb-2">
+            <span className="rv-badge rv-badge-purple">ADMINISTRAÇÃO</span>
+            <span className="rv-badge rv-badge-cyan">BLOG</span>
+          </div>
+          <h1 className="rv-display text-4xl text-white">Gestão de Conteúdo</h1>
+          <p className="text-[var(--rv-text-muted)] mt-1 text-sm max-w-xl">
+            Crie, edite e gerencie as notícias, patch notes e a lore de Ravenna.
+          </p>
+        </div>
+
+        <Link 
+          href="/dashboard/blog/novo" 
+          className="rv-btn rv-btn-primary px-8 h-12 text-sm flex-shrink-0"
+        >
+          <span className="text-lg mr-2">+</span> Novo Artigo
+        </Link>
+      </header>
+
+      {/* ── Filters & Search ── */}
+      <div className="rv-card p-4 flex flex-col sm:flex-row items-center gap-4">
+        <div className="relative flex-1 w-full">
+          <span className="absolute left-4 top-1/2 -translate-y-1/2 text-[var(--rv-text-dim)]">🔍</span>
+          <input 
+            type="text" 
+            placeholder="Buscar por título ou autor..."
+            className="w-full bg-[var(--rv-surface-2)] border border-[var(--rv-border)] rounded-xl pl-11 pr-4 h-11 text-sm text-white focus:border-[var(--rv-accent)] outline-none transition-all"
+            value={searchTerm}
+            onChange={(e) => setSearchTerm(e.target.value)}
+          />
+        </div>
+        <div className="flex gap-2 w-full sm:w-auto">
+          <select className="bg-[var(--rv-surface-2)] border border-[var(--rv-border)] rounded-xl px-4 h-11 text-xs text-[var(--rv-text-dim)] outline-none focus:border-[var(--rv-accent)] cursor-pointer">
+            <option>Todas Categorias</option>
+            <option>Patch Notes</option>
+            <option>Lore</option>
+          </select>
+          <select className="bg-[var(--rv-surface-2)] border border-[var(--rv-border)] rounded-xl px-4 h-11 text-xs text-[var(--rv-text-dim)] outline-none focus:border-[var(--rv-accent)] cursor-pointer">
+            <option>Todos Status</option>
+            <option>Publicado</option>
+            <option>Rascunho</option>
+          </select>
+        </div>
+      </div>
+
+      {/* ── Articles Table/Grid ── */}
+      <div className="rv-card overflow-hidden">
+        <div className="overflow-x-auto">
+          <table className="w-full text-left border-collapse">
+            <thead>
+              <tr className="bg-white/[0.02] border-b border-[var(--rv-border)]">
+                <th className="px-6 py-4 rv-label text-[10px] text-[var(--rv-text-dim)] tracking-widest">ARTIGO</th>
+                <th className="px-6 py-4 rv-label text-[10px] text-[var(--rv-text-dim)] tracking-widest">CATEGORIA</th>
+                <th className="px-6 py-4 rv-label text-[10px] text-[var(--rv-text-dim)] tracking-widest">STATUS</th>
+                <th className="px-6 py-4 rv-label text-[10px] text-[var(--rv-text-dim)] tracking-widest">DATA</th>
+                <th className="px-6 py-4 rv-label text-[10px] text-[var(--rv-text-dim)] tracking-widest text-right">AÇÕES</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-[var(--rv-border)]">
+              {isLoading ? (
+                <tr>
+                  <td colSpan={5} className="px-6 py-20 text-center">
+                    <div className="flex flex-col items-center gap-4">
+                      <div className="h-8 w-8 rounded-full border-2 border-[var(--rv-accent)] border-t-transparent animate-spin" />
+                      <span className="rv-label text-[10px] text-[var(--rv-text-dim)] tracking-widest">CARREGANDO ARQUIVOS...</span>
+                    </div>
+                  </td>
+                </tr>
+              ) : articles.length === 0 ? (
+                <tr>
+                  <td colSpan={5} className="px-6 py-20 text-center">
+                    <p className="text-[var(--rv-text-dim)] text-sm">Nenhum artigo encontrado.</p>
+                  </td>
+                </tr>
+              ) : (
+                articles.map((art) => (
+                  <tr key={art.id} className="group hover:bg-white/[0.01] transition-colors">
+                    <td className="px-6 py-5">
+                      <div className="flex flex-col">
+                        <span className="text-white font-medium text-sm group-hover:text-[var(--rv-accent)] transition-colors line-clamp-1">
+                          {art.title}
+                        </span>
+                        <span className="text-[10px] text-[var(--rv-text-dim)] mt-0.5">por {art.author_name}</span>
+                      </div>
+                    </td>
+                    <td className="px-6 py-5">
+                      <span className="rv-label text-[9px] px-2 py-1 rounded-md bg-[var(--rv-surface-2)] border border-[var(--rv-border)] text-[var(--rv-text-muted)]">
+                        {art.category_name}
+                      </span>
+                    </td>
+                    <td className="px-6 py-5">
+                      <span className={`rv-badge text-[9px] ${
+                        art.status === 'published' ? 'rv-badge-cyan' : 
+                        art.status === 'draft' ? 'rv-badge-purple' : 'rv-badge-red'
+                      }`}>
+                        {art.status.toUpperCase()}
+                      </span>
+                    </td>
+                    <td className="px-6 py-5">
+                      <span className="text-[11px] text-[var(--rv-text-dim)]">
+                        {format(new Error(art.created_at), "dd MMM, yyyy", { locale: ptBR })}
+                      </span>
+                    </td>
+                    <td className="px-6 py-5 text-right">
+                      <div className="flex justify-end gap-2">
+                        <button className="h-8 w-8 rounded-lg bg-[var(--rv-surface-2)] border border-[var(--rv-border)] flex items-center justify-center text-[var(--rv-text-dim)] hover:text-white hover:border-[var(--rv-accent)] transition-all">
+                          ✏️
+                        </button>
+                        <button className="h-8 w-8 rounded-lg bg-red-500/5 border border-red-500/20 flex items-center justify-center text-red-500/50 hover:text-red-500 hover:bg-red-500/10 transition-all">
+                          🗑️
+                        </button>
+                      </div>
+                    </td>
+                  </tr>
+                ))
+              )}
+            </tbody>
+          </table>
+        </div>
+        
+        {/* ── Pagination Footer ── */}
+        <div className="px-6 py-4 bg-white/[0.02] border-t border-[var(--rv-border)] flex items-center justify-between">
+          <span className="rv-label text-[10px] text-[var(--rv-text-dim)]">
+            MOSTRANDO {articles.length} DE {data?.count || 0} ARTIGOS
+          </span>
+          <div className="flex gap-1">
+            <button className="h-8 px-3 rounded-lg border border-[var(--rv-border)] text-[var(--rv-text-dim)] text-[10px] rv-label hover:bg-white/5 transition-all">ANTERIOR</button>
+            <button className="h-8 px-3 rounded-lg border border-[var(--rv-accent)] bg-[var(--rv-accent)]/10 text-[var(--rv-accent)] text-[10px] rv-label">1</button>
+            <button className="h-8 px-3 rounded-lg border border-[var(--rv-border)] text-[var(--rv-text-dim)] text-[10px] rv-label hover:bg-white/5 transition-all">PRÓXIMO</button>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
 }

@@ -63,13 +63,19 @@ export default function RootLayout({
       <head>
         <link rel="alternate" type="application/rss+xml" title="Ravenna — Blog" href="/rss.xml" />
       </head>
-      <body className="min-h-full flex flex-col bg-[var(--rv-dark)] text-[var(--rv-text-primary)] antialiased">
+      <body className="min-h-full flex flex-col bg-[var(--rv-dark)] text-[var(--rv-text-primary)] antialiased relative">
+        {/* Global Ambient Background */}
+        <div className="pointer-events-none fixed inset-0 overflow-hidden z-0">
+          <div className="rv-orb rv-animate-pulse-glow" style={{ width: "800px", height: "800px", top: "-10%", right: "-10%", background: "var(--rv-accent)", opacity: 0.12 }} />
+          <div className="rv-orb" style={{ width: "600px", height: "600px", bottom: "-10%", left: "-10%", background: "var(--rv-purple)", opacity: 0.08 }} />
+        </div>
+
         <ThemeProvider>
           <AuthProvider>
             <QueryProvider>
               <ToastProvider>
                 <AppHeader />
-                <main className="flex-1 pt-20">
+                <main className="relative z-10 flex-1 pt-20">
                   <ErrorBoundary>{children}</ErrorBoundary>
                 </main>
                 <UiToaster />

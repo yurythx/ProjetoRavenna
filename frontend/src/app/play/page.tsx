@@ -1,42 +1,11 @@
 /**
  * @module PlayPage (/play)
  *
- * Página principal do jogo — centro de todas as interações do jogador.
- * Gerencia o ciclo completo: verificação de personagem, criação no onboarding,
- * e painel de jogo com abas para Stats, Inventário, Habilidades, Missões e Grupo.
- *
- * ## Responsabilidade
- * - Verificar se o jogador possui personagem criado; se não, exibir formulário de criação.
- * - Carregar dados do jogador via `GET /api/game/player` (stats + inventory + skills).
- * - Exibir painel de abas com os componentes de cada seção do jogo.
- * - Gerenciar alocação de pontos em lote: acumula pendentes localmente, confirma
- *   via `POST /api/game/stats/allocate` ao clicar em "Confirmar".
- *
- * ## Componentes Integrados
- * - `InventoryPanel` — grade de itens com equip/unequip interativo
- * - `SkillBar` — listagem de habilidades com upgrade
- * - `QuestTracker` — missões ativas com progresso de objetivos
- * - `PartyPanel` — gerenciamento de grupo (criar, convidar, sair)
- * - `CharacterPanel` — painel de stats e atributos com botões de alocação
- *
- * ## Fluxo de Criação de Personagem
- * 1. Ao montar, faz `GET /api/game/player`.
- * 2. Se 404, exibe formulário com seleção de Classe, Raça, Facção e Nome.
- * 3. Ao confirmar, faz `POST /api/game/character/create` e redireciona ao jogo.
- *
- * ## Fluxo de Alocação de Pontos
- * 1. Cada clique em `+` incrementa o pendente local (sem chamar API).
- * 2. Ao clicar "Confirmar Alocação", envia todos os pendentes de uma vez.
- * 3. O cache `["player-data"]` é invalidado para refletir os novos stats.
- *
- * ## Dependências
- * - React Query: `useQuery`, `useQueryClient`
- * - `useAuth` — token e dados do usuário autenticado
- * - Rotas API: `/api/game/player`, `/api/game/character/create`, `/api/game/stats/allocate`
+ * Página principal do jogo — agora com suporte total a múltiplos personagens.
  */
 "use client";
 
-import { useState, useCallback } from "react";
+import { useState, useCallback, useEffect } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
@@ -48,6 +17,15 @@ import { PartyPanel }     from "@/features/game/components/PartyPanel";
 import { QuestTracker }   from "@/features/game/components/QuestTracker";
 
 // ── Types ────────────────────────────────────────────────────────────────────
+
+type Character = {
+  id: string;
+  name: string;
+  character_class: string;
+  race: string;
+  faction: string;
+  created_at: string;
+};
 
 type Stats = {
   level: number;
@@ -61,9 +39,6 @@ type Stats = {
   intelligence: number;
   vitality: number;
   points_remaining: number;
-  faction: string;
-  character_class: string;
-  race: string;
 };
 
 type PlayData = { stats: Stats; skills: PlayerSkill[]; inventory: PlayerInventory };
@@ -93,11 +68,17 @@ const FACTION_OPTIONS = [
   { value: "legiao",    label: "Legião do Eclipse",     icon: "🌑",  color: "#8b5cf6", desc: "A força das sombras que reivindica o poder." },
 ] as const;
 
-// ── Data fetch ───────────────────────────────────────────────────────────────
+// ── Data fetches ─────────────────────────────────────────────────────────────
 
-async function fetchPlayData(): Promise<PlayData> {
-  const res = await fetch("/api/game/player", { cache: "no-store" });
-  if (!res.ok) throw new Error(String(res.status));
+async function fetchCharacters(): Promise<Character[]> {
+  const res = await fetch("/api/game/characters", { cache: "no-store" });
+  if (!res.ok) throw new Error("Erro ao carregar heróis");
+  return res.json();
+}
+
+async function fetchPlayData(characterId: string): Promise<PlayData> {
+  const res = await fetch(`/api/game/player?character_id=${characterId}`, { cache: "no-store" });
+  if (!res.ok) throw new Error("Erro ao carregar dados do herói");
   return res.json();
 }
 
@@ -171,13 +152,14 @@ const TABS: { id: Tab; label: string }[] = [
 
 type AllocAttrs = { strength: number; agility: number; intelligence: number; vitality: number };
 
-function CharacterPanel({ data, heroName, userId, onLaunch, launching, onRefresh }: {
+function CharacterPanel({ data, char, userId, onLaunch, launching, onRefresh, onBack }: {
   data: PlayData;
-  heroName: string;
+  char: Character;
   userId: string;
   onLaunch: () => void;
   launching: boolean;
   onRefresh: () => void;
+  onBack: () => void;
 }) {
   const { stats, skills, inventory } = data;
   const [tab, setTab] = useState<Tab>("stats");
@@ -204,7 +186,7 @@ function CharacterPanel({ data, heroName, userId, onLaunch, launching, onRefresh
     const res = await fetch("/api/game/stats/allocate", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(pending),
+      body: JSON.stringify({ ...pending, character_id: char.id }),
     });
     if (!res.ok) {
       const body = await res.json().catch(() => ({})) as { error?: string };
@@ -216,15 +198,22 @@ function CharacterPanel({ data, heroName, userId, onLaunch, launching, onRefresh
     setAllocating(false);
   }
 
-  const cls     = CLASS_OPTIONS.find(c => c.value === stats.character_class);
-  const race    = RACE_OPTIONS.find(r => r.value === stats.race);
-  const faction = FACTION_OPTIONS.find(f => f.value === stats.faction);
+  const cls     = CLASS_OPTIONS.find(c => c.value === char.character_class);
+  const race    = RACE_OPTIONS.find(r => r.value === char.race);
+  const faction = FACTION_OPTIONS.find(f => f.value === char.faction);
 
   return (
     <div className="space-y-6">
       {/* ── Hero header ── */}
       <div className="rv-card p-6">
         <div className="flex flex-col sm:flex-row items-start sm:items-center gap-5">
+          <button 
+            onClick={onBack}
+            className="h-10 w-10 flex items-center justify-center rounded-xl bg-[var(--rv-surface-2)] border border-[var(--rv-border)] text-[var(--rv-text-dim)] hover:text-white transition-all"
+          >
+            ←
+          </button>
+          
           <div
             className="relative h-16 w-16 flex-shrink-0 rounded-2xl flex items-center justify-center text-3xl border"
             style={{ background: `${cls?.color ?? "#8b5cf6"}18`, borderColor: `${cls?.color ?? "var(--rv-border)"}55` }}
@@ -234,7 +223,7 @@ function CharacterPanel({ data, heroName, userId, onLaunch, launching, onRefresh
 
           <div className="flex-1 min-w-0">
             <div className="flex flex-wrap items-center gap-2 mb-1">
-              <h2 className="rv-display text-2xl text-white">{heroName}</h2>
+              <h2 className="rv-display text-2xl text-white">{char.name}</h2>
               <span className="rv-badge rv-badge-purple text-[10px]">Lv. {stats.level}</span>
             </div>
             <div className="flex flex-wrap gap-2 mt-2">
@@ -297,7 +286,6 @@ function CharacterPanel({ data, heroName, userId, onLaunch, launching, onRefresh
             <StatBar label="HP"   cur={stats.health} max={stats.max_health} color="#ef4444" />
             <StatBar label="MANA" cur={stats.mana}   max={stats.max_mana}   color="#8b5cf6" />
 
-            {/* Attribute grid — interactive when points available */}
             <div className="grid grid-cols-2 gap-3 pt-1">
               <AttrItem label="FOR" value={stats.strength}     color="#f59e0b" pending={pending.strength}     onAdd={() => inc("strength")}     onSub={() => dec("strength")}     hasPoints={remainingAfter > 0} />
               <AttrItem label="AGI" value={stats.agility}      color="#10b981" pending={pending.agility}      onAdd={() => inc("agility")}      onSub={() => dec("agility")}      hasPoints={remainingAfter > 0} />
@@ -305,7 +293,6 @@ function CharacterPanel({ data, heroName, userId, onLaunch, launching, onRefresh
               <AttrItem label="VIT" value={stats.vitality}     color="#ef4444" pending={pending.vitality}     onAdd={() => inc("vitality")}     onSub={() => dec("vitality")}     hasPoints={remainingAfter > 0} />
             </div>
 
-            {/* Allocation banner */}
             {stats.points_remaining > 0 && (
               <div className="rounded-xl border border-[var(--rv-accent)]/30 bg-[var(--rv-accent)]/5 p-3 space-y-3">
                 <div className="flex items-center justify-between">
@@ -340,20 +327,6 @@ function CharacterPanel({ data, heroName, userId, onLaunch, launching, onRefresh
                 )}
               </div>
             )}
-
-            {/* XP bar */}
-            <div className="pt-1">
-              <div className="flex justify-between mb-1">
-                <span className="rv-label text-[9px] text-[var(--rv-text-dim)] tracking-[0.25em]">XP</span>
-                <span className="rv-label text-[9px] text-[var(--rv-text-muted)]">{stats.experience.toLocaleString("pt-BR")}</span>
-              </div>
-              <div className="h-1.5 rounded-full bg-[var(--rv-surface-2)] overflow-hidden">
-                <div
-                  className="h-full rounded-full bg-gradient-to-r from-[var(--rv-accent)] to-[var(--rv-cyan)]"
-                  style={{ width: `${Math.min(100, Math.round((stats.experience / Math.max(1, stats.level * 1000)) * 100))}%` }}
-                />
-              </div>
-            </div>
           </div>
         )}
 
@@ -377,29 +350,51 @@ function CharacterPanel({ data, heroName, userId, onLaunch, launching, onRefresh
   );
 }
 
-function CharacterCreateForm({ onCreated }: { onCreated: () => void }) {
-  const [cls,     setCls]     = useState("");
-  const [race,    setRace]    = useState("");
+function CharacterCreateForm({ onCreated, onCancel }: { onCreated: () => void; onCancel: () => void }) {
+  const [name,    setName]    = useState("");
   const [faction, setFaction] = useState("");
+  const [race,    setRace]    = useState("");
+  const [cls,     setCls]     = useState("");
   const [error,   setError]   = useState("");
   const [loading, setLoading] = useState(false);
+
+  // ── Rules Mapping (Sync with Backend) ──
+  const RULES = {
+    vanguarda: {
+      races: ["humano", "elfo"],
+      classes: ["paladino", "mage", "archer", "eldari"]
+    },
+    legiao: {
+      races: ["draconato", "morto_vivo"],
+      classes: ["cavaleiro_dragao", "ignis", "shadow", "necromante"]
+    }
+  };
 
   const selectedCls     = CLASS_OPTIONS.find(c => c.value === cls);
   const selectedRace    = RACE_OPTIONS.find(r => r.value === race);
   const selectedFaction = FACTION_OPTIONS.find(f => f.value === faction);
-  const canSubmit       = !!cls && !!race && !!faction && !loading;
+
+  const availableRaces   = faction ? RACE_OPTIONS.filter(r => (RULES[faction as keyof typeof RULES].races as string[]).includes(r.value)) : [];
+  const availableClasses = faction ? CLASS_OPTIONS.filter(c => (RULES[faction as keyof typeof RULES].classes as string[]).includes(c.value)) : [];
+
+  const canSubmit = name.length >= 3 && !!faction && !!race && !!cls && !loading;
+
+  const handleFactionSelect = (f: string) => {
+    setFaction(f);
+    setRace(""); // Reset downstream choices
+    setCls("");
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError("");
     setLoading(true);
     try {
-      const res = await fetch("/api/game/character/create", {
+      const res = await fetch("/api/game/characters", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ character_class: cls, race, faction }),
+        body: JSON.stringify({ name, character_class: cls, race, faction }),
       });
-      if (res.status === 409) { setError("Este personagem já foi criado."); return; }
       if (!res.ok) {
         const body = await res.json().catch(() => ({})) as { error?: string };
         setError(body?.error ?? "Erro ao criar personagem.");
@@ -416,86 +411,46 @@ function CharacterCreateForm({ onCreated }: { onCreated: () => void }) {
   return (
     <div className="max-w-2xl mx-auto">
       <div className="rv-card p-8">
-        <div className="text-center mb-10">
-          <span className="rv-badge rv-badge-purple mb-4 inline-flex">✦ Criação de Personagem</span>
-          <h2 className="rv-display text-3xl text-white mt-2">Escolha sua Identidade</h2>
-          <p className="text-[var(--rv-text-muted)] mt-2 text-sm" style={{ fontFamily: "var(--font-body)" }}>
-            Escolha permanente — define seus atributos iniciais e habilidades de partida.
-          </p>
+        <div className="flex justify-between items-start mb-10">
+          <div className="text-left">
+            <span className="rv-badge rv-badge-purple mb-4 inline-flex">✦ Novo Herói</span>
+            <h2 className="rv-display text-3xl text-white mt-2">Escolha sua Identidade</h2>
+          </div>
+          <button 
+            onClick={onCancel}
+            className="h-10 px-4 rounded-xl border border-[var(--rv-border)] text-[var(--rv-text-dim)] hover:text-white text-xs rv-label transition-all"
+          >
+            CANCELAR
+          </button>
         </div>
 
         <form onSubmit={handleSubmit} className="space-y-10">
-          {/* Classe */}
           <section>
-            <span className="rv-label text-[10px] text-[var(--rv-text-dim)] tracking-[0.3em] block mb-3">CLASSE</span>
-            <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
-              {CLASS_OPTIONS.map((c) => (
-                <button
-                  key={c.value}
-                  type="button"
-                  onClick={() => setCls(c.value)}
-                  className="rounded-xl border transition-all p-3 text-center hover:scale-[1.02]"
-                  style={{
-                    background:  cls === c.value ? `${c.color}18` : "var(--rv-surface-2)",
-                    borderColor: cls === c.value ? c.color         : "var(--rv-border)",
-                    boxShadow:   cls === c.value ? `0 0 12px ${c.color}30` : "none",
-                  }}
-                >
-                  <div className="text-2xl mb-1">{c.icon}</div>
-                  <div className="rv-label text-[9px] text-[var(--rv-text-primary)] block">{c.label}</div>
-                  <div className="rv-label text-[8px] text-[var(--rv-text-dim)] mt-0.5 block">{c.role}</div>
-                </button>
-              ))}
-            </div>
-            {selectedCls && (
-              <p className="mt-2 text-xs text-[var(--rv-text-muted)] px-1" style={{ fontFamily: "var(--font-body)" }}>
-                {selectedCls.desc}
-              </p>
-            )}
+            <span className="rv-label text-[10px] text-[var(--rv-text-dim)] tracking-[0.3em] block mb-3">NOME DO PERSONAGEM</span>
+            <input 
+              type="text"
+              value={name}
+              onChange={(e) => setName(e.target.value)}
+              placeholder="Digite o nome..."
+              className="w-full bg-[var(--rv-surface-2)] border border-[var(--rv-border)] rounded-xl px-4 h-12 text-white rv-display text-lg focus:border-[var(--rv-accent)] outline-none transition-all"
+              maxLength={32}
+            />
           </section>
 
-          {/* Raça */}
+          {/* 1. Facção (Mandatória primeiro) */}
           <section>
-            <span className="rv-label text-[10px] text-[var(--rv-text-dim)] tracking-[0.3em] block mb-3">RAÇA</span>
-            <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
-              {RACE_OPTIONS.map((r) => (
-                <button
-                  key={r.value}
-                  type="button"
-                  onClick={() => setRace(r.value)}
-                  className="rounded-xl border transition-all p-3 text-center hover:scale-[1.02]"
-                  style={{
-                    background:  race === r.value ? "rgba(139,92,246,0.12)" : "var(--rv-surface-2)",
-                    borderColor: race === r.value ? "var(--rv-accent)"       : "var(--rv-border)",
-                    boxShadow:   race === r.value ? "0 0 10px rgba(139,92,246,0.25)" : "none",
-                  }}
-                >
-                  <div className="text-2xl mb-1">{r.icon}</div>
-                  <div className="rv-label text-[9px] text-[var(--rv-text-primary)] block">{r.label}</div>
-                </button>
-              ))}
-            </div>
-            {selectedRace && (
-              <p className="mt-2 text-xs text-[var(--rv-text-muted)] px-1" style={{ fontFamily: "var(--font-body)" }}>
-                {selectedRace.desc}
-              </p>
-            )}
-          </section>
-
-          {/* Facção */}
-          <section>
-            <span className="rv-label text-[10px] text-[var(--rv-text-dim)] tracking-[0.3em] block mb-3">FACÇÃO</span>
+            <span className="rv-label text-[10px] text-[var(--rv-text-dim)] tracking-[0.3em] block mb-3">PASSO 1: ESCOLHA SUA FACÇÃO</span>
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
               {FACTION_OPTIONS.map((f) => (
                 <button
                   key={f.value}
                   type="button"
-                  onClick={() => setFaction(f.value)}
+                  onClick={() => handleFactionSelect(f.value)}
                   className="rounded-xl border transition-all p-4 text-left hover:scale-[1.01]"
                   style={{
                     background:  faction === f.value ? `${f.color}15` : "var(--rv-surface-2)",
                     borderColor: faction === f.value ? f.color         : "var(--rv-border)",
-                    boxShadow:   faction === f.value ? `0 0 14px ${f.color}30` : "none",
+                    boxShadow:   faction === f.value ? `0 0 20px ${f.color}25` : "none"
                   }}
                 >
                   <div className="flex items-center gap-3 mb-2">
@@ -504,23 +459,72 @@ function CharacterCreateForm({ onCreated }: { onCreated: () => void }) {
                       {f.label}
                     </span>
                   </div>
-                  <p className="text-xs text-[var(--rv-text-dim)]" style={{ fontFamily: "var(--font-body)" }}>{f.desc}</p>
+                  <p className="text-[10px] text-[var(--rv-text-dim)] leading-snug" style={{ fontFamily: "var(--font-body)" }}>{f.desc}</p>
                 </button>
               ))}
             </div>
           </section>
 
-          {cls && race && faction && selectedCls && selectedRace && selectedFaction && (
-            <div className="rounded-xl border border-[var(--rv-border)] bg-[var(--rv-surface-2)] p-4 flex flex-wrap gap-2 items-center">
-              <span className="rv-label text-[9px] text-[var(--rv-text-dim)] tracking-[0.3em] mr-1">RESUMO</span>
-              <span className="rv-label text-[9px] px-2 py-1 rounded-full" style={{ background: `${selectedCls.color}1a`, color: selectedCls.color, border: `1px solid ${selectedCls.color}44` }}>
-                {selectedCls.icon} {selectedCls.label}
+          {/* 2. Raça (Dependente da Facção) */}
+          {faction && (
+            <section className="animate-in fade-in slide-in-from-top-2 duration-500">
+              <span className="rv-label text-[10px] text-[var(--rv-text-dim)] tracking-[0.3em] block mb-3">PASSO 2: ESCOLHA SUA RAÇA</span>
+              <div className="grid grid-cols-2 gap-2">
+                {availableRaces.map((r) => (
+                  <button
+                    key={r.value}
+                    type="button"
+                    onClick={() => setRace(r.value)}
+                    className="rounded-xl border transition-all p-3 text-center hover:scale-[1.02]"
+                    style={{
+                      background:  race === r.value ? "rgba(139,92,246,0.12)" : "var(--rv-surface-2)",
+                      borderColor: race === r.value ? "var(--rv-accent)"       : "var(--rv-border)",
+                    }}
+                  >
+                    <div className="text-2xl mb-1">{r.icon}</div>
+                    <div className="rv-label text-[9px] text-[var(--rv-text-primary)] block">{r.label}</div>
+                  </button>
+                ))}
+              </div>
+            </section>
+          )}
+
+          {/* 3. Classe (Dependente da Facção) */}
+          {race && (
+            <section className="animate-in fade-in slide-in-from-top-2 duration-500">
+              <span className="rv-label text-[10px] text-[var(--rv-text-dim)] tracking-[0.3em] block mb-3">PASSO 3: ESCOLHA SUA CLASSE</span>
+              <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+                {availableClasses.map((c) => (
+                  <button
+                    key={c.value}
+                    type="button"
+                    onClick={() => setCls(c.value)}
+                    className="rounded-xl border transition-all p-3 text-center hover:scale-[1.02]"
+                    style={{
+                      background:  cls === c.value ? `${c.color}18` : "var(--rv-surface-2)",
+                      borderColor: cls === c.value ? c.color         : "var(--rv-border)",
+                    }}
+                  >
+                    <div className="text-2xl mb-1">{c.icon}</div>
+                    <div className="rv-label text-[9px] text-[var(--rv-text-primary)] block">{c.label}</div>
+                  </button>
+                ))}
+              </div>
+            </section>
+          )}
+
+          {canSubmit && selectedFaction && selectedRace && selectedCls && (
+            <div className="rounded-xl border border-[var(--rv-border)] bg-[var(--rv-accent)]/5 p-4 flex flex-wrap gap-2 items-center justify-center">
+              <span className="rv-label text-[9px] text-[var(--rv-text-dim)] tracking-[0.3em] mr-1">RESUMO DO HERÓI</span>
+              <span className="rv-badge rv-badge-purple">{name}</span>
+              <span className="rv-label text-[9px] px-2 py-1 rounded-full" style={{ background: `${selectedFaction.color}1a`, color: selectedFaction.color, border: `1px solid ${selectedFaction.color}44` }}>
+                {selectedFaction.icon} {selectedFaction.label}
               </span>
               <span className="rv-label text-[9px] px-2 py-1 rounded-full bg-[var(--rv-surface)] border border-[var(--rv-border)] text-[var(--rv-text-muted)]">
                 {selectedRace.icon} {selectedRace.label}
               </span>
-              <span className="rv-label text-[9px] px-2 py-1 rounded-full" style={{ background: `${selectedFaction.color}1a`, color: selectedFaction.color, border: `1px solid ${selectedFaction.color}44` }}>
-                {selectedFaction.icon} {selectedFaction.label}
+              <span className="rv-label text-[9px] px-2 py-1 rounded-full" style={{ background: `${selectedCls.color}1a`, color: selectedCls.color, border: `1px solid ${selectedCls.color}44` }}>
+                {selectedCls.icon} {selectedCls.label}
               </span>
             </div>
           )}
@@ -537,7 +541,7 @@ function CharacterCreateForm({ onCreated }: { onCreated: () => void }) {
             {loading ? (
               <span className="flex items-center justify-center gap-2">
                 <span className="h-4 w-4 rounded-full border-t-2 border-white animate-spin" />
-                Criando...
+                Forjando Herói...
               </span>
             ) : "✦ Confirmar Criação"}
           </button>
@@ -547,41 +551,111 @@ function CharacterCreateForm({ onCreated }: { onCreated: () => void }) {
   );
 }
 
-// ── Page ─────────────────────────────────────────────────────────────────────
+function CharacterList({ chars, onSelect, onCreate, onDelete }: { 
+  chars: Character[]; 
+  onSelect: (c: Character) => void;
+  onCreate: () => void;
+  onDelete: (id: string) => void;
+}) {
+  return (
+    <div className="space-y-6">
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+        {chars.map((char) => {
+          const cls = CLASS_OPTIONS.find(c => c.value === char.character_class);
+          const faction = FACTION_OPTIONS.find(f => f.value === char.faction);
+          return (
+            <div key={char.id} className="rv-card group hover:border-[var(--rv-accent)]/50 transition-all cursor-pointer overflow-hidden relative">
+              <div className="p-5 flex items-center gap-4" onClick={() => onSelect(char)}>
+                <div 
+                  className="h-14 w-14 rounded-xl flex items-center justify-center text-3xl border border-white/5 bg-white/5"
+                  style={{ borderColor: cls ? `${cls.color}33` : undefined }}
+                >
+                  {cls?.icon ?? "⚔"}
+                </div>
+                <div className="flex-1">
+                  <h3 className="rv-display text-xl text-white">{char.name}</h3>
+                  <div className="flex gap-2 mt-1">
+                    <span className="text-[9px] rv-label text-[var(--rv-text-dim)] tracking-wider">
+                      {cls?.label} · {char.race}
+                    </span>
+                  </div>
+                </div>
+              </div>
+              <div className="absolute top-3 right-3 opacity-0 group-hover:opacity-100 transition-opacity">
+                <button 
+                  onClick={(e) => { e.stopPropagation(); onDelete(char.id); }}
+                  className="h-8 w-8 rounded-lg bg-red-500/10 border border-red-500/20 text-red-500 hover:bg-red-500 hover:text-white transition-all text-xs flex items-center justify-center"
+                >
+                  ✕
+                </button>
+              </div>
+              <div className="h-1 w-full bg-[var(--rv-surface-2)]">
+                <div className="h-full bg-gradient-to-r" style={{ width: "30%", from: cls?.color, to: faction?.color }} />
+              </div>
+            </div>
+          );
+        })}
+        
+        <button 
+          onClick={onCreate}
+          className="rv-card border-dashed border-2 border-[var(--rv-border)] hover:border-[var(--rv-accent)]/50 hover:bg-[var(--rv-accent)]/5 transition-all p-5 flex flex-col items-center justify-center gap-3 text-[var(--rv-text-dim)] hover:text-[var(--rv-accent)]"
+        >
+          <span className="text-3xl">+</span>
+          <span className="rv-label text-[10px] tracking-widest">NOVO HERÓI</span>
+        </button>
+      </div>
+    </div>
+  );
+}
+
+// ── Main Page ────────────────────────────────────────────────────────────────
 
 export default function PlayPage() {
   const { user, isLoading: authLoading } = useAuth();
   const queryClient = useQueryClient();
   const router = useRouter();
+  const [selectedChar, setSelectedChar] = useState<Character | null>(null);
+  const [isCreating, setIsCreating] = useState(false);
   const [launching, setLaunching] = useState(false);
 
-  const { data, isLoading, error, refetch } = useQuery({
-    queryKey: ["play-data"],
-    queryFn: fetchPlayData,
+  // 1. Fetch character list
+  const { data: chars, isLoading: charsLoading, refetch: refetchChars } = useQuery({
+    queryKey: ["characters"],
+    queryFn: fetchCharacters,
     enabled: !!user,
+  });
+
+  // 2. Fetch specific play data when selected
+  const { data: playData, isLoading: dataLoading, refetch: refetchData } = useQuery({
+    queryKey: ["play-data", selectedChar?.id],
+    queryFn: () => fetchPlayData(selectedChar!.id),
+    enabled: !!selectedChar,
     retry: false,
   });
 
   const handleLaunch = useCallback(() => {
     setLaunching(true);
     const clientId = crypto.randomUUID();
-    router.push(`/auth/unity-callback?client_id=${clientId}`);
-  }, [router]);
+    router.push(`/auth/unity-callback?client_id=${clientId}&char_id=${selectedChar?.id}`);
+  }, [router, selectedChar]);
 
-  const handleRefresh = useCallback(() => {
-    queryClient.invalidateQueries({ queryKey: ["play-data"] });
-  }, [queryClient]);
+  const handleDelete = async (id: string) => {
+    if (!confirm("Tem certeza que deseja apagar este herói? Esta ação é permanente.")) return;
+    const res = await fetch(`/api/game/characters/${id}`, { method: "DELETE" });
+    if (res.ok) {
+      if (selectedChar?.id === id) setSelectedChar(null);
+      refetchChars();
+    }
+  };
 
-  if (authLoading || (!!user && isLoading)) {
+  if (authLoading || charsLoading) {
     return (
       <div className="flex min-h-[calc(100dvh-5rem)] items-center justify-center">
         <div className="flex flex-col items-center gap-6">
-          <div className="relative h-16 w-16">
-            <div className="absolute inset-0 rounded-full border-2 border-[var(--rv-accent)] opacity-20" />
-            <div className="absolute inset-0 rounded-full border-t-2 border-[var(--rv-accent)] animate-spin" />
-            <div className="absolute inset-3 rounded-full bg-[var(--rv-accent)]/10" />
+          <div className="relative h-16 w-16 animate-spin">
+            <div className="absolute inset-0 rounded-full border-t-2 border-[var(--rv-accent)]" />
           </div>
-          <span className="rv-label text-[10px] text-[var(--rv-text-dim)] tracking-[0.4em]">Carregando Herói...</span>
+          <span className="rv-label text-[10px] text-[var(--rv-text-dim)] tracking-[0.4em]">CARREGANDO...</span>
         </div>
       </div>
     );
@@ -590,84 +664,52 @@ export default function PlayPage() {
   if (!user) {
     return (
       <div className="flex min-h-[calc(100dvh-5rem)] flex-col items-center justify-center gap-6 px-4 text-center">
-        <div className="rv-badge rv-badge-red inline-flex">⚠ Acesso Negado</div>
         <h1 className="rv-display text-4xl text-white">Entre para Jogar</h1>
-        <p className="text-[var(--rv-text-muted)] max-w-sm" style={{ fontFamily: "var(--font-body)" }}>
-          Você precisa estar logado para acessar o Portal do Herói.
-        </p>
-        <Link href={`/login?next=${encodeURIComponent("/play")}`} className="rv-btn rv-btn-primary px-10 h-12">
-          <span>⚡</span> Entrar no Portal
-        </Link>
+        <Link href={`/login?next=${encodeURIComponent("/play")}`} className="rv-btn rv-btn-primary px-10 h-12">Entrar</Link>
       </div>
     );
   }
-
-  if (error) {
-    return (
-      <div className="flex min-h-[calc(100dvh-5rem)] flex-col items-center justify-center gap-4">
-        <div className="rv-badge rv-badge-red inline-flex">Erro ao carregar dados</div>
-        <button onClick={() => refetch()} className="rv-btn rv-btn-primary px-8 h-10">
-          Tentar novamente
-        </button>
-      </div>
-    );
-  }
-
-  const u = user as Record<string, unknown>;
-  const heroName     = String(u?.display_name || u?.username || "Herói");
-  const userId       = String(u?.id ?? "");
-  const hasCharacter = !!data?.stats?.character_class;
 
   return (
     <div className="relative min-h-screen">
+      {/* Background Orbs */}
       <div className="pointer-events-none fixed inset-0 overflow-hidden">
-        <div
-          className="rv-orb rv-animate-pulse-glow"
-          style={{ width: "600px", height: "600px", top: "-20%", left: "-15%", background: "var(--rv-accent)", opacity: 0.12 }}
-        />
-        <div
-          className="rv-orb"
-          style={{ width: "400px", height: "400px", bottom: "-10%", right: "-10%", background: "var(--rv-cyan)", opacity: 0.08, animationDelay: "2s" }}
-        />
+        <div className="rv-orb rv-animate-pulse-glow" style={{ width: "600px", height: "600px", top: "-20%", left: "-15%", background: "var(--rv-accent)", opacity: 0.12 }} />
       </div>
 
-      <div className="relative z-10 mx-auto max-w-4xl px-4 py-8 sm:py-12 sm:px-6">
+      <div className="relative z-10 mx-auto max-w-4xl px-4 py-8 sm:py-12">
         <header className="mb-8">
           <span className="rv-label text-[10px] text-[var(--rv-accent)] tracking-[0.35em]">Portal do Herói</span>
           <h1 className="rv-display text-4xl sm:text-5xl text-white mt-1">
-            {hasCharacter ? heroName : "Criação de Personagem"}
+            {isCreating ? "Criação de Herói" : selectedChar ? selectedChar.name : "Seus Heróis"}
           </h1>
         </header>
 
         <div className="rv-divider mb-8" />
 
-        {hasCharacter && data ? (
+        {isCreating ? (
+          <CharacterCreateForm 
+            onCreated={() => { setIsCreating(false); refetchChars(); }} 
+            onCancel={() => setIsCreating(false)} 
+          />
+        ) : selectedChar && playData ? (
           <CharacterPanel
-            data={data}
-            heroName={heroName}
-            userId={userId}
+            data={playData}
+            char={selectedChar}
+            userId={String((user as any).id)}
             onLaunch={handleLaunch}
             launching={launching}
-            onRefresh={handleRefresh}
+            onRefresh={refetchData}
+            onBack={() => setSelectedChar(null)}
           />
         ) : (
-          <>
-            <CharacterCreateForm
-              onCreated={() => {
-                queryClient.invalidateQueries({ queryKey: ["play-data"] });
-              }}
-            />
-            <p className="text-center text-xs text-[var(--rv-text-dim)] mt-6" style={{ fontFamily: "var(--font-body)" }}>
-              Crie seu personagem para poder iniciar o Ravenna
-            </p>
-          </>
+          <CharacterList 
+            chars={chars || []} 
+            onSelect={setSelectedChar} 
+            onCreate={() => setIsCreating(true)}
+            onDelete={handleDelete}
+          />
         )}
-
-        <div className="flex justify-center gap-6 text-sm text-[var(--rv-text-muted)] mt-10">
-          <Link href="/me" className="hover:text-[var(--rv-accent)] transition-colors">Portal do Herói</Link>
-          <span className="text-[var(--rv-border)]">|</span>
-          <Link href="/" className="hover:text-[var(--rv-accent)] transition-colors">Início</Link>
-        </div>
       </div>
     </div>
   );

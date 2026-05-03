@@ -69,7 +69,7 @@ from rest_framework.views import APIView
 
 logger = logging.getLogger(__name__)
 
-from apps.game_logic.models import Party, PartyMember, PlayerInventory, PlayerSkill, PlayerStats, QuestProgress, QuestTemplate
+from apps.game_logic.models import Character, Party, PartyMember, PlayerInventory, PlayerSkill, PlayerStats, QuestProgress, QuestTemplate
 from apps.game_logic.serializers import (
     AddItemSerializer,
     AllocatePointsSerializer,
@@ -77,6 +77,7 @@ from apps.game_logic.serializers import (
     EquipItemSerializer,
     GainExperienceSerializer,
     LearnSkillSerializer,
+    CharacterSerializer,
     PlayerInventorySerializer,
     PlayerSkillSerializer,
     PlayerStatsSerializer,
@@ -90,20 +91,69 @@ from apps.game_logic.throttles import GameServerThrottle
 
 User = get_user_model()
 
+class CharacterViewSet(APIView):
+    permission_classes = [IsAuthenticated]
+
+    def get(self, request):
+        """List all characters for the authenticated user."""
+        chars = Character.objects.filter(owner=request.user, is_active=True)
+        return Response(CharacterSerializer(chars, many=True).data)
+
+    def post(self, request):
+        """Create a new character."""
+        serializer = CreateCharacterSerializer(data=request.data)
+        if serializer.is_valid():
+            try:
+                char = GameLogicService.create_character(
+                    request.user,
+                    serializer.validated_data["name"],
+                    serializer.validated_data["character_class"],
+                    serializer.validated_data["race"],
+                    serializer.validated_data["faction"]
+                )
+                return Response(CharacterSerializer(char).data, status=status.HTTP_201_CREATED)
+            except Exception as e:
+                return Response({"error": str(e)}, status=status.HTTP_400_BAD_REQUEST)
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+    def delete(self, request, pk):
+        """Soft-delete a character."""
+        try:
+            char = Character.objects.get(pk=pk, owner=request.user)
+            char.is_active = False
+            char.save()
+            return Response(status=status.HTTP_204_NO_CONTENT)
+        except Character.DoesNotExist:
+            return Response(status=status.HTTP_404_NOT_FOUND)
+
 class PlayerInstancesView(APIView):
     permission_classes = [IsAuthenticated]
     def get(self, request):
-        instances = GameLogicService.get_or_create_player_instances(request.user)
-        return Response({
-            "inventory": PlayerInventorySerializer(instances["inventory"]).data,
-            "stats": PlayerStatsSerializer(instances["stats"]).data,
-        })
+        char_id = request.query_params.get("character_id")
+        if not char_id:
+            return Response({"error": "character_id required"}, status=400)
+        try:
+            char = Character.objects.get(id=char_id, owner=request.user)
+            instances = GameLogicService.get_or_create_player_instances(char)
+            return Response({
+                "inventory": PlayerInventorySerializer(instances["inventory"]).data,
+                "stats": PlayerStatsSerializer(instances["stats"]).data,
+            })
+        except Character.DoesNotExist:
+            return Response({"error": "Character not found"}, status=404)
 
 class InventoryView(APIView):
     permission_classes = [IsAuthenticated]
     def get(self, request):
-        inventory, _ = PlayerInventory.objects.get_or_create(owner=request.user)
-        return Response(PlayerInventorySerializer(inventory).data)
+        char_id = request.query_params.get("character_id")
+        if not char_id:
+            return Response({"error": "character_id required"}, status=400)
+        try:
+            char = Character.objects.get(id=char_id, owner=request.user)
+            inventory, _ = PlayerInventory.objects.get_or_create(character=char)
+            return Response(PlayerInventorySerializer(inventory).data)
+        except Character.DoesNotExist:
+            return Response({"error": "Character not found"}, status=404)
 
     def post(self, request):
         if not request.user.is_staff:
@@ -141,8 +191,15 @@ class InventoryItemView(APIView):
 class StatsView(APIView):
     permission_classes = [IsAuthenticated]
     def get(self, request):
-        stats, _ = PlayerStats.objects.get_or_create(owner=request.user)
-        return Response(PlayerStatsSerializer(stats).data)
+        char_id = request.query_params.get("character_id")
+        if not char_id:
+            return Response({"error": "character_id required"}, status=400)
+        try:
+            char = Character.objects.get(id=char_id, owner=request.user)
+            stats, _ = PlayerStats.objects.get_or_create(character=char)
+            return Response(PlayerStatsSerializer(stats).data)
+        except Character.DoesNotExist:
+            return Response({"error": "Character not found"}, status=404)
 
 class GainExperienceView(APIView):
     permission_classes = [IsAuthenticated, IsAdminUser]
@@ -174,13 +231,20 @@ class AllocatePointsView(APIView):
 class QuestProgressView(APIView):
     permission_classes = [IsAuthenticated]
     def get(self, request):
-        quests = QuestProgress.objects.filter(owner=request.user)
+        char_id = request.query_params.get("character_id")
+        if not char_id: return Response({"error": "character_id required"}, status=400)
+        quests = QuestProgress.objects.filter(character__id=char_id, character__owner=request.user)
         return Response(QuestProgressSerializer(quests, many=True).data)
     def post(self, request):
+        char_id = request.data.get("character_id")
         quest_id = request.data.get("quest_id")
-        if not quest_id: return Response({"error": "quest_id required"}, status=400)
-        progress = GameLogicService.start_quest(request.user, quest_id)
-        return Response(QuestProgressSerializer(progress).data, status=201)
+        if not char_id or not quest_id: return Response({"error": "character_id and quest_id required"}, status=400)
+        try:
+            char = Character.objects.get(id=char_id, owner=request.user)
+            progress = GameLogicService.start_quest(char, quest_id)
+            return Response(QuestProgressSerializer(progress).data, status=201)
+        except Character.DoesNotExist:
+            return Response({"error": "Character not found"}, status=404)
 
 class QuestCompleteView(APIView):
     permission_classes = [IsAuthenticated, IsAdminUser]
@@ -217,7 +281,9 @@ class GameSessionView(APIView):
 class PlayerSkillsView(APIView):
     permission_classes = [IsAuthenticated]
     def get(self, request):
-        skills = PlayerSkill.objects.filter(owner=request.user)
+        char_id = request.query_params.get("character_id")
+        if not char_id: return Response({"error": "character_id required"}, status=400)
+        skills = PlayerSkill.objects.filter(character__id=char_id, character__owner=request.user)
         return Response(PlayerSkillSerializer(skills, many=True).data)
     def post(self, request):
         if not request.user.is_staff: return Response(status=403)

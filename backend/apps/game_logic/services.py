@@ -69,17 +69,17 @@ class GameLogicService:
 
     @staticmethod
     @transaction.atomic
-    def get_or_create_player_instances(user: User):
-        """Get or create all player game instances with locking."""
-        inventory, _ = PlayerInventory.objects.select_for_update().get_or_create(owner=user)
-        stats, _ = PlayerStats.objects.select_for_update().get_or_create(owner=user)
+    def get_or_create_player_instances(character: Character):
+        """Get character game instances with locking."""
+        inventory, _ = PlayerInventory.objects.select_for_update().get_or_create(character=character)
+        stats, _ = PlayerStats.objects.select_for_update().get_or_create(character=character)
         return {"inventory": inventory, "stats": stats}
 
     @staticmethod
     @transaction.atomic
-    def add_item_to_inventory(user: User, item_template_id: str, quantity: int = 1) -> PlayerInventory:
-        """Add item to player inventory with locking."""
-        inventory, _ = PlayerInventory.objects.select_for_update().get_or_create(owner=user)
+    def add_item_to_inventory(character: Character, item_template_id: str, quantity: int = 1) -> PlayerInventory:
+        """Add item to character inventory with locking."""
+        inventory, _ = PlayerInventory.objects.select_for_update().get_or_create(character=character)
         item_template = ItemTemplate.objects.get(id=item_template_id)
 
         if quantity < 1:
@@ -141,9 +141,9 @@ class GameLogicService:
 
     @staticmethod
     @transaction.atomic
-    def remove_item_from_inventory(user: User, item_index: int) -> PlayerInventory:
-        """Remove item from player inventory with locking."""
-        inventory, _ = PlayerInventory.objects.select_for_update().get_or_create(owner=user)
+    def remove_item_from_inventory(character: Character, item_index: int) -> PlayerInventory:
+        """Remove item from character inventory with locking."""
+        inventory, _ = PlayerInventory.objects.select_for_update().get_or_create(character=character)
 
         if item_index < 0 or item_index >= inventory.max_slots:
             raise ValueError("Invalid item index")
@@ -160,9 +160,9 @@ class GameLogicService:
 
     @staticmethod
     @transaction.atomic
-    def update_player_stats(user: User, stats_data: dict) -> PlayerStats:
-        """Update player stats with locking."""
-        stats, _ = PlayerStats.objects.select_for_update().get_or_create(owner=user)
+    def update_player_stats(character: Character, stats_data: dict) -> PlayerStats:
+        """Update character stats with locking."""
+        stats, _ = PlayerStats.objects.select_for_update().get_or_create(character=character)
 
         allowed_fields = ["health", "mana"]
 
@@ -186,9 +186,9 @@ class GameLogicService:
 
     @staticmethod
     @transaction.atomic
-    def gain_experience(user: User, amount: int, hwid: str = "", bypass_anticheat: bool = False) -> PlayerStats:
+    def gain_experience(character: Character, amount: int, hwid: str = "", bypass_anticheat: bool = False) -> PlayerStats:
         """Grant experience with basic anti-cheat."""
-        stats, _ = PlayerStats.objects.select_for_update().get_or_create(owner=user)
+        stats, _ = PlayerStats.objects.select_for_update().get_or_create(character=character)
 
         if amount < 1:
             raise ValueError("amount must be at least 1")
@@ -255,8 +255,8 @@ class GameLogicService:
 
     @staticmethod
     @transaction.atomic
-    def allocate_points(user: User, allocations: dict) -> PlayerStats:
-        stats, _ = PlayerStats.objects.select_for_update().get_or_create(owner=user)
+    def allocate_points(character: Character, allocations: dict) -> PlayerStats:
+        stats, _ = PlayerStats.objects.select_for_update().get_or_create(character=character)
         allowed = ["strength", "agility", "intelligence", "vitality"]
         total = 0
         for k in allowed:
@@ -278,11 +278,11 @@ class GameLogicService:
 
     @staticmethod
     @transaction.atomic
-    def start_game_session(user: User, hwid: str = "", ip: str = "", map_key: str = "") -> object:
+    def start_game_session(character: Character, hwid: str = "", ip: str = "", map_key: str = "") -> object:
         from apps.game_logic.models import GameSession
         from django.utils import timezone
-        GameSession.objects.filter(player=user, is_active=True).update(is_active=False, ended_at=timezone.now())
-        return GameSession.objects.create(player=user, hwid=hwid, ip_address=ip, last_map_key=map_key, is_active=True)
+        GameSession.objects.filter(character=character, is_active=True).update(is_active=False, ended_at=timezone.now())
+        return GameSession.objects.create(character=character, ip_address=ip, is_active=True)
 
     @staticmethod
     @transaction.atomic
@@ -306,9 +306,9 @@ class GameLogicService:
 
     @staticmethod
     @transaction.atomic
-    def start_quest(user: User, quest_id: str) -> QuestProgress:
+    def start_quest(character: Character, quest_id: str) -> QuestProgress:
         progress, created = QuestProgress.objects.select_for_update().get_or_create(
-            owner=user, quest_id=quest_id, defaults={"status": "in_progress", "started_at": timezone.now()}
+            character=character, quest_id=quest_id, defaults={"status": "in_progress", "started_at": timezone.now()}
         )
         if not created and progress.status == "not_started":
             progress.status = "in_progress"
@@ -318,8 +318,8 @@ class GameLogicService:
 
     @staticmethod
     @transaction.atomic
-    def complete_quest(user: User, quest_id: str) -> QuestProgress:
-        progress = QuestProgress.objects.select_for_update().get(owner=user, quest_id=quest_id)
+    def complete_quest(character: Character, quest_id: str) -> QuestProgress:
+        progress = QuestProgress.objects.select_for_update().get(character=character, quest_id=quest_id)
         progress.status = "completed"
         progress.completed_at = timezone.now()
         progress.save(update_fields=["status", "completed_at", "updated_at"])
@@ -339,7 +339,7 @@ class GameLogicService:
             GameLogicService.gain_experience(user, xp, bypass_anticheat=True)
 
         if gold > 0:
-            inventory, _ = PlayerInventory.objects.select_for_update().get_or_create(owner=user)
+            inventory, _ = PlayerInventory.objects.select_for_update().get_or_create(character=character)
             inventory.gold += gold
             inventory.save(update_fields=["gold", "updated_at"])
 
@@ -360,10 +360,10 @@ class GameLogicService:
         return progress
 
     @staticmethod
-    def save_player_position(user: User, pos_x: int, pos_y: int, hp: int) -> None:
+    def save_player_position(character: Character, pos_x: int, pos_y: int, hp: int) -> None:
         """Persist last known position and HP for cross-restart state restore."""
         safe_hp = max(1, min(hp, 99_999))
-        PlayerStats.objects.filter(owner=user).update(
+        PlayerStats.objects.filter(character=character).update(
             last_pos_x=pos_x,
             last_pos_y=pos_y,
             health=safe_hp,
@@ -371,15 +371,12 @@ class GameLogicService:
 
     @staticmethod
     @transaction.atomic
-    def update_kill_progress(user: User, npc_type: str) -> list:
-        """Increment kill counters in active quests that match npc_type. Auto-completes if all objectives are met.
-
-        Objective key convention: "kill_{npc_type}" (e.g. "kill_wolf").
-        """
+    def update_kill_progress(character: Character, npc_type: str) -> list:
+        """Increment kill counters in active quests that match npc_type."""
         kill_key = f"kill_{npc_type}"
         progresses = list(
             QuestProgress.objects.select_for_update()
-            .filter(owner=user, status="in_progress")
+            .filter(character=character, status="in_progress")
         )
         updated = []
         for progress in progresses:
@@ -423,7 +420,7 @@ class GameLogicService:
         return updated
 
     @staticmethod
-    def get_equipment_bonuses(user: User) -> dict:
+    def get_equipment_bonuses(character: Character) -> dict:
         """Return dict of summed stat bonuses from all currently equipped items."""
         bonuses: dict = {
             "phys_damage": 0, "mag_damage": 0,
@@ -431,7 +428,7 @@ class GameLogicService:
             "health": 0, "mana": 0,
             "attack_speed": 0.0, "speed": 0,
         }
-        inventory = PlayerInventory.objects.filter(owner=user).first()
+        inventory = PlayerInventory.objects.filter(character=character).first()
         if not inventory:
             return bonuses
         equipped = PlayerItem.objects.filter(
@@ -499,27 +496,14 @@ class GameLogicService:
 
     @staticmethod
     @transaction.atomic
-    def equip_item(user: User, player_item_id: str, equip_slot: str) -> PlayerItem:
-        """Equip an inventory item into a specific slot with full class/type restriction validation.
-
-        Damage model for weapons:
-          Physical-only  (sword, dagger, bow)    — base_phys_damage only
-          Magical-only   (staff, wand)            — base_mag_damage only
-          Hybrid         (mace, hammer, lance)    — both base_phys_damage + base_mag_damage
-          Shield         (offhand only)           — base_phys_defense + base_mag_defense (no damage)
-
-        Two-handedness is stored as ItemTemplate.is_two_handed:
-          - Equipping a 2H item in 'weapon' automatically clears the offhand slot.
-          - Having an item in offhand blocks equipping any 2H weapon (offhand is cleared first).
-          - Shadow's dual wield: equip_slot='offhand', is_two_handed must be False.
-        """
+    def equip_item(character: Character, player_item_id: str, equip_slot: str) -> PlayerItem:
+        """Equip an inventory item into a specific slot."""
         if equip_slot not in GameLogicService._VALID_EQUIP_SLOTS:
             raise ValueError(f"Invalid equip slot: '{equip_slot}'")
 
-        stats = PlayerStats.objects.filter(owner=user).first()
-        player_class: str = stats.character_class if stats else ""
+        player_class: str = character.character_class
 
-        inventory = PlayerInventory.objects.select_for_update().get(owner=user)
+        inventory = PlayerInventory.objects.select_for_update().get(character=character)
         item = PlayerItem.objects.select_for_update().get(id=player_item_id, inventory=inventory)
         t = item.item_template
 
@@ -736,56 +720,68 @@ class GameLogicService:
 
     @staticmethod
     @transaction.atomic
-    def create_character(user: User, character_class: str, race: str, faction: str) -> PlayerStats:
-        """Set faction/class/race and apply class-specific base stats.
+    def create_character(user: User, name: str, character_class: str, race: str, faction: str) -> Character:
+        """Create a new character for a user with faction-based restrictions."""
+        
+        # ── Faction Restrictions Mapping ──
+        FACTION_RULES = {
+            "vanguarda": {
+                "races": ["humano", "elfo"],
+                "classes": ["paladino", "mage", "archer", "eldari"]
+            },
+            "legiao": {
+                "races": ["draconato", "morto_vivo"],
+                "classes": ["cavaleiro_dragao", "ignis", "shadow", "necromante"]
+            }
+        }
 
-        One-time operation — raises ValueError if the character was already created.
-        Stats are seeded from _CLASS_BASE_STATS; max_health and max_mana are
-        derived with the same formulas used by AttributeCalculator.cs.
-        """
-        valid_classes  = {c for c, _ in PlayerStats.CLASS_CHOICES if c}
-        valid_races    = {r for r, _ in PlayerStats.RACE_CHOICES    if r}
-        valid_factions = {f for f, _ in PlayerStats.FACTION_CHOICES if f}
+        if faction not in FACTION_RULES:
+            raise ValueError(f"Facção '{faction}' inválida.")
+        
+        rules = FACTION_RULES[faction]
+        
+        if race not in rules["races"]:
+            raise ValueError(f"A raça '{race}' não é permitida na facção {faction}.")
+        
+        if character_class not in rules["classes"]:
+            raise ValueError(f"A classe '{character_class}' é exclusiva da outra facção.")
 
-        if character_class not in valid_classes:
-            raise ValueError(f"Invalid class '{character_class}'. "
-                             f"Valid: {', '.join(sorted(valid_classes))}")
-        if race not in valid_races:
-            raise ValueError(f"Invalid race '{race}'. "
-                             f"Valid: {', '.join(sorted(valid_races))}")
-        if faction not in valid_factions:
-            raise ValueError(f"Invalid faction '{faction}'. "
-                             f"Valid: {', '.join(sorted(valid_factions))}")
+        if Character.objects.filter(name__iexact=name).exists():
+            raise ValueError(f"O nome '{name}' já está em uso por outro herói.")
 
-        stats, _ = PlayerStats.objects.select_for_update().get_or_create(owner=user)
+        # 1. Create the base Character
+        character = Character.objects.create(
+            owner=user,
+            name=name,
+            character_class=character_class,
+            race=race,
+            faction=faction
+        )
 
-        if stats.character_class:
-            raise ValueError("Character already created. Class cannot be changed after creation.")
-
+        # 2. Setup Stats
         base = GameLogicService._CLASS_BASE_STATS[character_class]
-        stats.character_class = character_class
-        stats.race            = race
-        stats.faction         = faction
-        stats.strength        = base["strength"]
-        stats.agility         = base["agility"]
-        stats.intelligence    = base["intelligence"]
-        stats.vitality        = base["vitality"]
-        stats.max_health      = GameLogicService._compute_max_hp(base["vitality"])
-        stats.health          = stats.max_health
-        stats.max_mana        = GameLogicService._compute_max_mana(base["intelligence"])
-        stats.mana            = stats.max_mana
+        stats = PlayerStats.objects.create(
+            character=character,
+            strength=base["strength"],
+            agility=base["agility"],
+            intelligence=base["intelligence"],
+            vitality=base["vitality"],
+            max_health=GameLogicService._compute_max_hp(base["vitality"]),
+            max_mana=GameLogicService._compute_max_mana(base["intelligence"]),
+        )
+        stats.health = stats.max_health
+        stats.mana = stats.max_mana
+        stats.save()
 
-        stats.save(update_fields=[
-            "character_class", "race", "faction",
-            "strength", "agility", "intelligence", "vitality",
-            "max_health", "health", "max_mana", "mana",
-            "updated_at",
-        ])
+        # 3. Setup Inventory
+        PlayerInventory.objects.create(character=character)
 
-        GameLogicService.grant_starter_skills(user, character_class)
-        GameLogicService._grant_passives(user, character_class, race)
-        GameLogicService._refresh_state_cache(user)
-        return stats
+        # 4. Grant starter skills/passives
+        GameLogicService.grant_starter_skills_to_char(character)
+        GameLogicService._grant_passives_to_char(character)
+        
+        GameLogicService.preload_character_state_to_redis(character)
+        return character
 
     @staticmethod
     def _grant_passives(user: User, character_class: str, race: str) -> None:

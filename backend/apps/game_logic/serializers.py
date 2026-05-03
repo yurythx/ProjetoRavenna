@@ -47,7 +47,14 @@ Validam operações específicas de inventário e XP.
 """
 from rest_framework import serializers
 
-from apps.game_logic.models import PlayerInventory, PlayerItem, PlayerSkill, PlayerStats, QuestProgress, QuestTemplate
+from apps.game_logic.models import Character, PlayerInventory, PlayerItem, PlayerSkill, PlayerStats, QuestProgress, QuestTemplate
+
+
+class CharacterSerializer(serializers.ModelSerializer):
+    """Serializer for basic character info."""
+    class Meta:
+        model = Character
+        fields = ["id", "name", "character_class", "race", "faction", "created_at"]
 
 
 class PlayerInventorySerializer(serializers.ModelSerializer):
@@ -105,9 +112,6 @@ class PlayerStatsSerializer(serializers.ModelSerializer):
             "intelligence",
             "vitality",
             "points_remaining",
-            "faction",
-            "character_class",
-            "race",
             "updated_at",
         ]
 
@@ -192,8 +196,8 @@ class EquipItemSerializer(serializers.Serializer):
 
 
 class CreateCharacterSerializer(serializers.Serializer):
-    """Serializer for one-time character creation (class, race, faction)."""
-
+    """Serializer for character creation."""
+    name = serializers.CharField(max_length=32, min_length=3)
     character_class = serializers.ChoiceField(choices=[
         "paladino", "mage", "archer", "eldari",
         "cavaleiro_dragao", "ignis", "shadow", "necromante",
