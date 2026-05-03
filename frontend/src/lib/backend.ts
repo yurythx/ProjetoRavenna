@@ -16,15 +16,21 @@ export async function backendFetch<T>(
   const baseUrl = getApiBaseUrl();
   let normalizedPath = path.startsWith("/") ? path : `/${path}`;
 
-  // 1. Clean up duplicate /api segments and common path mismatches
+  // 1. Clean up duplicate /api and /v1 segments and common path mismatches
+  normalizedPath = normalizedPath.replace(/\/api\/v1\/api\//g, "/api/v1/");
   normalizedPath = normalizedPath.replace(/\/api\/api\//g, "/api/");
-  normalizedPath = normalizedPath.replace(/\/api\/articles\//g, "/api/blog/");
+  normalizedPath = normalizedPath.replace(/\/api\/v1\/articles\//g, "/api/v1/blog/");
+  normalizedPath = normalizedPath.replace(/\/api\/articles\//g, "/api/v1/blog/");
 
-  // 2. Auto-prepend /v1/ for known Django apps if missing
+  // 2. Auto-prepend /api/v1/ for known Django apps if missing or incomplete
   const knownApps = ["accounts", "blog", "forum", "game-logic", "game-data"];
-  const appMatch = normalizedPath.match(/^\/api\/(accounts|blog|forum|game-logic|game-data)\//);
+  // Match patterns like /api/blog/, /blog/, /api/v1/blog/, etc.
+  const appMatch = normalizedPath.match(/^\/(api\/)?(v1\/)?(accounts|blog|forum|game-logic|game-data)\//);
+  
   if (appMatch) {
-    normalizedPath = normalizedPath.replace("/api/", "/api/v1/");
+    const appName = appMatch[3];
+    const subPath = normalizedPath.split(`/${appName}/`)[1] || "";
+    normalizedPath = `/api/v1/${appName}/${subPath}`;
   }
 
   // 3. Ensure trailing slash before query params (Django requirement)
