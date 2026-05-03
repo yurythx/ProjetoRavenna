@@ -1,3 +1,4 @@
+from __future__ import annotations
 """
 Serviços de lógica de jogo — camada de negócio do app game_logic.
 
@@ -57,7 +58,7 @@ from django.db import transaction
 from django.utils import timezone
 from apps.accounts.models import User
 from apps.game_data.models import ItemTemplate
-from apps.game_logic.models import Party, PartyMember, PlayerInventory, PlayerItem, PlayerSkill, PlayerStats, QuestProgress, QuestTemplate
+from apps.game_logic.models import Character, Party, PartyMember, PlayerInventory, PlayerItem, PlayerSkill, PlayerStats, QuestProgress, QuestTemplate
 
 logger = logging.getLogger(__name__)
 
