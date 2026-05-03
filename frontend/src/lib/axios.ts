@@ -15,10 +15,10 @@ api.interceptors.request.use((config) => {
     let url = config.url;
 
     // 1. Clean up duplicate prefixes if they were passed in
-    url = url.replace(/^\/api\/v1\/api\//, "/");
-    url = url.replace(/^\/api\/api\//, "/");
-    url = url.replace(/^\/api\/v1\//, "/");
-    url = url.replace(/^\/api\//, "/");
+    url = url.replace(/^(\/)?api\/v1\/api\//, "/");
+    url = url.replace(/^(\/)?api\/api\//, "/");
+    url = url.replace(/^(\/)?api\/v1\//, "/");
+    url = url.replace(/^(\/)?api\//, "/");
 
     // 2. Map 'articles' path used in frontend to 'blog' used in backend
     url = url.replace(/^\/articles\//, "/blog/");
