@@ -47,7 +47,7 @@ export async function backendFetch<T>(
       cache: init?.cache ?? "no-store",
     });
   } catch (err) {
-    return { ok: false, error: { status: 0, data: err instanceof Error ? err.message : String(err) } };
+    return { ok: false, error: { status: 500, data: err instanceof Error ? err.message : String(err) } };
   }
 
   const text = await res.text();

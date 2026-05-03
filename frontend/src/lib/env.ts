@@ -1,4 +1,9 @@
 export function getApiBaseUrl() {
+  // Use internal Docker network for server-side requests
+  if (typeof window === "undefined") {
+    return "http://backend:8000";
+  }
+
   const url = process.env.NEXT_PUBLIC_API_BASE_URL;
   if (url) return url.replace(/\/+$/, "");
 
@@ -6,7 +11,7 @@ export function getApiBaseUrl() {
     return "http://localhost:8000";
   }
 
-  throw new Error("NEXT_PUBLIC_API_BASE_URL is required");
+  return "https://api.projetoravenna.cloud";
 }
 
 export function getSiteBaseUrl() {
