@@ -16,11 +16,14 @@ export async function backendFetch<T>(
   const baseUrl = getApiBaseUrl();
   let normalizedPath = path.startsWith("/") ? path : `/${path}`;
 
-  // 1. Clean up duplicate /api and /v1 segments and common path mismatches
+  // 1. Clean up duplicate segments and map legacy paths
   normalizedPath = normalizedPath.replace(/^(\/)?api\/v1\/api\//g, "/api/v1/");
   normalizedPath = normalizedPath.replace(/^(\/)?api\/api\//g, "/api/");
-  normalizedPath = normalizedPath.replace(/^(\/)?api\/v1\/articles\//g, "/api/v1/blog/");
-  normalizedPath = normalizedPath.replace(/^(\/)?api\/articles\//g, "/api/v1/blog/");
+  
+  // Blog mapping: articles -> public/posts, categories -> public/categories
+  normalizedPath = normalizedPath.replace(/\/blog\/articles\//g, "/blog/public/posts/");
+  normalizedPath = normalizedPath.replace(/\/blog\/categories\//g, "/blog/public/categories/");
+  normalizedPath = normalizedPath.replace(/\/blog\/tags\//g, "/blog/public/tags/");
 
   // 2. Auto-prepend /api/v1/ for known Django apps if missing or incomplete
   const knownApps = ["accounts", "blog", "forum", "game-logic", "game-data"];

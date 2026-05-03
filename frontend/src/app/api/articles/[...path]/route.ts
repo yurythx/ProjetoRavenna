@@ -4,31 +4,57 @@ import { revalidateTag } from "next/cache";
 import { getAccessToken } from "@/lib/auth-cookies";
 import { getApiBaseUrl } from "@/lib/env";
 
+/**
+ * Normalizes segments to match the Django backend structure (/blog/posts/, /blog/categories/, etc.)
+ */
+function getNormalizedTarget(baseUrl: string, segments: string[], qs: string) {
+  let app = "blog";
+  let rest = [...segments];
+
+  // If first segment is 'articles' or 'posts', map to 'posts'
+  if (rest[0] === "articles" || rest[0] === "posts") {
+    rest[0] = "posts";
+  }
+
+  let path = rest.join("/");
+  if (!path.endsWith("/")) path += "/";
+  
+  // Ensure we use the /api/v1/blog/ prefix
+  return `${baseUrl}/api/v1/${app}/${path}${qs ? `?${qs}` : ""}`;
+}
+
 function isPublicReadPath(req: Request, segments: string[]) {
   const isRead = req.method === "GET" || req.method === "HEAD";
   if (segments[0] === "public") return isRead;
   if (!isRead) return false;
 
+  // Categories and tags are usually public
   if (segments[0] === "categories" || segments[0] === "tags") return true;
 
-  if (segments[0] === "articles") {
-    if (segments.length === 1) return true; // list
-    if (segments.length === 2) return true; // detail
-  }
-
-  return false;
+  // List and detail are public if we use the public viewsets, 
+  // but here we are proxying to the main set. 
+  // We'll rely on the backend to enforce permissions if not explicitly 'public'.
+  return false; 
 }
 
 async function proxy(req: Request, segments: string[]) {
   const baseUrl = getApiBaseUrl().replace(/\/+$/, "");
   const url = new URL(req.url);
   const qs = url.searchParams.toString();
-  const path = segments.map((s) => encodeURIComponent(s)).join("/");
-  const target = `${baseUrl}/api/articles/${path}/${qs ? `?${qs}` : ""}`;
+  
+  const target = getNormalizedTarget(baseUrl, segments, qs);
 
   const isPublic = isPublicReadPath(req, segments);
   const access = isPublic ? null : await getAccessToken();
-  if (!isPublic && !access) return NextResponse.json({ error: "Not authenticated" }, { status: 401 });
+  
+  // We allow the request to proceed if it's public OR if we have an access token
+  if (!isPublic && !access) {
+    // If it's a GET request, we might want to try without auth anyway 
+    // (Django will return 401/403 if it's strictly protected)
+    if (req.method !== "GET") {
+      return NextResponse.json({ error: "Not authenticated" }, { status: 401 });
+    }
+  }
 
   const headers = new Headers(req.headers);
   headers.delete("cookie");
@@ -37,37 +63,29 @@ async function proxy(req: Request, segments: string[]) {
 
   const body = req.method === "GET" || req.method === "HEAD" ? undefined : await req.arrayBuffer();
 
-  const res = await fetch(target, {
-    method: req.method,
-    headers,
-    body,
-    cache: "no-store",
-  });
+  try {
+    const res = await fetch(target, {
+      method: req.method,
+      headers,
+      body,
+      cache: "no-store",
+    });
 
-  const contentType = res.headers.get("content-type") ?? "application/json";
-  const text = await res.text();
+    const contentType = res.headers.get("content-type") ?? "application/json";
+    const text = await res.text();
 
-  const isMutation = req.method !== "GET" && req.method !== "HEAD";
-  if (isMutation && res.ok) {
-    const root = segments[0] ?? "";
-    if (root === "articles" || root === "posts") {
+    // Cache invalidation on mutations
+    const isMutation = req.method !== "GET" && req.method !== "HEAD";
+    if (isMutation && res.ok) {
       revalidateTag("blog:posts");
-      const maybeSlug = segments[1];
-      if (maybeSlug && maybeSlug !== "analytics") {
-        revalidateTag(`blog:post:${maybeSlug}`);
-      }
-    }
-    if (root === "categories") {
       revalidateTag("blog:taxonomies");
-      revalidateTag("blog:categories");
     }
-    if (root === "tags") {
-      revalidateTag("blog:taxonomies");
-      revalidateTag("blog:tags");
-    }
-  }
 
-  return new NextResponse(text, { status: res.status, headers: { "content-type": contentType } });
+    return new NextResponse(text, { status: res.status, headers: { "content-type": contentType } });
+  } catch (err) {
+    console.error("Proxy error:", err);
+    return NextResponse.json({ error: "Internal Server Error" }, { status: 500 });
+  }
 }
 
 export async function GET(req: Request, { params }: { params: Promise<{ path: string[] }> }) {

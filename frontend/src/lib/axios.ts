@@ -20,9 +20,11 @@ api.interceptors.request.use((config) => {
     url = url.replace(/^(\/)?api\/v1\//, "/");
     url = url.replace(/^(\/)?api\//, "/");
 
-    // 2. Map 'articles' path used in frontend to 'blog' used in backend
-    url = url.replace(/^\/articles\//, "/blog/");
-    url = url.replace(/^\/v1\/articles\//, "/blog/");
+    // 2. Map legacy paths
+    url = url.replace(/^\/articles\//, "/blog/public/posts/");
+    url = url.replace(/^\/blog\/articles\//, "/blog/public/posts/");
+    url = url.replace(/^\/blog\/categories\//, "/blog/public/categories/");
+    url = url.replace(/^\/blog\/tags\//, "/blog/public/tags/");
 
     // 3. Prepend canonical /api/v1/ prefix
     url = `/api/v1${url.startsWith("/") ? "" : "/"}${url}`;
