@@ -8,7 +8,7 @@ export async function GET() {
   const refresh = await getRefreshToken();
 
   const me = async (token: string) =>
-    backendFetch<unknown>("/api/accounts/me/", {
+    backendFetch<unknown>("/api/v1/accounts/me/", {
       method: "GET",
       accessToken: token,
     });
@@ -22,7 +22,7 @@ export async function GET() {
     return NextResponse.json({ user: null }, { status: 200 });
   }
 
-  const refreshed = await backendFetch<{ access: string; refresh?: string }>("/api/accounts/token/refresh/", {
+  const refreshed = await backendFetch<{ access: string; refresh?: string }>("/api/v1/accounts/token/refresh/", {
     method: "POST",
     json: { refresh },
   });

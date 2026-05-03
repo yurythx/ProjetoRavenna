@@ -10,7 +10,7 @@ export async function POST() {
   }
 
   const result = await backendFetch<{ access: string; refresh?: string }>(
-    "/api/accounts/token/refresh/",
+    "/api/v1/accounts/token/refresh/",
     { method: "POST", json: { refresh } }
   );
 

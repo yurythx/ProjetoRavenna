@@ -9,7 +9,7 @@ export async function POST(req: Request) {
   const result = await backendFetch<{
     user: unknown;
     tokens: { access: string; refresh: string };
-  }>("/api/accounts/login/", { method: "POST", json: payload });
+  }>("/api/v1/accounts/login/", { method: "POST", json: payload });
 
   if (!result.ok) {
     return NextResponse.json(result.error.data, { status: result.error.status });

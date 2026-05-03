@@ -6,7 +6,7 @@ import { backendFetch } from "@/lib/backend";
 export async function POST(req: Request) {
   const payload = await req.json();
 
-  const result = await backendFetch<{ verification_required: boolean; email: string }>("/api/accounts/register/", {
+  const result = await backendFetch<{ verification_required: boolean; email: string }>("/api/v1/accounts/register/", {
     method: "POST",
     json: payload,
   });

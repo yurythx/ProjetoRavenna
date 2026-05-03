@@ -14,7 +14,16 @@ export async function backendFetch<T>(
   }
 ): Promise<{ ok: true; data: T } | { ok: false; error: BackendError }> {
   const baseUrl = getApiBaseUrl();
-  const url = `${baseUrl}${path.startsWith("/") ? "" : "/"}${path}`;
+  let normalizedPath = path.startsWith("/") ? path : `/${path}`;
+
+  // Auto-prepend /v1/ for known Django apps if missing
+  const knownApps = ["accounts", "blog", "forum", "game-logic", "game-data"];
+  const appMatch = normalizedPath.match(/^\/api\/(accounts|blog|forum|game-logic|game-data)\//);
+  if (appMatch) {
+    normalizedPath = normalizedPath.replace("/api/", "/api/v1/");
+  }
+
+  const url = `${baseUrl}${normalizedPath}`;
 
   const headers = new Headers(init?.headers);
   if (!headers.has("Accept")) headers.set("Accept", "application/json");

@@ -6,7 +6,7 @@ import { backendFetch } from "@/lib/backend";
 export async function POST() {
   const refresh = await getRefreshToken();
   if (refresh) {
-    await backendFetch("/api/accounts/logout/", { method: "POST", json: { refresh } });
+    await backendFetch("/api/v1/accounts/logout/", { method: "POST", json: { refresh } });
   }
 
   await clearAuthCookies();
