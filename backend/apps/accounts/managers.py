@@ -37,7 +37,7 @@ class UserManager(BaseUserManager):
         return self._create_user(email, username, password, **extra_fields)
 
     def get_by_email(self, email: str):
-        return self.model.objects.filter(email__iexact=email).first()
+        return self.filter(email__iexact=email).first()
 
     def get_active(self):
         return self.filter(is_active=True)

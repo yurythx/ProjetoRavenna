@@ -177,14 +177,15 @@ class UserAuthenticationService:
 
         if not user.is_active_and_not_banned:
             return None
-        if not user.is_verified:
+        if not user.is_verified and not user.is_staff and not user.is_superuser:
             return None
 
         if hwid and user.hwid and user.hwid != hwid:
             return None
 
+        user.last_login = timezone.now()
         user.last_login_ip = ip_address
-        user.save(update_fields=["last_login_ip", "last_login"])
+        user.save(update_fields=["last_login", "last_login_ip"])
 
         return user
 
