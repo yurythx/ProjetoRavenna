@@ -11,7 +11,7 @@ async function proxy(req: Request, segments: string[]) {
   const url = new URL(req.url);
   const qs = url.searchParams.toString();
   const path = segments.map((s) => encodeURIComponent(s)).join("/");
-  const target = `${baseUrl}/api/accounts/${path}/${qs ? `?${qs}` : ""}`;
+  const target = `${baseUrl}/api/v1/accounts/${path}/${qs ? `?${qs}` : ""}`;
 
   const headers = new Headers(req.headers);
   headers.delete("cookie");

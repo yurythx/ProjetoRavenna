@@ -10,7 +10,7 @@ type MeResponse = {
 
 async function fetchMe(accessToken: string) {
   const baseUrl = getApiBaseUrl();
-  return fetch(`${baseUrl}/api/accounts/me/`, {
+  return fetch(`${baseUrl}/api/v1/accounts/me/`, {
     method: "GET",
     headers: {
       Accept: "application/json",
@@ -22,7 +22,7 @@ async function fetchMe(accessToken: string) {
 
 async function refreshAccess(refreshToken: string) {
   const baseUrl = getApiBaseUrl();
-  return fetch(`${baseUrl}/api/accounts/token/refresh/`, {
+  return fetch(`${baseUrl}/api/v1/accounts/token/refresh/`, {
     method: "POST",
     headers: { Accept: "application/json", "Content-Type": "application/json" },
     body: JSON.stringify({ refresh: refreshToken }),
