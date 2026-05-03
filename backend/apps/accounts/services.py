@@ -183,9 +183,16 @@ class UserAuthenticationService:
         if hwid and user.hwid and user.hwid != hwid:
             return None
 
-        user.last_login = timezone.now()
-        user.last_login_ip = ip_address
-        user.save(update_fields=["last_login", "last_login_ip"])
+        try:
+            user.last_login = timezone.now()
+            user.last_login_ip = ip_address
+            # Save without update_fields to be more robust during debugging
+            user.save()
+        except Exception as e:
+            # Log the error so we can see it in docker logs
+            print(f"DEBUG: Login save error for {user.email}: {str(e)}")
+            # Even if save fails, we might want to allow login, but 500 is happening here
+            raise e
 
         return user
 
