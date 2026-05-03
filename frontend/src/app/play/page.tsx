@@ -8,6 +8,7 @@ import { useAuth } from "@/components/auth-provider";
 import type { PlayerInventory, PlayerSkill } from "@/types";
 import { InventoryPanel } from "@/features/game/components/InventoryPanel";
 import { SkillBar }       from "@/features/game/components/SkillBar";
+import { PartyPanel }     from "@/features/game/components/PartyPanel";
 import { QuestTracker }   from "@/features/game/components/QuestTracker";
 
 // ── Types ────────────────────────────────────────────────────────────────────
@@ -81,33 +82,103 @@ function StatBar({ label, cur, max, color }: { label: string; cur: number; max: 
   );
 }
 
-function AttrItem({ label, value, color }: { label: string; value: number; color: string }) {
+function AttrItem({
+  label, value, color, pending = 0, onAdd, onSub, hasPoints,
+}: {
+  label: string; value: number; color: string;
+  pending?: number; onAdd?: () => void; onSub?: () => void; hasPoints?: boolean;
+}) {
   return (
     <div className="rounded-xl bg-[var(--rv-surface-2)] border border-[var(--rv-border)] p-3 text-center">
       <span className="rv-label text-[8px] text-[var(--rv-text-dim)] block mb-1">{label}</span>
-      <span className="rv-display text-2xl" style={{ color }}>{value}</span>
+      <div className="flex items-center justify-center gap-1.5">
+        {onSub && pending > 0 && (
+          <button
+            type="button"
+            onClick={onSub}
+            className="h-5 w-5 rounded-full bg-[var(--rv-surface)] border border-[var(--rv-border)] text-[var(--rv-text-dim)] text-xs hover:border-red-500/40 hover:text-red-400 transition-colors leading-none"
+          >
+            −
+          </button>
+        )}
+        <span className="rv-display text-2xl" style={{ color }}>
+          {value}
+          {pending > 0 && (
+            <span className="text-base ml-0.5" style={{ color: "var(--rv-accent)" }}>
+              +{pending}
+            </span>
+          )}
+        </span>
+        {onAdd && hasPoints && (
+          <button
+            type="button"
+            onClick={onAdd}
+            className="h-5 w-5 rounded-full bg-[var(--rv-accent)]/20 border border-[var(--rv-accent)]/40 text-[var(--rv-accent)] text-xs hover:bg-[var(--rv-accent)]/30 transition-colors leading-none"
+          >
+            +
+          </button>
+        )}
+      </div>
     </div>
   );
 }
 
-type Tab = "stats" | "inventory" | "skills" | "quests";
+type Tab = "stats" | "inventory" | "skills" | "quests" | "party";
 
 const TABS: { id: Tab; label: string }[] = [
   { id: "stats",     label: "Personagem" },
   { id: "inventory", label: "Inventário" },
   { id: "skills",    label: "Habilidades" },
   { id: "quests",    label: "Missões" },
+  { id: "party",     label: "Grupo" },
 ];
 
-function CharacterPanel({ data, heroName, onLaunch, launching, onRefresh }: {
+type AllocAttrs = { strength: number; agility: number; intelligence: number; vitality: number };
+
+function CharacterPanel({ data, heroName, userId, onLaunch, launching, onRefresh }: {
   data: PlayData;
   heroName: string;
+  userId: string;
   onLaunch: () => void;
   launching: boolean;
   onRefresh: () => void;
 }) {
   const { stats, skills, inventory } = data;
   const [tab, setTab] = useState<Tab>("stats");
+
+  // ── Point allocation ────────────────────────────────────────────────────
+  const [pending, setPending] = useState<AllocAttrs>({ strength: 0, agility: 0, intelligence: 0, vitality: 0 });
+  const [allocating, setAllocating] = useState(false);
+  const [allocError, setAllocError] = useState("");
+  const totalPending = pending.strength + pending.agility + pending.intelligence + pending.vitality;
+  const remainingAfter = stats.points_remaining - totalPending;
+
+  function inc(attr: keyof AllocAttrs) {
+    if (remainingAfter <= 0) return;
+    setPending((p) => ({ ...p, [attr]: p[attr] + 1 }));
+  }
+  function dec(attr: keyof AllocAttrs) {
+    if (pending[attr] <= 0) return;
+    setPending((p) => ({ ...p, [attr]: p[attr] - 1 }));
+  }
+  async function confirmAlloc() {
+    if (totalPending === 0) return;
+    setAllocating(true);
+    setAllocError("");
+    const res = await fetch("/api/game/stats/allocate", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(pending),
+    });
+    if (!res.ok) {
+      const body = await res.json().catch(() => ({})) as { error?: string };
+      setAllocError(body?.error ?? "Erro ao alocar pontos.");
+    } else {
+      setPending({ strength: 0, agility: 0, intelligence: 0, vitality: 0 });
+      onRefresh();
+    }
+    setAllocating(false);
+  }
 
   const cls     = CLASS_OPTIONS.find(c => c.value === stats.character_class);
   const race    = RACE_OPTIONS.find(r => r.value === stats.race);
@@ -189,19 +260,52 @@ function CharacterPanel({ data, heroName, onLaunch, launching, onRefresh }: {
           <div className="space-y-5">
             <StatBar label="HP"   cur={stats.health} max={stats.max_health} color="#ef4444" />
             <StatBar label="MANA" cur={stats.mana}   max={stats.max_mana}   color="#8b5cf6" />
+
+            {/* Attribute grid — interactive when points available */}
             <div className="grid grid-cols-2 gap-3 pt-1">
-              <AttrItem label="FOR" value={stats.strength}     color="#f59e0b" />
-              <AttrItem label="AGI" value={stats.agility}      color="#10b981" />
-              <AttrItem label="INT" value={stats.intelligence} color="#06b6d4" />
-              <AttrItem label="VIT" value={stats.vitality}     color="#ef4444" />
+              <AttrItem label="FOR" value={stats.strength}     color="#f59e0b" pending={pending.strength}     onAdd={() => inc("strength")}     onSub={() => dec("strength")}     hasPoints={remainingAfter > 0} />
+              <AttrItem label="AGI" value={stats.agility}      color="#10b981" pending={pending.agility}      onAdd={() => inc("agility")}      onSub={() => dec("agility")}      hasPoints={remainingAfter > 0} />
+              <AttrItem label="INT" value={stats.intelligence} color="#06b6d4" pending={pending.intelligence} onAdd={() => inc("intelligence")} onSub={() => dec("intelligence")} hasPoints={remainingAfter > 0} />
+              <AttrItem label="VIT" value={stats.vitality}     color="#ef4444" pending={pending.vitality}     onAdd={() => inc("vitality")}     onSub={() => dec("vitality")}     hasPoints={remainingAfter > 0} />
             </div>
+
+            {/* Allocation banner */}
             {stats.points_remaining > 0 && (
-              <div className="p-3 rounded-xl border border-[var(--rv-accent)]/30 bg-[var(--rv-accent)]/5 text-center">
-                <span className="rv-label text-[9px] text-[var(--rv-accent)] tracking-[0.3em]">
-                  {stats.points_remaining} PONTOS DISPONÍVEIS
-                </span>
+              <div className="rounded-xl border border-[var(--rv-accent)]/30 bg-[var(--rv-accent)]/5 p-3 space-y-3">
+                <div className="flex items-center justify-between">
+                  <span className="rv-label text-[9px] text-[var(--rv-accent)] tracking-[0.3em]">
+                    {remainingAfter} PONTO{remainingAfter !== 1 ? "S" : ""} DISPONÍVE{remainingAfter !== 1 ? "IS" : "L"}
+                  </span>
+                  {totalPending > 0 && (
+                    <span className="rv-label text-[9px] text-[var(--rv-text-dim)]">
+                      {totalPending} a confirmar
+                    </span>
+                  )}
+                </div>
+                {totalPending > 0 && (
+                  <>
+                    {allocError && (
+                      <span className="rv-label text-[9px] text-red-400 block">{allocError}</span>
+                    )}
+                    <button
+                      type="button"
+                      onClick={confirmAlloc}
+                      disabled={allocating}
+                      className="rv-btn rv-btn-primary w-full h-8 text-xs disabled:opacity-50 disabled:cursor-not-allowed"
+                    >
+                      {allocating ? (
+                        <span className="flex items-center justify-center gap-2">
+                          <span className="h-3 w-3 rounded-full border-t-2 border-white animate-spin" />
+                          Confirmando...
+                        </span>
+                      ) : `✦ Confirmar +${totalPending} atributo${totalPending !== 1 ? "s" : ""}`}
+                    </button>
+                  </>
+                )}
               </div>
             )}
+
+            {/* XP bar */}
             <div className="pt-1">
               <div className="flex justify-between mb-1">
                 <span className="rv-label text-[9px] text-[var(--rv-text-dim)] tracking-[0.25em]">XP</span>
@@ -227,6 +331,10 @@ function CharacterPanel({ data, heroName, onLaunch, launching, onRefresh }: {
 
         {tab === "quests" && (
           <QuestTracker />
+        )}
+
+        {tab === "party" && (
+          <PartyPanel userId={userId} />
         )}
       </div>
     </div>
@@ -470,7 +578,8 @@ export default function PlayPage() {
   }
 
   const u = user as Record<string, unknown>;
-  const heroName    = String(u?.display_name || u?.username || "Herói");
+  const heroName     = String(u?.display_name || u?.username || "Herói");
+  const userId       = String(u?.id ?? "");
   const hasCharacter = !!data?.stats?.character_class;
 
   return (
@@ -500,6 +609,7 @@ export default function PlayPage() {
           <CharacterPanel
             data={data}
             heroName={heroName}
+            userId={userId}
             onLaunch={handleLaunch}
             launching={launching}
             onRefresh={handleRefresh}

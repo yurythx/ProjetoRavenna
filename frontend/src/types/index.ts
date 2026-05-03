@@ -157,3 +157,14 @@ export type QuestProgress = {
   quest_rewards: QuestRewards;
   quest_type: "main" | "side" | "daily" | "repeatable";
 };
+
+export type PartyMember = {
+  user_id: UUID;
+  display_name: string;
+};
+
+export type Party = {
+  id: UUID;
+  leader_id: UUID;
+  members: PartyMember[];
+};
