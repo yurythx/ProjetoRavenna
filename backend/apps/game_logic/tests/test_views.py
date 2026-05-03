@@ -770,3 +770,308 @@ class UpgradeSkillViewTestCase(TestCase):
         response = self.client.post(url)
         self.assertEqual(response.status_code, 400)
         self.assertIn("gold", response.json()["error"].lower())
+
+
+# ── Equip / Unequip Views ────────────────────────────────────────────────────
+
+class EquipUnequipViewTestCase(TestCase):
+    def setUp(self):
+        self.client = APIClient()
+        self.user = User.objects.create_user(
+            email="equip@example.com", username="equipuser", password="TestPass123!"
+        )
+        self.client.force_authenticate(user=self.user)
+
+        stats, _ = __import__("apps.game_logic.models", fromlist=["PlayerStats"]).PlayerStats.objects.get_or_create(owner=self.user)
+        stats.character_class = "shadow"
+        stats.save(update_fields=["character_class", "updated_at"])
+
+        sword = ItemTemplate.objects.create(
+            name="Iron Sword", item_type="weapon", rarity="common",
+            stack_size=1, equip_slot="weapon", weapon_type="sword",
+            base_phys_damage=10,
+        )
+        self.inventory, _ = __import__("apps.game_logic.models", fromlist=["PlayerInventory"]).PlayerInventory.objects.get_or_create(owner=self.user)
+        from apps.game_logic.models import PlayerItem as _PI
+        self.player_item = _PI.objects.create(
+            inventory=self.inventory, item_template=sword,
+            quantity=1, slot_index=0,
+        )
+
+    def test_equip_item_returns_200_with_slot(self):
+        response = self.client.post(
+            "/api/v1/game-logic/inventory/equip/",
+            {"player_item_id": str(self.player_item.id), "equip_slot": "weapon"},
+            format="json",
+        )
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.json()["equip_slot"], "weapon")
+
+    def test_equip_invalid_slot_returns_400(self):
+        response = self.client.post(
+            "/api/v1/game-logic/inventory/equip/",
+            {"player_item_id": str(self.player_item.id), "equip_slot": "bad_slot"},
+            format="json",
+        )
+        self.assertEqual(response.status_code, 400)
+
+    def test_equip_missing_body_returns_400(self):
+        response = self.client.post(
+            "/api/v1/game-logic/inventory/equip/", {}, format="json",
+        )
+        self.assertEqual(response.status_code, 400)
+
+    def test_equip_unauthenticated_returns_401(self):
+        self.client.force_authenticate(user=None)
+        response = self.client.post(
+            "/api/v1/game-logic/inventory/equip/",
+            {"player_item_id": str(self.player_item.id), "equip_slot": "weapon"},
+            format="json",
+        )
+        self.assertEqual(response.status_code, 401)
+
+    def test_unequip_equipped_item_returns_200(self):
+        self.player_item.equip_slot = "weapon"
+        self.player_item.save(update_fields=["equip_slot", "updated_at"])
+
+        response = self.client.post(
+            "/api/v1/game-logic/inventory/unequip/",
+            {"equip_slot": "weapon"},
+            format="json",
+        )
+        self.assertEqual(response.status_code, 200)
+        self.assertTrue(response.json()["ok"])
+
+    def test_unequip_missing_slot_returns_400(self):
+        response = self.client.post(
+            "/api/v1/game-logic/inventory/unequip/", {}, format="json",
+        )
+        self.assertEqual(response.status_code, 400)
+
+    def test_unequip_unauthenticated_returns_401(self):
+        self.client.force_authenticate(user=None)
+        response = self.client.post(
+            "/api/v1/game-logic/inventory/unequip/",
+            {"equip_slot": "weapon"},
+            format="json",
+        )
+        self.assertEqual(response.status_code, 401)
+
+
+# ── Party Views ──────────────────────────────────────────────────────────────
+
+class PartyViewTestCase(TestCase):
+    def setUp(self):
+        self.client = APIClient()
+        self.leader = User.objects.create_user(
+            email="partyleader@example.com", username="partyleader", password="TestPass123!"
+        )
+        self.other = User.objects.create_user(
+            email="partyother@example.com", username="partyother", password="TestPass123!"
+        )
+        self.client.force_authenticate(user=self.leader)
+
+    def test_get_party_when_not_in_party_returns_404(self):
+        response = self.client.get("/api/v1/game-logic/party/")
+        self.assertEqual(response.status_code, 404)
+
+    def test_create_party_returns_201(self):
+        response = self.client.post("/api/v1/game-logic/party/")
+        self.assertEqual(response.status_code, 201)
+        data = response.json()
+        self.assertIn("id", data)
+        self.assertEqual(data["leader_id"], str(self.leader.id))
+        self.assertEqual(len(data["members"]), 1)
+
+    def test_get_party_after_create_returns_200(self):
+        self.client.post("/api/v1/game-logic/party/")
+        response = self.client.get("/api/v1/game-logic/party/")
+        self.assertEqual(response.status_code, 200)
+
+    def test_delete_party_returns_200(self):
+        self.client.post("/api/v1/game-logic/party/")
+        response = self.client.delete("/api/v1/game-logic/party/")
+        self.assertEqual(response.status_code, 200)
+        self.assertTrue(response.json()["ok"])
+
+    def test_delete_disbands_party(self):
+        self.client.post("/api/v1/game-logic/party/")
+        self.client.delete("/api/v1/game-logic/party/")
+        response = self.client.get("/api/v1/game-logic/party/")
+        self.assertEqual(response.status_code, 404)
+
+    def test_unauthenticated_returns_401(self):
+        self.client.force_authenticate(user=None)
+        self.assertEqual(self.client.get("/api/v1/game-logic/party/").status_code, 401)
+        self.assertEqual(self.client.post("/api/v1/game-logic/party/").status_code, 401)
+        self.assertEqual(self.client.delete("/api/v1/game-logic/party/").status_code, 401)
+
+
+class PartyInviteViewTestCase(TestCase):
+    def setUp(self):
+        self.client = APIClient()
+        self.leader = User.objects.create_user(
+            email="inv_leader@example.com", username="inv_leader", password="TestPass123!"
+        )
+        self.invitee = User.objects.create_user(
+            email="inv_other@example.com", username="inv_other", password="TestPass123!"
+        )
+        self.client.force_authenticate(user=self.leader)
+        self.client.post("/api/v1/game-logic/party/")
+
+    def test_invite_adds_member(self):
+        response = self.client.post(
+            "/api/v1/game-logic/party/invite/",
+            {"user_id": str(self.invitee.id)},
+            format="json",
+        )
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.json()["member_count"], 2)
+
+    def test_invite_without_party_returns_404(self):
+        self.client.delete("/api/v1/game-logic/party/")
+        response = self.client.post(
+            "/api/v1/game-logic/party/invite/",
+            {"user_id": str(self.invitee.id)},
+            format="json",
+        )
+        self.assertEqual(response.status_code, 404)
+
+    def test_invite_self_returns_400(self):
+        response = self.client.post(
+            "/api/v1/game-logic/party/invite/",
+            {"user_id": str(self.leader.id)},
+            format="json",
+        )
+        self.assertEqual(response.status_code, 400)
+
+    def test_invite_missing_user_id_returns_400(self):
+        response = self.client.post(
+            "/api/v1/game-logic/party/invite/", {}, format="json",
+        )
+        self.assertEqual(response.status_code, 400)
+
+    def test_invite_unauthenticated_returns_401(self):
+        self.client.force_authenticate(user=None)
+        response = self.client.post(
+            "/api/v1/game-logic/party/invite/",
+            {"user_id": str(self.invitee.id)},
+            format="json",
+        )
+        self.assertEqual(response.status_code, 401)
+
+
+# ── Create Character View ────────────────────────────────────────────────────
+
+class CreateCharacterViewTestCase(TestCase):
+    def setUp(self):
+        self.client = APIClient()
+        self.user = User.objects.create_user(
+            email="newchar@example.com", username="newchar", password="TestPass123!"
+        )
+        self.client.force_authenticate(user=self.user)
+
+    def test_create_character_returns_201(self):
+        response = self.client.post(
+            "/api/v1/game-logic/character/create/",
+            {"character_class": "mage", "race": "elfo", "faction": "vanguarda"},
+            format="json",
+        )
+        self.assertEqual(response.status_code, 201)
+        data = response.json()
+        self.assertEqual(data["character_class"], "mage")
+        self.assertIn("skills_granted", data)
+
+    def test_create_character_duplicate_returns_409(self):
+        self.client.post(
+            "/api/v1/game-logic/character/create/",
+            {"character_class": "mage", "race": "elfo", "faction": "vanguarda"},
+            format="json",
+        )
+        response = self.client.post(
+            "/api/v1/game-logic/character/create/",
+            {"character_class": "archer", "race": "humano", "faction": "legiao"},
+            format="json",
+        )
+        self.assertEqual(response.status_code, 409)
+
+    def test_invalid_class_returns_400(self):
+        response = self.client.post(
+            "/api/v1/game-logic/character/create/",
+            {"character_class": "wizard", "race": "elfo", "faction": "vanguarda"},
+            format="json",
+        )
+        self.assertEqual(response.status_code, 400)
+
+    def test_missing_fields_returns_400(self):
+        response = self.client.post(
+            "/api/v1/game-logic/character/create/",
+            {"character_class": "mage"},
+            format="json",
+        )
+        self.assertEqual(response.status_code, 400)
+
+    def test_unauthenticated_returns_401(self):
+        self.client.force_authenticate(user=None)
+        response = self.client.post(
+            "/api/v1/game-logic/character/create/",
+            {"character_class": "mage", "race": "elfo", "faction": "vanguarda"},
+            format="json",
+        )
+        self.assertEqual(response.status_code, 401)
+
+    def test_stats_reflect_class_base(self):
+        response = self.client.post(
+            "/api/v1/game-logic/character/create/",
+            {"character_class": "paladino", "race": "humano", "faction": "vanguarda"},
+            format="json",
+        )
+        self.assertEqual(response.status_code, 201)
+        data = response.json()
+        self.assertEqual(data["vitality"], 14)
+        self.assertEqual(data["max_health"], 310)  # 100 + 14*15
+
+
+# ── player_died Webhook ──────────────────────────────────────────────────────
+
+class PlayerDiedWebhookTestCase(TestCase):
+    def setUp(self):
+        self.client = APIClient()
+        self.user = User.objects.create_user(
+            email="ghost@example.com", username="ghost", password="TestPass123!"
+        )
+        stats, _ = PlayerStats.objects.get_or_create(owner=self.user)
+        stats.experience = 500
+        stats.save(update_fields=["experience", "updated_at"])
+        inv, _ = __import__("apps.game_logic.models", fromlist=["PlayerInventory"]).PlayerInventory.objects.get_or_create(owner=self.user)
+        inv.gold = 200
+        inv.save(update_fields=["gold", "updated_at"])
+
+    def _post(self, payload, secret=_WEBHOOK_SECRET):
+        body = json.dumps(payload).encode()
+        return self.client.post(
+            _WEBHOOK_URL,
+            data=body,
+            content_type="application/json",
+            HTTP_X_WEBHOOK_SECRET=_sign(body, secret),
+        )
+
+    def test_player_died_deducts_xp(self):
+        response = self._post({
+            "event_type": "player_died",
+            "player_id": str(self.user.id),
+            "data": {},
+        })
+        self.assertEqual(response.status_code, 200)
+        stats = PlayerStats.objects.get(owner=self.user)
+        self.assertEqual(stats.experience, 450)  # 500 - 50 (10%)
+
+    def test_player_died_deducts_gold(self):
+        self._post({
+            "event_type": "player_died",
+            "player_id": str(self.user.id),
+            "data": {},
+        })
+        from apps.game_logic.models import PlayerInventory as _PI
+        inv = _PI.objects.get(owner=self.user)
+        self.assertEqual(inv.gold, 180)  # 200 - 20 (10%)
