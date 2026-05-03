@@ -76,7 +76,7 @@ export function ArticleForm({ initialData, onSuccess, onCancel }: ArticleFormPro
   const { data: categories } = useQuery<Category[]>({
     queryKey: ['categories'],
     queryFn: async () => {
-      const res = await api.get<Category[] | { results: Category[] }>('/api/articles/categories/')
+      const res = await api.get<Category[] | { results: Category[] }>('/api/v1/blog/categories/')
       const data = Array.isArray(res.data) ? res.data : res.data.results || []
       return Array.isArray(data) ? data : []
     },
@@ -86,7 +86,7 @@ export function ArticleForm({ initialData, onSuccess, onCancel }: ArticleFormPro
   const { data: allTags } = useQuery<Tag[]>({
     queryKey: ['tags'],
     queryFn: async () => {
-      const res = await api.get<Tag[] | { results: Tag[] }>('/api/articles/tags/')
+      const res = await api.get<Tag[] | { results: Tag[] }>('/api/v1/blog/tags/')
       const data = Array.isArray(res.data) ? res.data : res.data.results || []
       return Array.isArray(data) ? data : []
     },
@@ -138,7 +138,7 @@ export function ArticleForm({ initialData, onSuccess, onCancel }: ArticleFormPro
 
   const reviewMutation = useMutation({
     mutationFn: async ({ action, slug }: { action: 'submit' | 'publish' | 'reject', slug: string }) => {
-      await api.post(`/api/articles/articles/${slug}/${action}/`)
+      await api.post(`/api/v1/blog/articles/${slug}/${action}/`)
     },
     onSuccess: (_, variables) => {
       queryClient.invalidateQueries({ queryKey: ['articles'] })
@@ -220,9 +220,9 @@ export function ArticleForm({ initialData, onSuccess, onCancel }: ArticleFormPro
 
       if (initialData) {
         // Use the initial slug, as changing the slug in the form won't affect the lookup URL until saved
-        await api.put(`/api/articles/articles/${initialData.slug}/`, payload)
+        await api.put(`/api/v1/blog/articles/${initialData.slug}/`, payload)
       } else {
-        await api.post('/api/articles/articles/', payload)
+        await api.post('/api/v1/blog/articles/', payload)
       }
     },
     onSuccess: () => {
@@ -253,7 +253,7 @@ export function ArticleForm({ initialData, onSuccess, onCancel }: ArticleFormPro
 
   const deleteMutation = useMutation({
     mutationFn: async (slug: string) => {
-      await api.delete(`/api/articles/articles/${slug}/`)
+      await api.delete(`/api/v1/blog/articles/${slug}/`)
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['articles'] })

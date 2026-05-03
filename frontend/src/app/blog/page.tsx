@@ -113,41 +113,41 @@ export default async function BlogPage({
 
   return (
     <div className="relative min-h-screen">
-      {/* Background orbs */}
+      {/* Ambient Orbs */}
       <div className="pointer-events-none fixed inset-0 overflow-hidden">
-        <div className="rv-orb rv-animate-pulse-glow" style={{ width: "500px", height: "500px", top: "-15%", left: "-10%", background: "var(--rv-accent)", opacity: 0.18 }} />
-        <div className="rv-orb" style={{ width: "300px", height: "300px", bottom: "10%", right: "-5%", background: "var(--rv-cyan)", opacity: 0.12 }} />
+        <div className="rv-orb rv-animate-pulse-glow" style={{ width: "600px", height: "600px", top: "-10%", right: "-5%", background: "var(--rv-accent)", opacity: 0.15 }} />
+        <div className="rv-orb" style={{ width: "400px", height: "400px", bottom: "5%", left: "-10%", background: "var(--rv-purple)", opacity: 0.12 }} />
       </div>
 
       {/* ── Hero ── */}
-      <section className="relative border-b border-[var(--rv-border)] bg-gradient-to-b from-[var(--rv-surface)]/60 to-transparent">
-        <div className="pointer-events-none absolute inset-0 opacity-[0.04]"
+      <section className="relative border-b border-[var(--rv-border)] bg-gradient-to-b from-[var(--rv-surface)]/80 to-transparent">
+        <div className="pointer-events-none absolute inset-0 opacity-[0.05]"
           style={{ backgroundImage: "url(\"data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='56' height='100'%3E%3Cpath d='M28 66L0 50V18L28 2l28 16v32L28 66zm0-2l26-15V19L28 4 2 19v30l26 15z' fill='none' stroke='%238b5cf6' stroke-width='1'/%3E%3C/svg%3E\")" }}
         />
-        <div className="relative z-10 mx-auto max-w-7xl px-4 py-20 sm:px-6 lg:px-8">
+        <div className="relative z-10 mx-auto max-w-7xl px-4 py-16 sm:py-24 sm:px-6 lg:px-8">
           <div className="flex flex-col md:flex-row items-start md:items-end justify-between gap-8">
-            <div>
-              <span className="rv-badge rv-badge-purple mb-4 inline-flex">✦ Diário do Servidor</span>
-              <h1 className="rv-display text-5xl md:text-6xl text-white">Lore &amp;<br />Patch Notes</h1>
-              <p className="mt-4 text-[var(--rv-text-muted)] max-w-lg" style={{ fontFamily: "var(--font-body)" }}>
-                Patch notes, histórias do mundo, guias e atualizações direto da equipe Ravenna.
+            <div className="space-y-4">
+              <span className="rv-badge rv-badge-purple inline-flex">✦ Diário de Ravenna</span>
+              <h1 className="rv-display text-5xl sm:text-6xl md:text-7xl text-white tracking-tight">Lore &amp;<br /><span className="text-[var(--rv-accent)]">Novidades</span></h1>
+              <p className="mt-4 text-[var(--rv-text-muted)] max-w-lg text-sm sm:text-base leading-relaxed" style={{ fontFamily: "var(--font-body)" }}>
+                Explore as crônicas do reino, patch notes detalhados e guias épicos criados pela equipe e pela comunidade.
               </p>
             </div>
-            <div className="flex items-center gap-4">
+            <div className="flex-shrink-0">
               <BlogHeaderActions />
             </div>
           </div>
 
-          {/* Stats */}
-          <div className="mt-12 grid grid-cols-3 gap-4 max-w-sm">
+          {/* Stats Bar */}
+          <div className="mt-12 flex flex-wrap gap-4">
             {[
-              { val: postsRes.ok ? String(postsRes.data.count) : "—", label: "Artigos" },
+              { val: postsRes.ok ? String(postsRes.data.count) : "—", label: "Crônicas" },
               { val: String(categories.length), label: "Categorias" },
               { val: String(tags.length), label: "Tags" },
             ].map((s) => (
-              <div key={s.label} className="rv-card p-4 text-center">
-                <div className="rv-display text-xl text-[var(--rv-accent)]">{s.val}</div>
-                <div className="rv-label text-[9px] text-[var(--rv-text-dim)] mt-1">{s.label}</div>
+              <div key={s.label} className="rv-card px-6 py-4 flex flex-col items-center min-w-[100px] bg-white/5 backdrop-blur-sm border-white/10">
+                <div className="rv-display text-xl sm:text-2xl text-[var(--rv-accent)]">{s.val}</div>
+                <div className="rv-label text-[8px] sm:text-[9px] uppercase tracking-widest text-[var(--rv-text-dim)] mt-1">{s.label}</div>
               </div>
             ))}
           </div>

@@ -16,12 +16,24 @@ export async function backendFetch<T>(
   const baseUrl = getApiBaseUrl();
   let normalizedPath = path.startsWith("/") ? path : `/${path}`;
 
-  // Auto-prepend /v1/ for known Django apps if missing
+  // 1. Clean up duplicate /api segments and common path mismatches
+  normalizedPath = normalizedPath.replace(/\/api\/api\//g, "/api/");
+  normalizedPath = normalizedPath.replace(/\/api\/articles\//g, "/api/blog/");
+
+  // 2. Auto-prepend /v1/ for known Django apps if missing
   const knownApps = ["accounts", "blog", "forum", "game-logic", "game-data"];
   const appMatch = normalizedPath.match(/^\/api\/(accounts|blog|forum|game-logic|game-data)\//);
   if (appMatch) {
     normalizedPath = normalizedPath.replace("/api/", "/api/v1/");
   }
+
+  // 3. Ensure trailing slash before query params (Django requirement)
+  const [basePath, query] = normalizedPath.split("?");
+  let finalPath = basePath;
+  if (!finalPath.endsWith("/") && !finalPath.split("/").pop()?.includes(".")) {
+    finalPath += "/";
+  }
+  normalizedPath = query ? `${finalPath}?${query}` : finalPath;
 
   const url = `${baseUrl}${normalizedPath}`;
 
