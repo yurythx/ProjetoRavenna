@@ -111,7 +111,7 @@ export async function middleware(req: NextRequest) {
 
   const needsAdmin = path.startsWith("/dashboard");
   const needsStrictAdmin = path.startsWith("/dashboard/usuarios");
-  const needsAuth = needsAdmin || path.startsWith("/game-data") || path.startsWith("/forum/new");
+  const needsAuth = needsAdmin || path.startsWith("/game-data") || path.startsWith("/forum/new") || path === "/play";
   if (!needsAuth) return NextResponse.next();
 
   const access = req.cookies.get("ravenna_access")?.value ?? null;
@@ -181,5 +181,5 @@ export async function middleware(req: NextRequest) {
 }
 
 export const config = {
-  matcher: ["/blog", "/artigos/:path*", "/dashboard/:path*", "/game-data/:path*", "/forum/new/:path*"],
+  matcher: ["/blog", "/artigos/:path*", "/dashboard/:path*", "/game-data/:path*", "/forum/new/:path*", "/play"],
 };

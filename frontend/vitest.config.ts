@@ -14,5 +14,26 @@ export default defineConfig({
     restoreMocks: true,
     clearMocks: true,
     unstubGlobals: true,
+    coverage: {
+      provider: "v8",
+      reporter: ["text", "lcov"],
+      // Apenas componentes, features, hooks e lib são medidos.
+      // Páginas (src/app/) são testadas via integração, não unitariamente.
+      include: [
+        "src/components/**/*.{ts,tsx}",
+        "src/features/**/*.{ts,tsx}",
+        "src/hooks/**/*.{ts,tsx}",
+        "src/lib/**/*.{ts,tsx}",
+      ],
+      exclude: [
+        "src/**/*.test.{ts,tsx}",
+        "src/**/*.spec.{ts,tsx}",
+        "src/test/**",
+        "src/**/*.d.ts",
+      ],
+      thresholds: {
+        lines: 40,
+      },
+    },
   },
 });

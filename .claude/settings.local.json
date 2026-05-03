@@ -1,0 +1,8 @@
+{
+  "permissions": {
+    "allow": [
+      "Read(//mnt/c/Users/suporte/Desktop/Projetos/ProjetoRavenna/gameserver/src/**)",
+      "Bash(dotnet build *)"
+    ]
+  }
+}

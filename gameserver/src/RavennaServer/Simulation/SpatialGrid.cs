@@ -17,9 +17,6 @@ internal sealed class SpatialGrid
     // Reverse map: entity → cell index (for O(1) moves)
     private readonly Dictionary<uint, int> _entityCell = new(512);
 
-    // Scratch buffer for neighbor queries — reused per call, single-threaded
-    private readonly List<uint> _neighborScratch = new(64);
-
     public SpatialGrid(int worldWidth, int worldHeight, int cellSize)
     {
         _cellSize = cellSize;

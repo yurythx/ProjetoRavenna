@@ -1,10 +1,119 @@
 import json
 import logging
+import time
 from channels.generic.websocket import AsyncWebsocketConsumer
 from channels.db import database_sync_to_async
 from django.utils import timezone
 
 logger = logging.getLogger(__name__)
+
+# ── Chat rooms ────────────────────────────────────────────────────────────────
+# Allowed room names: "global", "faction_<name>", "zone_<key>"
+# All names are validated before group_add to prevent injection.
+_CHAT_ROOMS = frozenset({"global"})
+_MAX_TEXT_LEN    = 200
+_RATE_WINDOW_SEC = 10
+_RATE_MAX_MSGS   = 5  # messages per window per user
+
+
+def _valid_room(room: str) -> bool:
+    if room in _CHAT_ROOMS:
+        return True
+    if room.startswith("faction_") and room[8:].isalpha() and len(room) <= 32:
+        return True
+    if room.startswith("zone_") and room[5:].replace("_", "").isalnum() and len(room) <= 32:
+        return True
+    return False
+
+
+class ChatConsumer(AsyncWebsocketConsumer):
+    """
+    WebSocket consumer for real-time text chat.
+
+    URL: ws://<host>/ws/chat/<room>/
+    Auth: JWT (via AuthMiddlewareStack — same as GameConsumer).
+
+    Allowed rooms:
+        global            — server-wide chat
+        faction_<name>    — faction channel (e.g. faction_ordem)
+        zone_<key>        — zone-scoped chat (e.g. zone_ruins)
+
+    Incoming:  {"type": "chat.send", "text": "<message>"}
+    Outgoing:  {"type": "chat.message", "user": "<display_name>",
+                "user_id": "<uuid>", "text": "...", "ts": <unix_ms>}
+    """
+
+    async def connect(self):
+        self.room = self.scope["url_route"]["kwargs"]["room"]
+        self.user = self.scope.get("user")
+
+        if not self.user or not self.user.is_authenticated:
+            await self.close(code=4001)
+            return
+
+        if self.user.is_banned:
+            await self.close(code=4003)
+            return
+
+        if not _valid_room(self.room):
+            await self.close(code=4004)
+            return
+
+        self.group_name = f"chat_{self.room}"
+        self._rate_window_start = time.monotonic()
+        self._rate_count = 0
+
+        await self.channel_layer.group_add(self.group_name, self.channel_name)
+        await self.accept()
+        logger.debug("chat.connect user=%s room=%s", self.user.id, self.room)
+
+    async def disconnect(self, close_code):
+        if hasattr(self, "group_name"):
+            await self.channel_layer.group_discard(self.group_name, self.channel_name)
+
+    async def receive(self, text_data):
+        try:
+            data = json.loads(text_data)
+        except json.JSONDecodeError:
+            return
+
+        if data.get("type") != "chat.send":
+            return
+
+        text = str(data.get("text", "")).strip()
+        if not text or len(text) > _MAX_TEXT_LEN:
+            return
+
+        # Per-connection rate limiting (no Redis needed — local window)
+        now = time.monotonic()
+        if now - self._rate_window_start > _RATE_WINDOW_SEC:
+            self._rate_window_start = now
+            self._rate_count = 0
+        self._rate_count += 1
+        if self._rate_count > _RATE_MAX_MSGS:
+            await self.send(text_data=json.dumps({"type": "chat.error", "reason": "rate_limited"}))
+            return
+
+        display_name = getattr(self.user, "display_name", None) or self.user.username
+        await self.channel_layer.group_send(
+            self.group_name,
+            {
+                "type":    "chat.message",
+                "user":    display_name,
+                "user_id": str(self.user.id),
+                "text":    text,
+                "ts":      int(time.time() * 1000),
+            },
+        )
+
+    async def chat_message(self, event):
+        await self.send(text_data=json.dumps({
+            "type":    "chat.message",
+            "user":    event["user"],
+            "user_id": event["user_id"],
+            "text":    event["text"],
+            "ts":      event["ts"],
+        }))
 
 
 class GameConsumer(AsyncWebsocketConsumer):

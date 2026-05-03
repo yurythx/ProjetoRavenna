@@ -36,8 +36,31 @@ internal sealed class JwtValidator
     {
         try
         {
-            var handler  = new JwtSecurityTokenHandler();
+            var handler   = new JwtSecurityTokenHandler();
             var principal = handler.ValidateToken(token, _params, out _);
+            return principal.FindFirst("user_id")?.Value
+                ?? principal.FindFirst(JwtRegisteredClaimNames.Sub)?.Value;
+        }
+        catch
+        {
+            return null;
+        }
+    }
+
+    /// <summary>
+    /// Like Validate, but also enforces that token_type == "unity_auth".
+    /// Rejects generic access tokens that were not issued for game login.
+    /// </summary>
+    public string? ValidateUnityAuth(string token)
+    {
+        try
+        {
+            var handler   = new JwtSecurityTokenHandler();
+            var principal = handler.ValidateToken(token, _params, out _);
+
+            var tokenType = principal.FindFirst("token_type")?.Value;
+            if (tokenType != "unity_auth") return null;
+
             return principal.FindFirst("user_id")?.Value
                 ?? principal.FindFirst(JwtRegisteredClaimNames.Sub)?.Value;
         }

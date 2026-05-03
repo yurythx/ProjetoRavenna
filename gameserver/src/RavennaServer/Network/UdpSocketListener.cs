@@ -25,6 +25,7 @@ internal sealed class UdpSocketListener
     private readonly int             _port;
     private readonly SimulationLoop  _simLoop;
     private readonly JwtValidator    _jwt;
+    private readonly DjangoBridge    _bridge;
 
     // Active KCP sessions: conv_id → session
     private readonly ConcurrentDictionary<uint, PlayerSession> _sessions = new();
@@ -32,11 +33,12 @@ internal sealed class UdpSocketListener
     // Monotonic session ID counter
     private uint _nextConv = 1;
 
-    public UdpSocketListener(int port, SimulationLoop simLoop, JwtValidator jwt)
+    public UdpSocketListener(int port, SimulationLoop simLoop, JwtValidator jwt, DjangoBridge bridge)
     {
         _port    = port;
         _simLoop = simLoop;
         _jwt     = jwt;
+        _bridge  = bridge;
     }
 
     public Task RunAsync(CancellationToken ct) =>
@@ -90,7 +92,7 @@ internal sealed class UdpSocketListener
         try { hs = C2S_Handshake.Parser.ParseFrom(payload.ToArray()); }
         catch { SendHandshakeAck(socket, remote, 0, ok: false, "malformed"); return; }
 
-        string? userId = _jwt.Validate(hs.JwtToken);
+        string? userId = _jwt.ValidateUnityAuth(hs.JwtToken);
         if (userId is null)
         { SendHandshakeAck(socket, remote, 0, ok: false, "invalid_token"); return; }
 
@@ -106,6 +108,75 @@ internal sealed class UdpSocketListener
         {
             socket.SendTo(bytes.AsSpan(0, len), remote);
         });
+
+        // Restore full player state from Django (≤ 300 ms fetch, safe on dedicated OS thread)
+        var state = _bridge.FetchPlayerStateAsync(userId).GetAwaiter().GetResult();
+        if (state is not null)
+        {
+            // ── Base attributes ───────────────────────────────────────────────
+            session.Level        = state.Level;
+            session.Strength     = state.Strength;
+            session.Agility      = state.Agility;
+            session.Intelligence = state.Intelligence;
+            session.Vitality     = state.Vitality;
+
+            // ── Identity ──────────────────────────────────────────────────────
+            session.Class   = ParseClass(state.CharacterClass);
+            session.Race    = ParseRace(state.Race);
+            session.Faction = ParseFaction(state.Faction);
+
+            // ── Apply passive flat attribute bonuses (before derived-stat calc) ─
+            // Flat bonuses feed into the AttributeCalculator formulas, so a
+            // passive +8 STR also increases PhysicalDamage automatically.
+            var pb  = state.PassiveBonuses;
+            int effStr = state.Strength     + pb.Str;
+            int effAgi = state.Agility      + pb.Agi;
+            int effInt = state.Intelligence + pb.Int;
+            int effVit = state.Vitality     + pb.Vit;
+
+            // ── Derived stats via AttributeCalculator (using passive-boosted attrs) ─
+            var eb = state.EquipmentBonuses;
+            session.PhysicalDamage = AttributeCalculator.PhysicalDamage(
+                effStr, effAgi, eb.PhysDamage);
+            session.MagicalDamage  = AttributeCalculator.MagicalDamage(
+                effInt, eb.MagDamage);
+            session.PhysDefense    = AttributeCalculator.PhysDefense(
+                effVit, eb.PhysDefense);
+            session.MagDefense     = AttributeCalculator.MagDefense(
+                effVit, effInt, eb.MagDefense);
+            session.DamageMode     = AttributeCalculator.InferDamageMode(session.Class, eb.MagDamage);
+            session.MaxHp          = AttributeCalculator.MaxHp(effVit, eb.Health);
+            session.MaxMana        = AttributeCalculator.MaxMana(effInt, eb.Mana);
+            session.MovementSpeed  = AttributeCalculator.MoveSpeed(effAgi, eb.Speed);
+            session.AttackCooldownSec = AttributeCalculator.AttackCooldown(effAgi, eb.AttackSpeed);
+
+            // ── Apply passive percentage bonuses (after derived-stat calc) ────────
+            // Percentage bonuses amplify the already-computed derived stats.
+            if (pb.MaxHpPct       != 0) session.MaxHp         = (int)(session.MaxHp         * (1f + pb.MaxHpPct       / 100f));
+            if (pb.MaxManaPct     != 0) session.MaxMana        = (int)(session.MaxMana        * (1f + pb.MaxManaPct     / 100f));
+            if (pb.PhysDamagePct  != 0) session.PhysicalDamage = (int)(session.PhysicalDamage * (1f + pb.PhysDamagePct  / 100f));
+            if (pb.MagDamagePct   != 0) session.MagicalDamage  = (int)(session.MagicalDamage  * (1f + pb.MagDamagePct   / 100f));
+            if (pb.PhysDefensePct != 0) session.PhysDefense    = (int)(session.PhysDefense    * (1f + pb.PhysDefensePct / 100f));
+            if (pb.MagDefensePct  != 0) session.MagDefense     = (int)(session.MagDefense     * (1f + pb.MagDefensePct  / 100f));
+            if (pb.MoveSpeedPct   != 0) session.MovementSpeed  = (int)(session.MovementSpeed  * (1f + pb.MoveSpeedPct   / 100f));
+            if (pb.AttackRangePct != 0) session.AttackRange    = (int)(session.AttackRange    * (1f + pb.AttackRangePct / 100f));
+
+            // ── Restore runtime state ─────────────────────────────────────────
+            session.CurrentHp   = Math.Min(state.Hp,   session.MaxHp);
+            session.CurrentMana = Math.Min(state.Mana, session.MaxMana);
+
+            if (state.PosX != 0 || state.PosY != 0)
+                MovementController.SetDestination(session, state.PosX, state.PosY);
+
+            // ── Skill levels ──────────────────────────────────────────────────
+            if (state.Skills is not null)
+                foreach (var sk in state.Skills)
+                    if (sk.ServerId > 0)
+                        session.SkillLevels[(uint)sk.ServerId] = Math.Max(1, sk.CurrentLevel);
+
+            // ── Party ─────────────────────────────────────────────────────────
+            session.PartyId = string.IsNullOrEmpty(state.PartyId) ? null : state.PartyId;
+        }
 
         _sessions[conv] = session;
         _simLoop.OnPlayerConnected(session);
@@ -147,4 +218,35 @@ internal sealed class UdpSocketListener
     {
         if (_sessions.TryRemove(conv, out var s)) s.Kcp?.Dispose();
     }
+
+    // ── Django string → C# enum helpers ─────────────────────────────────────
+
+    private static CharacterClass ParseClass(string value) => value switch
+    {
+        "paladino"         => CharacterClass.Paladino,
+        "mage"             => CharacterClass.Mage,
+        "archer"           => CharacterClass.Archer,
+        "eldari"           => CharacterClass.Eldari,
+        "cavaleiro_dragao" => CharacterClass.CavaleiroDragao,
+        "ignis"            => CharacterClass.Ignis,
+        "shadow"           => CharacterClass.Shadow,
+        "necromante"       => CharacterClass.Necromante,
+        _                  => CharacterClass.None,
+    };
+
+    private static Race ParseRace(string value) => value switch
+    {
+        "humano"     => Race.Humano,
+        "elfo"       => Race.Elfo,
+        "draconato"  => Race.Draconato,
+        "morto_vivo" => Race.MortoVivo,
+        _            => Race.None,
+    };
+
+    private static Faction ParseFaction(string value) => value switch
+    {
+        "vanguarda" => Faction.Vanguarda,
+        "legiao"    => Faction.Legiao,
+        _           => Faction.None,
+    };
 }

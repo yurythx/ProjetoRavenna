@@ -37,6 +37,11 @@ internal sealed class CombatProfile
     public int   AggroRange        { get; init; } = 1000;  // cm — NPCs only
     public int   XpReward          { get; init; } = 0;     // NPCs only
 
+    // AoE attack (0 = disabled)
+    public int   AoeRadius         { get; init; } = 0;     // cm — 0 means no AoE
+    public float AoeCooldownSec    { get; init; } = 5.0f;  // seconds between AoE strikes
+    public int   AoeDamage         { get; init; } = 0;     // flat damage per AoE hit
+
     public static readonly CombatProfile DefaultPlayer = new()
     {
         MaxHp             = 100,
@@ -66,5 +71,32 @@ internal sealed class CombatProfile
         AttackCooldownSec = 1.2f,
         AggroRange        = 600,
         XpReward          = 50,
+    };
+
+    // Elite wolf: HP×3, XP×5, faster and stronger than base wolf
+    public static readonly CombatProfile EliteWolfNpc = new()
+    {
+        MaxHp             = 180,
+        AttackDamage      = 18,
+        AttackRange       = 140,
+        MovementSpeed     = 420,
+        AttackCooldownSec = 1.2f,
+        AggroRange        = 1000,
+        XpReward          = 125,
+    };
+
+    // Bandit captain: high HP, melee + AoE slam every 6 s
+    public static readonly CombatProfile BanditCaptainNpc = new()
+    {
+        MaxHp             = 500,
+        AttackDamage      = 25,
+        AttackRange       = 200,
+        MovementSpeed     = 250,
+        AttackCooldownSec = 1.5f,
+        AggroRange        = 900,
+        XpReward          = 300,
+        AoeRadius         = 350,
+        AoeCooldownSec    = 6.0f,
+        AoeDamage         = 40,
     };
 }

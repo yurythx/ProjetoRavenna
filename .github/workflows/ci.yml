@@ -35,7 +35,7 @@ jobs:
           REDIS_URL: ""
           DJANGO_SECRET_KEY: "ci-only-not-for-production"
         run: |
-          python -m pytest -q --cov=apps --cov-report=xml --cov-report=term-missing
+          python -m pytest -q --cov=apps --cov-report=xml --cov-report=term-missing --cov-fail-under=60
 
       - name: Upload coverage report
         uses: actions/upload-artifact@v4
@@ -61,14 +61,23 @@ jobs:
       - name: Install deps
         run: npm ci
 
+      - name: Install coverage provider
+        run: npm install @vitest/coverage-v8 --no-save
+
       - name: Type check
         run: npx tsc --noEmit
 
-      - name: Run tests
-        run: npm test
+      - name: Run tests with coverage
+        run: npx vitest run --coverage
+
+      - name: Upload coverage report
+        uses: actions/upload-artifact@v4
+        with:
+          name: frontend-coverage
+          path: frontend/coverage/lcov.info
 
   gameserver:
-    name: Game Server (.NET build)
+    name: Game Server (.NET build + xUnit)
     runs-on: ubuntu-latest
     defaults:
       run:
@@ -81,7 +90,45 @@ jobs:
           dotnet-version: "8.0.x"
 
       - name: Restore
-        run: dotnet restore
+        run: dotnet restore src/RavennaServer/RavennaServer.csproj
+
+      - name: Restore tests
+        run: dotnet restore tests/RavennaServer.Tests/RavennaServer.Tests.csproj
 
       - name: Build
-        run: dotnet build --no-restore --configuration Release
+        run: dotnet build src/RavennaServer/RavennaServer.csproj --no-restore --configuration Release
+
+      - name: Test
+        run: |
+          dotnet test tests/RavennaServer.Tests/RavennaServer.Tests.csproj \
+            --no-restore \
+            --configuration Release \
+            --logger "console;verbosity=normal" \
+            --collect:"XPlat Code Coverage" \
+            --settings tests/RavennaServer.Tests/coverage.runsettings
+
+      - name: Enforce .NET coverage threshold (≥ 60 %)
+        run: |
+          python3 - <<'PYEOF'
+          import xml.etree.ElementTree as ET, sys, glob
+          reports = glob.glob(
+              "tests/RavennaServer.Tests/TestResults/**/coverage.cobertura.xml",
+              recursive=True,
+          )
+          if not reports:
+              print("::error::Coverage report not found — did dotnet test run?")
+              sys.exit(1)
+          rate = float(ET.parse(reports[0]).getroot().get("line-rate", "0"))
+          pct  = rate * 100
+          print(f"Line coverage: {pct:.1f}%")
+          if rate < 0.60:
+              print(f"::error::Coverage {pct:.1f}% is below 60% threshold")
+              sys.exit(1)
+          print("Coverage threshold met")
+          PYEOF
+
+      - name: Upload coverage report
+        uses: actions/upload-artifact@v4
+        with:
+          name: gameserver-coverage
+          path: gameserver/tests/RavennaServer.Tests/TestResults/**/coverage.cobertura.xml

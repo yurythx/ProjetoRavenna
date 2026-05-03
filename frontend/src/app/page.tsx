@@ -1,5 +1,6 @@
 import Link from "next/link";
 import type { Metadata } from "next";
+import { HeroCta } from "@/components/hero-cta";
 
 export const metadata: Metadata = {
   title: "RAVENNA — Forje sua Lenda",
@@ -94,14 +95,7 @@ export default function Home() {
             ✦ MMORPG · KCP/UDP · UNITY POWERED ✦
           </p>
 
-          <div className="flex flex-col sm:flex-row items-center justify-center gap-3 sm:gap-4">
-            <Link href="/register" className="rv-btn rv-btn-primary text-xs sm:text-sm px-8 sm:px-10 h-12 sm:h-14 gap-2 w-full sm:w-auto max-w-xs">
-              <span>⚡</span> Iniciar Jornada
-            </Link>
-            <Link href="/forum" className="rv-btn rv-btn-ghost text-xs sm:text-sm px-6 sm:px-8 h-12 sm:h-14 gap-2 w-full sm:w-auto max-w-xs">
-              <span className="text-[var(--rv-cyan)]">◈</span> Explorar Fórum
-            </Link>
-          </div>
+          <HeroCta />
         </div>
 
         {/* Scroll indicator */}

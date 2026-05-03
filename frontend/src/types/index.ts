@@ -50,14 +50,31 @@ export type PlayerStats = {
   intelligence: number;
   vitality: number;
   points_remaining: number;
+  faction: string;
+  character_class: string;
+  race: string;
   updated_at: string;
 };
 
+export type PlayerSkill = {
+  id: UUID;
+  skill_template: UUID;
+  skill_name: string;
+  current_level: number;
+  is_equipped: boolean;
+  slot_index: number | null;
+  learned_at: string;
+};
+
 export type PlayerItem = {
+  id: UUID;
   slot_index: number;
   template_id: UUID;
   name: string;
   quantity: number;
+  equip_slot: string;
+  rarity: ItemRarity;
+  item_type: string;
 };
 
 export type PlayerInventory = {
@@ -126,4 +143,17 @@ export type QuestTemplate = {
   rewards: QuestRewards;
   level_required: number;
   is_repeatable: boolean;
+};
+
+export type QuestProgress = {
+  id: UUID;
+  quest_id: UUID;
+  status: "not_started" | "in_progress" | "completed" | "failed";
+  current_objectives: Record<string, number>;
+  started_at: string | null;
+  completed_at: string | null;
+  quest_name: string;
+  quest_objectives: QuestObjective[];
+  quest_rewards: QuestRewards;
+  quest_type: "main" | "side" | "daily" | "repeatable";
 };

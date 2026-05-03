@@ -27,10 +27,14 @@ class PlayerInventorySerializer(serializers.ModelSerializer):
         items = PlayerItem.objects.filter(inventory=obj).select_related("item_template").order_by("slot_index")
         return [
             {
+                "id": str(item.id),
                 "slot_index": item.slot_index,
                 "template_id": str(item.item_template_id),
                 "name": item.item_template.name,
                 "quantity": item.quantity,
+                "equip_slot": item.equip_slot,
+                "rarity": item.item_template.rarity,
+                "item_type": item.item_template.item_type,
             }
             for item in items
         ]
@@ -57,6 +61,9 @@ class PlayerStatsSerializer(serializers.ModelSerializer):
             "intelligence",
             "vitality",
             "points_remaining",
+            "faction",
+            "character_class",
+            "race",
             "updated_at",
         ]
 
@@ -111,7 +118,7 @@ class UpdateStatsSerializer(serializers.Serializer):
 class GainExperienceSerializer(serializers.Serializer):
     """Serializer for gaining experience."""
 
-    amount = serializers.IntegerField(min_value=1)
+    amount = serializers.IntegerField(min_value=1, max_value=10_000)
     hwid = serializers.CharField(required=False, allow_blank=True)
     user_id = serializers.UUIDField(required=False)
 
@@ -129,6 +136,30 @@ class LearnSkillSerializer(serializers.Serializer):
     """Serializer for learning a skill."""
 
     skill_template_id = serializers.UUIDField()
+
+
+class EquipItemSerializer(serializers.Serializer):
+    """Serializer for equipping an item."""
+
+    player_item_id = serializers.UUIDField()
+    equip_slot = serializers.ChoiceField(choices=[
+        "weapon", "offhand", "helmet", "chest", "gloves", "boots", "ring_1", "ring_2", "amulet",
+    ])
+
+
+class CreateCharacterSerializer(serializers.Serializer):
+    """Serializer for one-time character creation (class, race, faction)."""
+
+    character_class = serializers.ChoiceField(choices=[
+        "paladino", "mage", "archer", "eldari",
+        "cavaleiro_dragao", "ignis", "shadow", "necromante",
+    ])
+    race = serializers.ChoiceField(choices=[
+        "humano", "elfo", "draconato", "morto_vivo",
+    ])
+    faction = serializers.ChoiceField(choices=[
+        "vanguarda", "legiao",
+    ])
 
 
 class QuestTemplateSerializer(serializers.ModelSerializer):

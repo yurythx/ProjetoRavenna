@@ -887,6 +887,16 @@ class UnityTokenView(APIView):
         expires_at = timezone.now() + timedelta(minutes=5)
         deep_link = f"ravenna-game://auth?token={jwt_str}&expires={expires_at.isoformat()}"
 
+        from apps.accounts.services import AdminAuditService
+        AdminAuditService.record(
+            action="unity_token_issued",
+            actor=request.user,
+            target=request.user,
+            metadata={"client_id": client_id, "expires_at": expires_at.isoformat()},
+            ip_address=request.META.get("REMOTE_ADDR"),
+            user_agent=request.META.get("HTTP_USER_AGENT", ""),
+        )
+
         return Response(
             {
                 "deep_link": deep_link,

@@ -2,3 +2,7 @@
 # Database
 Backend/db.sqlite3
 Backend/db.sqlite3-journal
+
+# PostgreSQL backups
+backups/*.sql.gz
+backups/*.sql

@@ -1,0 +1,10 @@
+[
+  { "type": "wolf",           "x": 2000, "y": 3000, "zone": "plains" },
+  { "type": "wolf",           "x": 2300, "y": 2800, "zone": "plains" },
+  { "type": "wolf",           "x": 1800, "y": 3200, "zone": "plains" },
+  { "type": "elite_wolf",     "x": 2800, "y": 2500, "zone": "forest" },
+  { "type": "bandit",         "x": 7000, "y": 6500, "zone": "forest" },
+  { "type": "bandit",         "x": 7300, "y": 6700, "zone": "forest" },
+  { "type": "bandit",         "x": 6800, "y": 6300, "zone": "forest" },
+  { "type": "bandit_captain", "x": 8000, "y": 7500, "zone": "ruins"  }
+]

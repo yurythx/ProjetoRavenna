@@ -148,6 +148,7 @@ class AdminAuditEvent(models.Model):
         RESET_PASSWORD = "reset_password", "Reset Password"
         CHANGE_GROUPS = "change_groups", "Change Groups"
         UPDATE_USER = "update_user", "Update User"
+        UNITY_TOKEN_ISSUED = "unity_token_issued", "Unity Token Issued"
 
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
     created_at = models.DateTimeField(auto_now_add=True, db_index=True)

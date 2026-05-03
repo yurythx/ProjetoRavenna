@@ -316,6 +316,16 @@ REST_FRAMEWORK["DEFAULT_THROTTLE_RATES"]["login"] = os.environ.get(
     "10/min",
 )
 
+REST_FRAMEWORK["DEFAULT_THROTTLE_RATES"]["gameserver"] = os.environ.get(
+    "REST_THROTTLE_GAMESERVER",
+    "120/min",
+)
+
+# Game-server IP whitelist — empty list means "allow all" (safe for dev).
+# In production set GAMESERVER_ALLOWED_IPS to the container IP, e.g. "172.20.0.5"
+_raw_ips = os.environ.get("GAMESERVER_ALLOWED_IPS", "")
+GAMESERVER_ALLOWED_IPS: list[str] = [ip.strip() for ip in _raw_ips.split(",") if ip.strip()]
+
 # ---------------------------------------------------------------------------
 # Celery
 # ---------------------------------------------------------------------------

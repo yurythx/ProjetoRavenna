@@ -33,4 +33,9 @@
               GrpcServices="None" />
   </ItemGroup>
 
+  <!-- Expose internals to the test project -->
+  <ItemGroup>
+    <InternalsVisibleTo Include="RavennaServer.Tests" />
+  </ItemGroup>
+
 </Project>

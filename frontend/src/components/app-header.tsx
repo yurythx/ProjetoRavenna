@@ -96,6 +96,19 @@ export function AppHeader() {
                 Hub
               </Link>
             )}
+            {isLoggedIn && (
+              <Link
+                href="/play"
+                className={`group flex items-center gap-2 px-4 py-2 rounded-xl transition-all rv-label text-xs border ${
+                  pathname === "/play"
+                    ? "bg-[var(--rv-accent)] text-white border-[var(--rv-accent)]"
+                    : "text-[var(--rv-accent)] border-[var(--rv-accent)]/30 hover:bg-[var(--rv-accent)]/10 hover:border-[var(--rv-accent)]/60"
+                }`}
+              >
+                <span>⚔</span>
+                Jogar
+              </Link>
+            )}
             {canSeeDashboard && (
               <Link
                 href="/dashboard"
@@ -203,6 +216,18 @@ export function AppHeader() {
               >
                 <span className="text-[var(--rv-gold)]">◆</span>
                 Player Hub
+              </Link>
+            )}
+            {isLoggedIn && (
+              <Link href="/play"
+                className={`flex items-center gap-3 px-4 py-3 rounded-xl transition-all rv-label text-xs border ${
+                  pathname === "/play"
+                    ? "bg-[var(--rv-accent)] text-white border-[var(--rv-accent)]"
+                    : "text-[var(--rv-accent)] border-[var(--rv-accent)]/30 hover:bg-[var(--rv-accent)]/10"
+                }`}
+              >
+                <span>⚔</span>
+                Jogar
               </Link>
             )}
             {canSeeDashboard && (

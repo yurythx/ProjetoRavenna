@@ -23,7 +23,8 @@ internal sealed class NpcManager
 
     // ── Combat event callbacks (wired up by SimulationLoop) ──────────────────
     public Action<uint, uint, int, int>? OnDamageDealt;   // (attackerId, targetId, damage, remainingHp)
-    public Action<uint, uint, int>?     OnEntityDied;     // (entityId, killerId, xpReward)
+    public Action<uint, uint, int>?      OnEntityDied;    // (entityId, killerId, xpReward)
+    public Action<uint, string, int>?    OnLootDropped;   // (killerConvId, itemTemplateId, quantity)
 
     public NpcManager(SpatialGrid grid)
     {
@@ -32,12 +33,17 @@ internal sealed class NpcManager
 
     // ── Spawn ─────────────────────────────────────────────────────────────────
 
-    public NpcEntity Spawn(string npcType, int x, int y, CombatProfile? profile = null)
+    public NpcEntity Spawn(string npcType, int x, int y, string zone = "plains", CombatProfile? profile = null)
     {
         uint id = Interlocked.Increment(ref _nextNpcId);
         var spawnPos = new EntityPosition { X = x, Y = y };
-        var npc      = new NpcEntity(id, npcType, spawnPos, profile ?? CombatProfileFor(npcType));
-        _npcs[id]    = npc;
+
+        var baseProfile   = profile ?? CombatProfileFor(npcType);
+        var zoneScale     = ZoneRegistry.Get(zone);
+        var scaledProfile = ZoneRegistry.Scale(baseProfile, zoneScale);
+
+        var npc   = new NpcEntity(id, npcType, spawnPos, scaledProfile);
+        _npcs[id] = npc;
         _grid.Upsert(id, x, y);
         return npc;
     }
@@ -204,6 +210,40 @@ internal sealed class NpcManager
             target.Flags      |= 0b0100u;  // bit2 = dead
             OnEntityDied?.Invoke(target.ConvId, npc.EntityId, 0);
         }
+
+        // AoE slam (boss-only — only fires when AoeRadius > 0)
+        if (npc.AoeRadius > 0 && npc.AoeDamage > 0)
+            TryAoeAttack(npc, players, nowMs);
+    }
+
+    private void TryAoeAttack(
+        NpcEntity npc,
+        IReadOnlyDictionary<uint, PlayerSession> players,
+        long nowMs)
+    {
+        long aoeCooldownMs = (long)(npc.AoeCooldownSec * 1000);
+        if (nowMs - npc.LastAoeAttackMs < aoeCooldownMs) return;
+        npc.LastAoeAttackMs = nowMs;
+
+        int aoeSq = npc.AoeRadius * npc.AoeRadius;
+        foreach (var (_, player) in players)
+        {
+            if (player.IsDead) continue;
+            if (MovementController.DistanceSq(npc.Position, player.Position) > aoeSq) continue;
+
+            player.CurrentHp -= npc.AoeDamage;
+            int rem = Math.Max(player.CurrentHp, 0);
+            OnDamageDealt?.Invoke(npc.EntityId, player.ConvId, npc.AoeDamage, rem);
+
+            if (player.CurrentHp <= 0)
+            {
+                player.CurrentHp   = 0;
+                player.State       = CombatState.Dead;
+                player.DeathTimeMs = nowMs;
+                player.Flags      |= 0b0100u;
+                OnEntityDied?.Invoke(player.ConvId, npc.EntityId, 0);
+            }
+        }
     }
 
     private void KillNpc(NpcEntity npc, uint killerId, long nowMs)
@@ -217,6 +257,11 @@ internal sealed class NpcManager
         _grid.Remove(npc.EntityId);
 
         OnEntityDied?.Invoke(npc.EntityId, killerId, npc.XpReward);
+
+        // Loot roll: independent of XP — dropped even if killer gets no XP
+        var drop = LootTable.Roll(npc.NpcType);
+        if (drop.HasValue)
+            OnLootDropped?.Invoke(killerId, drop.Value.ItemTemplateId, drop.Value.Quantity);
     }
 
     private void TryRespawn(NpcEntity npc, long nowMs)
@@ -239,8 +284,10 @@ internal sealed class NpcManager
 
     private static CombatProfile CombatProfileFor(string npcType) => npcType switch
     {
-        "wolf"   => CombatProfile.WolfNpc,
-        "bandit" => CombatProfile.BanditNpc,
-        _        => CombatProfile.WolfNpc,
+        "wolf"            => CombatProfile.WolfNpc,
+        "bandit"          => CombatProfile.BanditNpc,
+        "elite_wolf"      => CombatProfile.EliteWolfNpc,
+        "bandit_captain"  => CombatProfile.BanditCaptainNpc,
+        _                 => CombatProfile.WolfNpc,
     };
 }

@@ -21,11 +21,16 @@ internal sealed class SkillDefinition
     public string         Name             { get; init; } = "";
     public SkillTargeting Targeting        { get; init; }
     public float          DamageMultiplier { get; init; } = 1.0f;  // × AttackDamage
-    public int            HealAmount       { get; init; } = 0;      // flat HP restore (for heal skills)
+    public int            HealAmount       { get; init; } = 0;      // flat HP restore
     public int            Range            { get; init; } = 300;    // cm — 0 uses player AttackRange
     public int            AoeRadius        { get; init; } = 0;      // cm, >0 enables AoE
     public float          CooldownSec      { get; init; } = 5.0f;
-    public int            ManaCost         { get; init; } = 0;      // reserved — not yet enforced
+    public int            ManaCost         { get; init; } = 0;
+
+    // ── Buff/debuff fields (only relevant when Targeting == Self and no damage/heal) ──
+    public EffectType?    BuffEffectType   { get; init; } = null;   // null = no buff
+    public int            BuffValue        { get; init; } = 0;       // percentage magnitude
+    public float          BuffDurationSec  { get; init; } = 0f;      // seconds active
 }
 
 /// <summary>
@@ -46,6 +51,7 @@ internal static class SkillRegistry
             DamageMultiplier = 2.5f,
             Range            = 200,
             CooldownSec      = 6f,
+            ManaCost         = 15,
         },
         [2] = new SkillDefinition
         {
@@ -56,6 +62,7 @@ internal static class SkillRegistry
             Range            = 0,    // uses player AttackRange
             AoeRadius        = 300,
             CooldownSec      = 10f,
+            ManaCost         = 25,
         },
 
         // ── Ranged skills ─────────────────────────────────────────────────────
@@ -68,6 +75,7 @@ internal static class SkillRegistry
             Range            = 800,
             AoeRadius        = 250,
             CooldownSec      = 12f,
+            ManaCost         = 20,
         },
         [4] = new SkillDefinition
         {
@@ -77,6 +85,7 @@ internal static class SkillRegistry
             DamageMultiplier = 3.0f,
             Range            = 1000,
             CooldownSec      = 8f,
+            ManaCost         = 18,
         },
 
         // ── Magic skills ──────────────────────────────────────────────────────
@@ -89,6 +98,7 @@ internal static class SkillRegistry
             Range            = 700,
             AoeRadius        = 200,
             CooldownSec      = 8f,
+            ManaCost         = 30,
         },
         [6] = new SkillDefinition
         {
@@ -98,6 +108,7 @@ internal static class SkillRegistry
             DamageMultiplier = 2.8f,
             Range            = 600,
             CooldownSec      = 5f,
+            ManaCost         = 22,
         },
 
         // ── Support skills ────────────────────────────────────────────────────
@@ -108,14 +119,19 @@ internal static class SkillRegistry
             Targeting   = SkillTargeting.Self,
             HealAmount  = 40,
             CooldownSec = 15f,
+            ManaCost    = 35,
         },
         [8] = new SkillDefinition
         {
-            SkillId     = 8,
-            Name        = "Battle Cry",
-            Targeting   = SkillTargeting.Self,
-            HealAmount  = 0,  // buff — effect TBD in phase 3
-            CooldownSec = 20f,
+            SkillId         = 8,
+            Name            = "Battle Cry",
+            Targeting       = SkillTargeting.Self,
+            HealAmount      = 0,
+            CooldownSec     = 20f,
+            ManaCost        = 20,
+            BuffEffectType  = EffectType.DamageBoostPct,
+            BuffValue       = 30,    // +30% outgoing damage
+            BuffDurationSec = 10f,   // 10 seconds
         },
     };
 

@@ -48,8 +48,9 @@ internal sealed class SimulationLoop
         _npcs   = npcs;
 
         // Wire NPC combat event callbacks → broadcast helpers
-        _npcs.OnDamageDealt = BroadcastDamageEvent;
-        _npcs.OnEntityDied  = BroadcastEntityDied;
+        _npcs.OnDamageDealt  = BroadcastDamageEvent;
+        _npcs.OnEntityDied   = BroadcastEntityDied;
+        _npcs.OnLootDropped  = HandleLootDrop;
     }
 
     // ── Called by UdpSocketListener on handshake ──────────────────────────────
@@ -86,6 +87,9 @@ internal sealed class SimulationLoop
                 Data      = new Dictionary<string, object>
                 {
                     ["conv_id"] = convId,
+                    ["pos_x"]   = s.Position.X,
+                    ["pos_y"]   = s.Position.Y,
+                    ["hp"]      = s.CurrentHp,
                 },
             });
         }
@@ -170,10 +174,11 @@ internal sealed class SimulationLoop
             UpdatePlayerFlags(session);
         }
 
-        // 4. Player combat tick (Chasing / Attacking)
+        // 4. Prune expired effects, then run player combat tick (Chasing / Attacking)
         foreach (var (_, session) in _sessions)
         {
             if (session.IsDead) continue;
+            PruneExpiredEffects(session, nowMs);
             TickPlayerCombat(session, nowMs);
         }
 
@@ -224,6 +229,12 @@ internal sealed class SimulationLoop
         try { msg = C2S_AttackTarget.Parser.ParseFrom(payload.ToArray()); }
         catch { return; }
 
+        // Faction check: players may only attack enemies of the opposing faction
+        if (!IsNpcId(msg.TargetId) &&
+            _sessions.TryGetValue(msg.TargetId, out var targetSession) &&
+            !IsValidPvpTarget(session, targetSession))
+            return;
+
         session.CombatTargetId  = msg.TargetId;
         session.State     = CombatState.Chasing;
         session.IsMoving        = false;  // movement driven by chase loop, not click
@@ -258,17 +269,41 @@ internal sealed class SimulationLoop
         if (session.SkillCooldowns.TryGetValue(msg.SkillId, out long readyAt) && nowMs < readyAt)
             return;
 
+        // Mana check
+        if (skill.ManaCost > 0 && session.CurrentMana < skill.ManaCost)
+            return;
+
         long cooldownMs = (long)(skill.CooldownSec * 1000);
         session.SkillCooldowns[msg.SkillId] = nowMs + cooldownMs;
         session.LastHeartbeatMs = nowMs;
 
+        // Deduct mana
+        if (skill.ManaCost > 0)
+            session.CurrentMana = Math.Max(0, session.CurrentMana - skill.ManaCost);
+
+        int skillLevel = session.SkillLevels.TryGetValue(msg.SkillId, out int lvl) ? lvl : 1;
+        float levelScale = 1f + (skillLevel - 1) * 0.15f;  // +15% damage per level above 1
+
         // ── Heal (self-targeted) ──────────────────────────────────────────────
         if (skill.Targeting == SkillTargeting.Self && skill.HealAmount > 0)
         {
-            session.CurrentHp = Math.Min(session.CurrentHp + skill.HealAmount, session.MaxHp);
-            // Broadcast as a negative-damage event (heal = negative damage)
+            int healAmount = (int)(skill.HealAmount * (1f + (skillLevel - 1) * 0.10f));
+            session.CurrentHp = Math.Min(session.CurrentHp + healAmount, session.MaxHp);
             BroadcastDamageEventWithSkill(session.ConvId, session.ConvId,
-                                          -skill.HealAmount, session.CurrentHp, msg.SkillId);
+                                          -healAmount, session.CurrentHp, msg.SkillId);
+            NotifyDjangoSkillUsed(session, msg.SkillId);
+            return;
+        }
+
+        // ── Self buff ────────────────────────────────────────────────────────
+        if (skill.Targeting == SkillTargeting.Self && skill.BuffEffectType.HasValue)
+        {
+            int buffValue    = (int)(skill.BuffValue * (1f + (skillLevel - 1) * 0.05f));
+            long expiresAtMs = nowMs + (long)(skill.BuffDurationSec * 1000);
+            session.ActiveEffects.Add(new ActiveEffect(
+                skill.BuffEffectType.Value, buffValue, expiresAtMs, session.ConvId));
+            BroadcastEffectApplied(session, session.ConvId, msg.SkillId,
+                skill.BuffEffectType.Value, buffValue, expiresAtMs);
             NotifyDjangoSkillUsed(session, msg.SkillId);
             return;
         }
@@ -283,11 +318,10 @@ internal sealed class SimulationLoop
             int skillRange = skill.Range > 0 ? skill.Range : session.AttackRange;
             if (MovementController.Distance(session.Position, center) > skillRange) return;
 
-            // Hit every entity in AoE radius
             _neighbourScratch.Clear();
             _grid.GetNeighbours(center.X, center.Y, _neighbourScratch);
 
-            int baseDamage = (int)(session.AttackDamage * skill.DamageMultiplier);
+            int baseDamage = (int)(session.AttackDamage * skill.DamageMultiplier * levelScale);
 
             foreach (uint entityId in _neighbourScratch)
             {
@@ -310,28 +344,48 @@ internal sealed class SimulationLoop
         if (targetPos is null) return;
         if (MovementController.Distance(session.Position, targetPos.Value) > effectiveRange) return;
 
-        int singleDamage = (int)(session.AttackDamage * skill.DamageMultiplier);
+        int singleDamage = (int)(session.AttackDamage * skill.DamageMultiplier * levelScale);
         ApplySkillDamageTo(msg.TargetId, session, singleDamage, msg.SkillId, nowMs);
         NotifyDjangoSkillUsed(session, msg.SkillId);
     }
 
     private void ApplySkillDamageTo(uint targetId, PlayerSession attacker, int damage, uint skillId, long nowMs)
     {
+        // Apply attacker DamageBoostPct to raw skill damage before any mitigation
+        int boostPct     = attacker.SumEffectPct(EffectType.DamageBoostPct, nowMs);
+        int boostedDamage = boostPct > 0
+            ? (int)(damage * (1f + boostPct / 100f))
+            : damage;
+
         if (IsNpcId(targetId))
         {
-            _npcs.ApplyDamage(targetId, attacker.ConvId, damage, nowMs);
-            // damage event emitted via NpcManager.OnDamageDealt callback — skill_id not set there
-            // broadcast a corrected event here
+            // NPCs have no defense in Phase 1 — boosted skill damage applied directly
+            _npcs.ApplyDamage(targetId, attacker.ConvId, boostedDamage, nowMs);
             if (_npcs.TryGet(targetId, out var npc) && npc is not null)
-                BroadcastDamageEventWithSkill(attacker.ConvId, targetId, damage,
+                BroadcastDamageEventWithSkill(attacker.ConvId, targetId, boostedDamage,
                                               Math.Max(npc.CurrentHp, 0), skillId);
         }
         else if (_sessions.TryGetValue(targetId, out var targetPlayer))
         {
-            targetPlayer.CurrentHp -= damage;
+            // Skills also respect the faction rule (relevant for AoE hitting same-faction players)
+            if (!IsValidPvpTarget(attacker, targetPlayer)) return;
+
+            // PvP skill hit: DamageMode-aware mitigation, then active effect modifiers
+            int mitigatedBase = attacker.DamageMode == DamageMode.Magical
+                ? AttributeCalculator.ApplyMitigation(boostedDamage, targetPlayer.MagDefense)
+                : AttributeCalculator.ApplyMitigation(boostedDamage, targetPlayer.PhysDefense);
+
+            int defenseBoostPct = targetPlayer.SumEffectPct(EffectType.DefenseBoostPct, nowMs);
+            int damageTakenPct  = targetPlayer.SumEffectPct(EffectType.DamageTakenIncreasePct, nowMs);
+            int netDefPct       = defenseBoostPct - damageTakenPct;
+            int mitigatedDamage = netDefPct != 0
+                ? Math.Max(1, (int)(mitigatedBase * (1f - netDefPct / 100f)))
+                : mitigatedBase;
+
+            targetPlayer.CurrentHp -= mitigatedDamage;
             int remaining = Math.Max(targetPlayer.CurrentHp, 0);
 
-            BroadcastDamageEventWithSkill(attacker.ConvId, targetId, damage, remaining, skillId);
+            BroadcastDamageEventWithSkill(attacker.ConvId, targetId, mitigatedDamage, remaining, skillId);
 
             if (targetPlayer.CurrentHp <= 0)
             {
@@ -369,6 +423,32 @@ internal sealed class SimulationLoop
         EntityPosition? pos = GetEntityPosition(targetId);
         if (pos is null) return;
         BroadcastEventToArea(pos.Value, 0x11, evt);
+    }
+
+    // ── Buff / debuff helpers ─────────────────────────────────────────────────
+
+    private static void PruneExpiredEffects(PlayerSession session, long nowMs)
+    {
+        var effects = session.ActiveEffects;
+        for (int i = effects.Count - 1; i >= 0; i--)
+            if (!effects[i].IsActive(nowMs))
+                effects.RemoveAt(i);
+    }
+
+    private void BroadcastEffectApplied(PlayerSession session, uint sourceId,
+        uint skillId, EffectType effectType, int value, long expiresAtMs)
+    {
+        long durationMs = expiresAtMs - Environment.TickCount64;
+        var evt = new RavennaServer.Proto.S2C_EffectApplied
+        {
+            EntityId   = session.ConvId,
+            SourceId   = sourceId,
+            SkillId    = skillId,
+            EffectType = (uint)effectType,
+            Value      = value,
+            DurationMs = (uint)Math.Max(0L, durationMs),
+        };
+        BroadcastEventToArea(session.Position, 0x14, evt);
     }
 
     private void NotifyDjangoSkillUsed(PlayerSession session, uint skillId)
@@ -503,14 +583,42 @@ internal sealed class SimulationLoop
         // Apply damage to target (player or NPC)
         if (IsNpcId(session.CombatTargetId))
         {
-            _npcs.ApplyDamage(session.CombatTargetId, session.ConvId, session.AttackDamage, nowMs);
+            // Apply attacker DamageBoostPct before hitting NPC (no NPC defense in Phase 1)
+            int boostPct = session.SumEffectPct(EffectType.DamageBoostPct, nowMs);
+            int rawDmg   = boostPct > 0
+                ? (int)(session.RawAutoAttackDamage * (1f + boostPct / 100f))
+                : session.RawAutoAttackDamage;
+            _npcs.ApplyDamage(session.CombatTargetId, session.ConvId, rawDmg, nowMs);
         }
         else if (_sessions.TryGetValue(session.CombatTargetId, out var targetPlayer))
         {
-            targetPlayer.CurrentHp -= session.AttackDamage;
+            // Faction guard: abort if target became invalid (reconnect / faction change)
+            if (!IsValidPvpTarget(session, targetPlayer))
+            {
+                session.CombatTargetId = 0;
+                session.State    = CombatState.Idle;
+                SendCombatStateChanged(session);
+                return;
+            }
+
+            // PvP: full mitigation via DamageMode, then apply active effect modifiers
+            int baseDmg = AttributeCalculator.ApplyDamage(
+                session.DamageMode,
+                session.PhysicalDamage, session.MagicalDamage,
+                targetPlayer.PhysDefense, targetPlayer.MagDefense);
+
+            int attackBoostPct  = session.SumEffectPct(EffectType.DamageBoostPct, nowMs);
+            int defenseBoostPct = targetPlayer.SumEffectPct(EffectType.DefenseBoostPct, nowMs);
+            int damageTakenPct  = targetPlayer.SumEffectPct(EffectType.DamageTakenIncreasePct, nowMs);
+            int netPct          = attackBoostPct - defenseBoostPct + damageTakenPct;
+            int mitigatedDamage = netPct != 0
+                ? Math.Max(1, (int)(baseDmg * (1f + netPct / 100f)))
+                : baseDmg;
+
+            targetPlayer.CurrentHp -= mitigatedDamage;
             int remaining = Math.Max(targetPlayer.CurrentHp, 0);
 
-            BroadcastDamageEvent(session.ConvId, targetPlayer.ConvId, session.AttackDamage, remaining);
+            BroadcastDamageEvent(session.ConvId, targetPlayer.ConvId, mitigatedDamage, remaining);
 
             if (targetPlayer.CurrentHp <= 0)
             {
@@ -520,7 +628,6 @@ internal sealed class SimulationLoop
                 targetPlayer.Flags      |= 0b0100u;
                 BroadcastEntityDied(targetPlayer.ConvId, session.ConvId, 0);
 
-                // Notify Django of PvP kill
                 _ = _bridge.SendEventAsync(new GameEvent
                 {
                     EventType = "player_killed",
@@ -562,6 +669,36 @@ internal sealed class SimulationLoop
     }
 
     private static bool IsNpcId(uint id) => id >= NpcManager.NPC_ID_BASE;
+
+    /// <summary>
+    /// Returns all party members of <paramref name="killer"/> (including killer) who are
+    /// within XP sharing range (~3000 cm) of <paramref name="killPos"/>.
+    /// Returns empty list if killer has no party.
+    /// </summary>
+    private List<PlayerSession> GetPartyMembersNearby(PlayerSession killer, EntityPosition killPos)
+    {
+        if (killer.PartyId is null) return [];
+
+        var result = new List<PlayerSession>(5);
+        const int XP_SHARE_RANGE_SQ = 3_000 * 3_000;
+
+        foreach (var (_, s) in _sessions)
+        {
+            if (s.IsDead || s.PartyId != killer.PartyId) continue;
+            if (MovementController.DistanceSq(s.Position, killPos) <= XP_SHARE_RANGE_SQ)
+                result.Add(s);
+        }
+
+        return result;
+    }
+
+    private static bool IsValidPvpTarget(PlayerSession attacker, PlayerSession target)
+    {
+        if (!FactionHelper.AreEnemies(attacker.Faction, target.Faction)) return false;
+        // Party members are always protected from friendly fire
+        if (attacker.PartyId is not null && attacker.PartyId == target.PartyId) return false;
+        return true;
+    }
 
     // ── Snapshot broadcast ────────────────────────────────────────────────────
 
@@ -656,16 +793,85 @@ internal sealed class SimulationLoop
 
         BroadcastEventToArea(pos.Value, 0x12, evt);
 
-        // Notify Django to persist XP and handle loot
-        if (xpReward > 0 && _sessions.TryGetValue(killerId, out var killer))
+        // Notify Django to persist XP and NPC kill (quest progress + loot)
+        if (_sessions.TryGetValue(killerId, out var killer))
+        {
+            if (xpReward > 0)
+            {
+                // Party XP split: find all party members near the kill and divide XP equally
+                var xpRecipients = GetPartyMembersNearby(killer, pos!.Value);
+                int share = xpRecipients.Count > 0
+                    ? Math.Max(1, xpReward / xpRecipients.Count)
+                    : xpReward;
+
+                foreach (var recipient in xpRecipients)
+                {
+                    _ = _bridge.SendEventAsync(new GameEvent
+                    {
+                        EventType = "xp_gained",
+                        PlayerId  = recipient.UserId,
+                        Data      = new Dictionary<string, object> { ["amount"] = share },
+                    });
+                }
+
+                // Killer always gets XP if not in a party or if already included above
+                if (xpRecipients.Count == 0)
+                {
+                    _ = _bridge.SendEventAsync(new GameEvent
+                    {
+                        EventType = "xp_gained",
+                        PlayerId  = killer.UserId,
+                        Data      = new Dictionary<string, object> { ["amount"] = xpReward },
+                    });
+                }
+            }
+
+            if (IsNpcId(entityId) && _npcs.TryGet(entityId, out var deadNpc) && deadNpc is not null)
+            {
+                _ = _bridge.SendEventAsync(new GameEvent
+                {
+                    EventType = "npc_killed",
+                    PlayerId  = killer.UserId,
+                    Data      = new Dictionary<string, object>
+                    {
+                        ["npc_type"] = deadNpc.NpcType,
+                        ["npc_id"]   = entityId,
+                        ["pos_x"]    = pos.Value.X,
+                        ["pos_y"]    = pos.Value.Y,
+                    },
+                });
+            }
+        }
+
+        // Apply death penalty to the dying player (covers both NPC and PvP kills)
+        if (!IsNpcId(entityId) && _sessions.TryGetValue(entityId, out var dyingPlayer))
         {
             _ = _bridge.SendEventAsync(new GameEvent
             {
-                EventType = "xp_gained",
-                PlayerId  = killer.UserId,
-                Data      = new Dictionary<string, object> { ["amount"] = xpReward },
+                EventType = "player_died",
+                PlayerId  = dyingPlayer.UserId,
+                Data      = new Dictionary<string, object>
+                {
+                    ["cause"] = IsNpcId(killerId) ? "npc" : "pvp",
+                },
             });
         }
+    }
+
+    private void HandleLootDrop(uint killerConvId, string itemTemplateId, int quantity)
+    {
+        if (!_sessions.TryGetValue(killerConvId, out var killer)) return;
+
+        _ = _bridge.SendEventAsync(new GameEvent
+        {
+            EventType = "item_collected",
+            PlayerId  = killer.UserId,
+            Data      = new Dictionary<string, object>
+            {
+                ["item_template_id"] = itemTemplateId,
+                ["quantity"]         = quantity,
+            },
+        });
     }
 
     private void SendCombatStateChanged(PlayerSession session)
@@ -743,11 +949,13 @@ internal sealed class SimulationLoop
         if (nowMs - session.DeathTimeMs < PlayerSession.RESPAWN_DELAY_MS) return;
 
         session.CurrentHp      = session.MaxHp;
+        session.CurrentMana    = session.MaxMana;
         session.State          = CombatState.Idle;
         session.CombatTargetId = 0;
         session.IsMoving       = false;
         session.Position       = session.SpawnPoint;
         session.Flags         &= ~0b0110u;  // clear dead (bit2) and attacking (bit1)
+        session.ActiveEffects.Clear();       // buffs/debuffs don't survive death
 
         _grid.Upsert(session.ConvId, session.Position.X, session.Position.Y);
 

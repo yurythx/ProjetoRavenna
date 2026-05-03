@@ -35,6 +35,12 @@ internal sealed class NpcEntity
     public long DeathTimeMs;   // timestamp at death, used to calculate respawn
     public int  RespawnDelayMs = 15_000;  // 15 s default
 
+    // ── AoE attack (0 = disabled) ─────────────────────────────────────────────
+    public int   AoeRadius;
+    public float AoeCooldownSec;
+    public int   AoeDamage;
+    public long  LastAoeAttackMs;
+
     // ── Flags (same bit layout as EntityState proto) ──────────────────────────
     // bit0=moving, bit1=attacking, bit2=dead, bit3=npc
     public uint Flags;
@@ -56,6 +62,9 @@ internal sealed class NpcEntity
         AttackCooldownSec = profile.AttackCooldownSec;
         AggroRange    = profile.AggroRange;
         XpReward      = profile.XpReward;
+        AoeRadius     = profile.AoeRadius;
+        AoeCooldownSec= profile.AoeCooldownSec;
+        AoeDamage     = profile.AoeDamage;
         State         = CombatState.Idle;
         Flags         = 0b1000u;  // bit3=npc always set
     }

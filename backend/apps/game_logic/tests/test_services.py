@@ -177,3 +177,40 @@ class GameLogicServiceTestCase(TestCase):
         skill2 = GameLogicService.learn_skill(self.user, str(self.skill.id))
         self.assertEqual(skill2.id, skill1.id)
         self.assertEqual(skill2.current_level, 2)
+
+    def test_upgrade_skill_deducts_gold_and_levels_up(self):
+        ps = PlayerSkill.objects.create(owner=self.user, skill_template=self.skill, current_level=1)
+        inv, _ = PlayerInventory.objects.get_or_create(owner=self.user)
+        inv.gold = 500
+        inv.save()
+
+        upgraded = GameLogicService.upgrade_skill(self.user, str(ps.id))
+        self.assertEqual(upgraded.current_level, 2)
+        inv.refresh_from_db()
+        self.assertEqual(inv.gold, 400)  # cost = 1 * 100
+
+    def test_upgrade_skill_fails_without_gold(self):
+        ps = PlayerSkill.objects.create(owner=self.user, skill_template=self.skill, current_level=1)
+        inv, _ = PlayerInventory.objects.get_or_create(owner=self.user)
+        inv.gold = 50
+        inv.save()
+
+        with self.assertRaises(ValueError, msg="Insufficient gold"):
+            GameLogicService.upgrade_skill(self.user, str(ps.id))
+
+    def test_upgrade_skill_respects_max_level(self):
+        ps = PlayerSkill.objects.create(
+            owner=self.user, skill_template=self.skill,
+            current_level=GameLogicService.MAX_SKILL_LEVEL
+        )
+        inv, _ = PlayerInventory.objects.get_or_create(owner=self.user)
+        inv.gold = 9999
+        inv.save()
+
+        with self.assertRaises(ValueError, msg="already at max level"):
+            GameLogicService.upgrade_skill(self.user, str(ps.id))
+
+    def test_upgrade_skill_not_found_raises(self):
+        import uuid
+        with self.assertRaises(ValueError):
+            GameLogicService.upgrade_skill(self.user, str(uuid.uuid4()))
