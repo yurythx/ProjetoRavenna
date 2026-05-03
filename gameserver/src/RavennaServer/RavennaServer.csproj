@@ -28,7 +28,7 @@
 
   <!-- Proto files from the shared /proto directory -->
   <ItemGroup>
-    <Protobuf Include="..\..\..\proto\game_messages.proto"
+    <Protobuf Include="..\..\proto\game_messages.proto"
               Link="Proto\game_messages.proto"
               GrpcServices="None" />
   </ItemGroup>
