@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useTransition } from "react";
+import React, { useState, useTransition } from "react";
 import type { PlayerSkill } from "@/types";
 
 const MAX_SKILL_LEVEL = 5;

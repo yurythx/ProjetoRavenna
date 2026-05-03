@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useTransition } from "react";
+import React, { useState, useTransition } from "react";
 import type { PlayerInventory, PlayerItem, ItemRarity } from "@/types";
 
 const RARITY_COLOR: Record<ItemRarity, string> = {
