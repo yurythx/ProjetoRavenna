@@ -20,9 +20,9 @@ internal static class ZoneRegistry
 {
     private static readonly Dictionary<string, ZoneScale> _zones = new(StringComparer.OrdinalIgnoreCase)
     {
-        ["plains"] = new ZoneScale("plains", level: 1,  HpMult: 1.0f, DamageMult: 1.0f, XpMult: 1.0f),
-        ["forest"] = new ZoneScale("forest", level: 5,  HpMult: 1.3f, DamageMult: 1.2f, XpMult: 2.0f),
-        ["ruins"]  = new ZoneScale("ruins",  level: 10, HpMult: 1.7f, DamageMult: 1.5f, XpMult: 4.0f),
+        ["plains"] = new ZoneScale("plains", Level: 1,  HpMult: 1.0f, DamageMult: 1.0f, XpMult: 1.0f),
+        ["forest"] = new ZoneScale("forest", Level: 5,  HpMult: 1.3f, DamageMult: 1.2f, XpMult: 2.0f),
+        ["ruins"]  = new ZoneScale("ruins",  Level: 10, HpMult: 1.7f, DamageMult: 1.5f, XpMult: 4.0f),
     };
 
     public static ZoneScale Get(string? zone) =>
