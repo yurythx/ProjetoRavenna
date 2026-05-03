@@ -12,8 +12,10 @@ class ItemTemplateAdmin(admin.ModelAdmin):
         "name",
         "item_type",
         "rarity",
-        "base_damage",
-        "base_defense",
+        "base_phys_damage",
+        "base_mag_damage",
+        "base_phys_defense",
+        "base_mag_defense",
         "price",
         "level_required",
     ]
