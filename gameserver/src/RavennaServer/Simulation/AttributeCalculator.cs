@@ -1,3 +1,40 @@
+// =============================================================================
+// AttributeCalculator.cs — Fórmulas de stats derivados do personagem
+// =============================================================================
+//
+// Centraliza TODAS as fórmulas de derivação de atributos. Alterar uma fórmula
+// aqui afeta todos os jogadores e NPCs automaticamente.
+//
+// Fluxo de cálculo no handshake (UdpSocketListener):
+//   base_attr = Django (strength/agility/intelligence/vitality)
+//   eff_attr  = base_attr + passive_flat_bonuses  ← aplicado ANTES
+//   derived   = AttributeCalculator.*(eff_attr, equipment_bonus)
+//   derived   = derived * (1 + passive_pct / 100)  ← aplicado DEPOIS
+//
+// Fórmulas:
+//   PhysicalDamage(str, agi, equip)  = 10 + str×2 + agi×0.5 + equip
+//   MagicalDamage(int, equip)        = 10 + int×2.5 + equip
+//   PhysDefense(vit, equip)          = 20 + vit×3 + equip
+//   MagDefense(vit, int, equip)      = 10 + vit×2 + int + equip
+//   MaxHp(vit, equip)                = 100 + vit×15 + equip
+//   MaxMana(int, equip)              = 50 + int×10 + equip
+//   AttackCooldown(agi, equip)       = clamp(1.0×(1 - agi/200) + equip, 0.3s, 3.0s)
+//   MoveSpeed(agi, equip)            = 400 + agi×2 + equip  (cm/s)
+//
+// Mitigação de dano (fórmula diminishing returns):
+//   Mitigation(def) = def / (def + 150)
+//   → 150 def = 50%  300 def = 67%  600 def = 80%
+//   ApplyMitigation(rawDmg, def) = max(1, rawDmg × (1 - mitigation))
+//
+// DamageMode-aware (PvP):
+//   Physical → ApplyMitigation(physDmg, targetPhysDef)
+//   Magical  → ApplyMitigation(magDmg,  targetMagDef)
+//   Hybrid   → ambos somados com mitigação separada por componente
+//
+// Sincronização com o cliente Unity:
+//   O cliente deve replicar estas fórmulas para exibir stats estimados no UI.
+//   O servidor é autoritativo — valores do servidor sempre prevalecem.
+// =============================================================================
 namespace RavennaServer.Simulation;
 
 /// <summary>

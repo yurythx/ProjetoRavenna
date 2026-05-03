@@ -1,3 +1,49 @@
+// =============================================================================
+// SkillRegistry.cs — Registro estático de definições de habilidades
+// =============================================================================
+//
+// Contém três declarações principais:
+//
+//   SkillTargeting (enum) — como a skill seleciona alvos:
+//     SingleEnemy  — um inimigo no range
+//     SingleAlly   — um aliado ou o próprio caster
+//     Self         — sempre o caster (heals e buffs)
+//     AreaOfEffect — todos no AoeRadius ao redor do ponto alvo
+//
+//   SkillDefinition (class) — parâmetros de uma habilidade:
+//     SkillId, Name, Targeting, DamageMultiplier, HealAmount
+//     Range, AoeRadius, CooldownSec, ManaCost
+//     BuffEffectType, BuffValue, BuffDurationSec  (para buffs/debuffs)
+//
+//   SkillRegistry (static) — dicionário de SkillId → SkillDefinition
+//     TryGet(skillId)  — lookup por ID (O(1))
+//     All              — enumera todas as definições
+//
+// Correspondência com Django:
+//   SkillId (uint) ↔ SkillTemplate.server_id (IntegerField no Django)
+//   O cliente Unity envia skill_id ao usar uma habilidade (C2S_UseSkill).
+//   O Django conhece a mesma ID via server_id no SkillTemplate.
+//
+// Scaling por nível:
+//   No servidor: damage × (1 + (level-1) × 0.15) → +15% por nível acima de 1
+//   Heal:        heal   × (1 + (level-1) × 0.10) → +10% por nível
+//   Buff value:  valor  × (1 + (level-1) × 0.05) → +5% por nível
+//
+// IDs definidos atualmente:
+//   1 = Power Strike  (melee, single, 2.5× dmg)
+//   2 = Whirlwind     (melee, AoE r=300cm, 1.5× dmg)
+//   3 = Arrow Rain    (ranged, AoE r=250cm, alcance 800cm)
+//   4 = Piercing Shot (ranged, single, 3× dmg, alcance 1000cm)
+//   5 = Fireball      (magic,  AoE r=200cm, alcance 700cm)
+//   6 = Ice Lance     (magic,  single, 2.8× dmg, alcance 600cm)
+//   7 = Heal          (self,   +40 HP, cooldown 15s)
+//   8 = Battle Cry    (self,   buff +30% dano por 10s)
+//
+// Para adicionar novas habilidades:
+//   1. Adicione a entrada no dicionário _skills com o próximo ID disponível.
+//   2. Crie o SkillTemplate correspondente no Django Admin com o mesmo server_id.
+//   3. O cliente Unity precisa ter a animação/ícone registrados com o mesmo ID.
+// =============================================================================
 namespace RavennaServer.Simulation;
 
 /// <summary>

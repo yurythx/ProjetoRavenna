@@ -1,3 +1,31 @@
+/**
+ * @module /api/game/party/invite
+ *
+ * Rota proxy Next.js para convidar um jogador ao grupo do líder.
+ * Apenas o líder do grupo pode enviar convites. O grupo deve existir
+ * previamente (criar via `POST /api/game/party` antes de convidar).
+ *
+ * ## Endpoint
+ * `POST /api/game/party/invite`
+ *
+ * ## Corpo da Requisição
+ * ```json
+ * { "user_id": "uuid-do-jogador-convidado" }
+ * ```
+ *
+ * ## Resposta (200 OK)
+ * Objeto `Party` atualizado com o novo membro incluído.
+ *
+ * ## Erros
+ * - `400 user_id required` — campo `user_id` ausente no corpo.
+ * - `401 Not authenticated` — token ausente ou expirado.
+ * - `403 Forbidden` — jogador atual não é líder do grupo (propagado do backend).
+ * - `400 Bad Request` — grupo cheio (MAX_SIZE=5) ou jogador já no grupo.
+ *
+ * ## Usado por
+ * - `PartyPanel` em `features/game/components/PartyPanel.tsx`
+ * - Formulário de convite que recebe `user_id` digitado pelo líder
+ */
 import { NextResponse } from "next/server";
 import { backendFetch } from "@/lib/backend";
 import { getAccessToken } from "@/lib/auth-cookies";

@@ -1,3 +1,41 @@
+/**
+ * @module PlayerStatsCard
+ *
+ * Card interativo de status do personagem, usado em páginas de perfil (/me)
+ * e no painel de jogo. Exibe nível, XP, HP/MP e atributos com botões de
+ * alocação de ponto quando `points_remaining > 0`.
+ *
+ * ## Responsabilidade
+ * - Mostrar nível atual e barra de progressão de XP (level × 1000 por nível).
+ * - Exibir barras de HP e MP com valor atual/máximo.
+ * - Listar atributos (Força, Agilidade, Inteligência, Vitalidade) com barras
+ *   relativas a um cap visual de 150.
+ * - Quando há pontos disponíveis (`points_remaining > 0`), exibir botão `+`
+ *   ao lado de cada atributo para alocar 1 ponto de cada vez.
+ * - Chamar a mutação via `useAllocatePoints` ao clicar no `+`, atualizando o
+ *   cache do React Query sem novo fetch completo (`setQueryData`).
+ *
+ * ## Como Usar
+ * ```tsx
+ * import { PlayerStatsCard } from "@/features/game/components/PlayerStatsCard";
+ *
+ * <PlayerStatsCard stats={playerStats} />
+ * ```
+ *
+ * ## Props
+ * - `stats` — objeto `PlayerStats` com level, experience, health, mana,
+ *   strength, agility, intelligence, vitality, points_remaining.
+ *
+ * ## Dependências Internas
+ * - `use-allocate-points.ts` — mutation que faz POST /api/v1/game-logic/stats/allocate/
+ *   via axios e atualiza o cache de ["player-data"] com a resposta.
+ *
+ * ## Observações
+ * - O botão `+` fica desabilitado enquanto a mutation está pendente (isPending).
+ * - Cada clique aloca exatamente 1 ponto no atributo selecionado.
+ * - Para a versão com alocação em lote (múltiplos pontos de uma vez), use o
+ *   `InventoryPanel` integrado ao `play/page.tsx` que acumula antes de confirmar.
+ */
 "use client";
 
 import { PlayerStats } from "@/types";

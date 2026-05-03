@@ -1,6 +1,63 @@
 """
-Models for game_logic app.
-Dynamic player instances - synced asynchronously between Unity and DRF.
+Models para o app game_logic.
+
+Este módulo define todos os modelos de instâncias dinâmicas do jogador —
+dados que mudam durante o jogo e são sincronizados com o servidor Unity
+de forma assíncrona via webhooks e WebSocket.
+
+## Modelos Principais
+
+### QuestTemplate
+Template estático de uma missão (definição, objetivos, recompensas).
+Criado pelo staff via Django Admin. Não muda durante o jogo.
+
+### QuestProgress
+Progresso de uma missão para um jogador específico. Referencia um
+QuestTemplate e armazena contadores de objetivos concluídos.
+
+### PlayerStats
+Estatísticas de combate do personagem: level, XP, HP, MP, atributos
+(strength, agility, intelligence, vitality) e pontos disponíveis.
+- Criado automaticamente com `PlayerInstancesView.get()`.
+- Atualizado pelo `GameLogicService` em operações de alocação, ganho de XP, etc.
+
+### PlayerInventory
+Inventário do jogador com ouro e lista de slots. Cada slot é um `PlayerItem`.
+- `max_slots`: capacidade máxima de slots (expandível no futuro).
+- `slots_used`: calculado como contagem de `PlayerItem` associados.
+
+### PlayerItem
+Um item específico no inventário, ligado a um `ItemTemplate` do app `game_data`.
+- `equip_slot`: null = no inventário; "head"/"chest"/etc. = equipado.
+- `slot_index`: posição na grade de inventário.
+
+### PlayerSkill
+Instância de uma habilidade aprendida pelo jogador. Referencia um `SkillTemplate`.
+- `level`: nível atual da habilidade (começa em 1).
+- `is_equipped`: se aparece na barra de habilidades ativa.
+
+### Party / PartyMember
+Grupo de até 5 jogadores (`MAX_SIZE = 5`). Um jogador é o líder (`leader`).
+- `Party.dissolve()` — remove todos os membros e deleta o grupo.
+- `Party.remove_member(user)` — remove um membro ou dissolve se for o líder.
+
+## Sincronização com Unity
+O servidor de jogo (Unity/GameServer) reporta eventos via:
+- `POST /api/v1/game-logic/events/` — webhook autenticado por HMAC
+- WebSocket (`ws://`) — estado em tempo real para eventos críticos
+
+## Como Usar (exemplo)
+```python
+from apps.game_logic.services import GameLogicService
+
+# Obter ou criar instâncias do jogador
+instances = GameLogicService.get_or_create_player_instances(user)
+stats = instances["stats"]
+inventory = instances["inventory"]
+
+# Alocar pontos
+GameLogicService.allocate_points(user, strength=1, vitality=2)
+```
 """
 from django.db import models
 

@@ -1,3 +1,56 @@
+"""
+Serviços de lógica de jogo — camada de negócio do app game_logic.
+
+Este módulo contém `GameLogicService`, a classe central de operações do jogo.
+Todas as operações que modificam dados do jogador devem passar por aqui,
+garantindo transações atômicas, anti-cheat e consistência de estado.
+
+## Classe: GameLogicService
+
+Classe estática (sem instanciação) com métodos transacionais para manipular
+modelos de jogo. Cada método usa `@transaction.atomic` para garantir que
+falhas parciais não corrompam o estado.
+
+### Constantes
+- `XP_PER_LEVEL = 100` — XP necessário para subir de nível
+- `POINTS_PER_LEVEL = 5` — pontos de atributo ganhos por level up
+
+### Métodos Principais
+
+#### get_or_create_player_instances(user)
+Obtém ou cria `PlayerInventory` + `PlayerStats` com lock pessimista
+(`select_for_update`) para evitar condição de corrida em criações simultâneas.
+
+#### add_item_to_inventory(user, item_template_id, quantity)
+Adiciona item ao inventário com empilhamento automático (stacking).
+Lança `ValueError` se inventário cheio ou quantidade < 1.
+
+#### equip_item(user, item_id) / unequip_item(user, item_id)
+Equipa/desequipa item, calculando bônus de atributos do `ItemTemplate`.
+Lança `ValueError` se item não pertence ao jogador ou já equipado/desequipado.
+
+#### gain_experience(user, amount)
+Concede XP e processa level ups em cascata (pode subir vários níveis de uma vez).
+A cada level up: incrementa `level`, zera XP relativo, concede `POINTS_PER_LEVEL` pontos,
+recalcula HP/MP máximo com base em vitalidade.
+
+#### allocate_points(user, **attrs)
+Aloca pontos de atributo validando saldo disponível.
+`attrs` aceita: `strength`, `agility`, `intelligence`, `vitality`.
+Lança `ValueError` se pontos insuficientes.
+
+#### create_character(user, name, class_type, race, faction)
+Cria o personagem inicial do jogador no onboarding com stats base por classe.
+Lança `ValueError` se personagem já existe.
+
+#### get_leaderboard(limit) / update_leaderboard_score(user, score)
+Lê/atualiza ranking no Redis (sorted set `game:leaderboard`).
+
+## Observações
+- Nunca chame `save()` diretamente em modelos de jogo fora deste service.
+- Para operações em lote do servidor Unity, use os endpoints de webhook
+  (`/api/v1/game-logic/events/`) que chamam este service internamente.
+"""
 import logging
 
 from django.db import transaction

@@ -1,3 +1,48 @@
+/**
+ * @module PartyPanel
+ *
+ * Painel de gerenciamento de grupo (party) exibido na aba "Grupo" da página /play.
+ * Permite criar um grupo, visualizar membros, convidar outros jogadores e sair/
+ * dissolver o grupo.
+ *
+ * ## Responsabilidade
+ * - Buscar grupo ativo via GET /api/game/party (retorna null em 404).
+ * - Estado "sem grupo": exibe botão "Criar Grupo" → POST /api/game/party.
+ * - Estado "com grupo": exibe lista de membros com avatar, nome e badge de Líder.
+ * - Indicar visualmente o usuário atual com "(você)".
+ * - Líder: pode convidar por user_id (POST /api/game/party/invite) e dissolver.
+ * - Membro não-líder: pode apenas sair do grupo (DELETE /api/game/party).
+ * - Campo de convite é ocultado quando o grupo atingir o limite de 5 membros.
+ * - Erros de API são exibidos inline sem travar a UI.
+ *
+ * ## Como Usar
+ * ```tsx
+ * import { PartyPanel } from "@/features/game/components/PartyPanel";
+ *
+ * <PartyPanel userId={currentUser.id} />
+ * ```
+ *
+ * ## Props
+ * - `userId` — UUID do usuário autenticado; usado para distinguir líder de membro
+ *   e marcar "(você)" na lista. Obtido de `useAuth()` na página pai.
+ *
+ * ## API Consumida
+ * - `GET    /api/game/party`        — retorna Party ou 404.
+ * - `POST   /api/game/party`        — cria novo grupo; usuário vira líder.
+ * - `DELETE /api/game/party`        — sai do grupo (líder: dissolve todos).
+ * - `POST   /api/game/party/invite` — body: { user_id }; líder convida membro.
+ *
+ * ## Tipos Relevantes (src/types/index.ts)
+ * - `Party`       — { id, leader_id, members: PartyMember[] }
+ * - `PartyMember` — { user_id, display_name }
+ *
+ * ## Observações
+ * - Tamanho máximo do grupo: MAX_PARTY_SIZE = 5 (constante local; espelha o backend).
+ * - Dados ficam em cache por 15 segundos (staleTime: 15_000).
+ * - Usa `useTransition` para manter interações responsivas durante requisições.
+ * - O convite usa o UUID do jogador alvo, não o username (interface futura pode
+ *   adicionar busca por nome).
+ */
 "use client";
 
 import React, { useState, useTransition } from "react";

@@ -1,3 +1,41 @@
+// =============================================================================
+// UdpSocketListener.cs — Thread dedicada de rede UDP + handshake KCP
+// =============================================================================
+//
+// Roda em uma thread OS dedicada (TaskCreationOptions.LongRunning) para
+// receber datagrams UDP e roteá-los para as sessions KCP dos jogadores.
+//
+// Protocolo de Handshake:
+//   1. Cliente envia UDP com os 4 primeiros bytes = 0xCAFE1337 (AUTH_MAGIC)
+//      seguido de C2S_Handshake Protobuf: { jwt_token, hwid }
+//   2. Servidor valida o JWT com JwtValidator.ValidateUnityAuth()
+//   3. Verifica conflito de HWID (apenas uma sessão por hardware)
+//   4. Busca estado do personagem via DjangoBridge.FetchPlayerStateAsync()
+//   5. Cria PlayerSession com KcpConnection e notifica SimulationLoop
+//   6. Responde com S2C_HandshakeAck: { conv_id, ok, reason }
+//
+// Pós-handshake:
+//   Todo tráfego é roteado por conv_id (primeiros 4 bytes do datagram KCP).
+//   O datagram é copiado para um buffer poolado e escrito no ReceiveChannel
+//   da session — a thread de simulação consome em seu próprio tick.
+//
+// Inicialização de Stats (HandleHandshake):
+//   Os atributos base do Django são aumentados pelas passivas planas (PassiveBonuses)
+//   ANTES do cálculo de stats derivados via AttributeCalculator.
+//   As passivas percentuais são aplicadas DEPOIS, como multiplicadores.
+//   Isso garante que "+8 STR passivo" também aumenta PhysicalDamage.
+//
+// Segurança:
+//   - Datagrams > 1400 bytes (MAX_DATAGRAM) são descartados silenciosamente.
+//   - HWID duplicado de user diferente → handshake rejeitado (hwid_conflict).
+//   - JWT inválido ou sem token_type="unity_auth" → invalid_token.
+//
+// Para o cliente Unity:
+//   Conectar em udp://<GAMESERVER_HOST>:<UDP_PORT>
+//   Enviar: [0xCAFE1337 LE] + [C2S_Handshake protobuf]
+//   Aguardar: [0xCAFE1337 LE] + [S2C_HandshakeAck protobuf]
+//   Se ok=true, usar conv_id recebido para todas as mensagens KCP seguintes.
+// =============================================================================
 using System.Buffers;
 using System.Collections.Concurrent;
 using System.Net;

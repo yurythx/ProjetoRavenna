@@ -1,3 +1,42 @@
+// =============================================================================
+// EntityState.cs — Modelos de dados de sessão do jogador em memória
+// =============================================================================
+//
+// Define duas estruturas centrais da camada de simulação:
+//
+//   EntityPosition  — coordenada 2D em centímetros (struct sem alocação)
+//   PlayerSession   — estado completo de um jogador conectado
+//
+// PlayerSession é criada por UdpSocketListener no handshake e destruída
+// quando o jogador desconecta ou o heartbeat expira (30 s sem atividade).
+// É compartilhada entre a thread de rede e a thread de simulação através
+// de um Channel<> lock-free (ReceiveChannel).
+//
+// Campos agrupados:
+//   Identidade    — ConvId, UserId, Hwid, RemoteEndPoint
+//   Rede          — Kcp, ReceiveChannel
+//   Posição       — Position, Destination, IsMoving, LastHeartbeatMs
+//   Flags (bitfield enviado em todo snapshot):
+//     bit0 = moving  bit1 = attacking  bit2 = dead  bit3 = npc(sempre 0 para player)
+//   Identidade do personagem — Class, Race, Faction, Level
+//   Atributos base — Strength, Agility, Intelligence, Vitality
+//   Stats derivados — PhysicalDamage, MagicalDamage, PhysDefense, MagDefense
+//   DamageMode     — Physical | Magical | Hybrid (determinado no handshake)
+//   Combate        — CurrentHp/Mana, MaxHp/Mana, AttackRange, CombatTargetId
+//   Grupo          — PartyId (null = solo)
+//   Habilidades    — SkillCooldowns, SkillLevels
+//   Efeitos ativos — ActiveEffects (buffs e debuffs com expiração em ms)
+//
+// Convenção de coordenadas:
+//   Todo movimento é em centímetros (cm).
+//   O mundo tem WORLD_WIDTH × WORLD_HEIGHT cm (padrão 10000 × 10000).
+//   AttackRange padrão = 150 cm (~1.5 m)
+//   MovementSpeed padrão = 400 cm/s (4 m/s)
+//
+// Nota sobre DamageMode:
+//   Inferido em UdpSocketListener.HandleHandshake a partir da classe e do
+//   equipamento. Ver DamageMode.cs e AttributeCalculator.InferDamageMode().
+// =============================================================================
 using System.Threading.Channels;
 using RavennaServer.Network;
 using RavennaServer.Simulation;

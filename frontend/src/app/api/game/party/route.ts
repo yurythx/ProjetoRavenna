@@ -1,3 +1,39 @@
+/**
+ * @module /api/game/party
+ *
+ * Rota proxy Next.js para gerenciar o grupo (party) do jogador.
+ * Suporta consulta, criação e saída/dissolução de grupo.
+ *
+ * ## Endpoints
+ *
+ * ### GET /api/game/party
+ * Retorna o grupo atual do jogador ou `null` se não estiver em nenhum.
+ * ```json
+ * {
+ *   "id":        "uuid",
+ *   "leader_id": "uuid",
+ *   "members": [
+ *     { "user_id": "uuid", "display_name": "NomeJogador" }
+ *   ]
+ * }
+ * ```
+ *
+ * ### POST /api/game/party
+ * Cria um novo grupo com o jogador atual como líder.
+ * Retorna o objeto `Party` criado com status 201.
+ *
+ * ### DELETE /api/game/party
+ * - Se o jogador for o **líder**: dissolve o grupo para todos os membros.
+ * - Se for **membro**: remove o jogador do grupo (sair).
+ * Retorna `{ "ok": true }`.
+ *
+ * ## Erros
+ * - `401 Not authenticated` — token ausente ou expirado.
+ * - `400 Bad Request` — operação inválida (ex.: criar grupo já existindo).
+ *
+ * ## Usado por
+ * - `PartyPanel` em `features/game/components/PartyPanel.tsx`
+ */
 import { NextResponse } from "next/server";
 import { backendFetch } from "@/lib/backend";
 import { getAccessToken } from "@/lib/auth-cookies";

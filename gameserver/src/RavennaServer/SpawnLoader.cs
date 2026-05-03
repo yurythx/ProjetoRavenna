@@ -1,3 +1,28 @@
+// =============================================================================
+// SpawnLoader.cs — Carregamento de configuração de spawns de NPCs
+// =============================================================================
+//
+// Lê o arquivo spawns.json definido por NPC_SPAWNS_PATH (env var) e retorna
+// a lista de NPCs que devem ser spawnados no início do servidor.
+// Se o arquivo não existir ou for inválido, usa os Defaults() embutidos.
+//
+// Formato do spawns.json:
+//   [
+//     { "type": "wolf",   "x": 2000, "y": 3000, "zone": "plains" },
+//     { "type": "bandit", "x": 7000, "y": 6500, "zone": "forest" },
+//     { "type": "elite_wolf", "x": 5000, "y": 5000, "zone": "ruins" }
+//   ]
+//
+// Tipos de NPC válidos: "wolf", "bandit", "elite_wolf", "bandit_captain"
+// Zonas válidas: "plains" (nível 1), "forest" (nível 5), "ruins" (nível 10)
+// Coordenadas em centímetros (cm) no espaço do mundo (0..WORLD_WIDTH/HEIGHT)
+//
+// Para adicionar novos tipos de NPC:
+//   1. Adicione o CombatProfile em CombatState.cs
+//   2. Mapeie o nome em NpcManager.CombatProfileFor()
+//   3. Adicione entradas de loot em LootTable.cs
+//   4. Registre o UUID do item em Django (migration)
+// =============================================================================
 using System.Text.Json;
 
 namespace RavennaServer;

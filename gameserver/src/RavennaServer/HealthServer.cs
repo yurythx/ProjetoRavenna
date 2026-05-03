@@ -1,3 +1,20 @@
+// =============================================================================
+// HealthServer.cs — Servidor HTTP mínimo para health check do container
+// =============================================================================
+//
+// Responde a qualquer requisição HTTP em HEALTH_PORT (padrão: 7778) com
+// "200 OK" e corpo "OK". Utilizado pelo Docker Compose e Kubernetes para
+// determinar se o container está saudável e pronto para receber tráfego.
+//
+// Como configurar no docker-compose.yml:
+//   healthcheck:
+//     test: ["CMD", "curl", "-f", "http://localhost:7778/"]
+//     interval: 10s
+//     timeout: 3s
+//     retries: 3
+//
+// Não processa o caminho da requisição — qualquer path retorna 200 OK.
+// =============================================================================
 using System.Net;
 using System.Net.Sockets;
 using System.Text;

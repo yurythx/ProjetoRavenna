@@ -1,3 +1,74 @@
+"""
+WebSocket consumers do app game_logic — comunicação em tempo real.
+
+Este módulo define os consumers Django Channels que gerenciam conexões
+WebSocket para chat e eventos de jogo. Montados via `routing.py`.
+
+## Consumers
+
+### ChatConsumer
+Consumer assíncrono para chat em tempo real por salas.
+
+**URL:** `ws://<host>/ws/chat/<room>/`
+**Autenticação:** JWT via `AuthMiddlewareStack`
+
+**Salas Permitidas:**
+- `global` — chat geral do servidor
+- `faction_<nome>` — canal de facção (ex.: `faction_vanguarda`)
+- `zone_<chave>` — chat por zona do mapa (ex.: `zone_ruins`)
+
+**Rate Limiting:** 5 mensagens por janela de 10 segundos (por conexão, sem Redis).
+
+**Mensagem de entrada:**
+```json
+{"type": "chat.send", "text": "Olá!"}
+```
+**Mensagem de saída:**
+```json
+{"type": "chat.message", "user": "Herói", "user_id": "uuid", "text": "Olá!", "ts": 1714000000000}
+```
+
+**Códigos de Fechamento:**
+- `4001` — não autenticado
+- `4003` — usuário banido
+- `4004` — sala inválida
+
+---
+
+### GameConsumer
+Consumer assíncrono para eventos de jogo em tempo real.
+
+**URL:** `ws://<host>/ws/game/<session_id>/`
+**Autenticação:** JWT via `AuthMiddlewareStack`
+
+**Mensagens de Entrada:**
+- `{"type": "ping"}` — heartbeat, responde com `pong` e atualiza sessão
+- `{"type": "player.move", "map_key": str, "x": float, "y": float}` — movimento do jogador
+
+**Mensagens de Saída:**
+- `{"type": "pong"}` — resposta ao ping
+- `{"type": "world.update", "player_id": ..., "display_name": ..., "x": ..., "y": ..., "map_key": ...}` — posição de jogadores no mapa
+- `{"type": "session.kicked", "reason": str}` — jogador expulso da sessão
+- `{"type": "notification.new", ...}` — notificação do servidor
+
+**Grupos de Canais:**
+- `map_<map_key>` — todos jogadores no mesmo mapa
+- `user_<user_id>` — canal privado do jogador (para kick e notificações)
+
+**Requisitos:**
+- Sessão de jogo ativa (`GameSession.is_active=True`) com o `session_id` fornecido.
+- Código `4004` fecha a conexão se sessão inválida ou expirada.
+
+## Configuração (settings)
+```python
+CHANNEL_LAYERS = {
+    "default": {
+        "BACKEND": "channels_redis.core.RedisChannelLayer",
+        "CONFIG": {"hosts": [("redis", 6379)]},
+    }
+}
+```
+"""
 import json
 import logging
 import time

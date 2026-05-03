@@ -1,3 +1,39 @@
+/**
+ * @module PlayPage (/play)
+ *
+ * Página principal do jogo — centro de todas as interações do jogador.
+ * Gerencia o ciclo completo: verificação de personagem, criação no onboarding,
+ * e painel de jogo com abas para Stats, Inventário, Habilidades, Missões e Grupo.
+ *
+ * ## Responsabilidade
+ * - Verificar se o jogador possui personagem criado; se não, exibir formulário de criação.
+ * - Carregar dados do jogador via `GET /api/game/player` (stats + inventory + skills).
+ * - Exibir painel de abas com os componentes de cada seção do jogo.
+ * - Gerenciar alocação de pontos em lote: acumula pendentes localmente, confirma
+ *   via `POST /api/game/stats/allocate` ao clicar em "Confirmar".
+ *
+ * ## Componentes Integrados
+ * - `InventoryPanel` — grade de itens com equip/unequip interativo
+ * - `SkillBar` — listagem de habilidades com upgrade
+ * - `QuestTracker` — missões ativas com progresso de objetivos
+ * - `PartyPanel` — gerenciamento de grupo (criar, convidar, sair)
+ * - `CharacterPanel` — painel de stats e atributos com botões de alocação
+ *
+ * ## Fluxo de Criação de Personagem
+ * 1. Ao montar, faz `GET /api/game/player`.
+ * 2. Se 404, exibe formulário com seleção de Classe, Raça, Facção e Nome.
+ * 3. Ao confirmar, faz `POST /api/game/character/create` e redireciona ao jogo.
+ *
+ * ## Fluxo de Alocação de Pontos
+ * 1. Cada clique em `+` incrementa o pendente local (sem chamar API).
+ * 2. Ao clicar "Confirmar Alocação", envia todos os pendentes de uma vez.
+ * 3. O cache `["player-data"]` é invalidado para refletir os novos stats.
+ *
+ * ## Dependências
+ * - React Query: `useQuery`, `useQueryClient`
+ * - `useAuth` — token e dados do usuário autenticado
+ * - Rotas API: `/api/game/player`, `/api/game/character/create`, `/api/game/stats/allocate`
+ */
 "use client";
 
 import { useState, useCallback } from "react";

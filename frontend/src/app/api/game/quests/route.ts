@@ -1,3 +1,42 @@
+/**
+ * @module /api/game/quests
+ *
+ * Rota proxy Next.js que retorna as missões ativas do jogador, enriquecidas
+ * com nome, objetivos e recompensas vindos dos templates de missão.
+ *
+ * ## Endpoint
+ * `GET /api/game/quests`
+ *
+ * ## Resposta (200 OK)
+ * ```json
+ * [
+ *   {
+ *     "id":                 "uuid",
+ *     "quest_id":           "uuid-template",
+ *     "status":             "active" | "completed" | "failed",
+ *     "current_objectives": { "kill_goblins": 3 },
+ *     "started_at":         "2025-01-01T00:00:00Z",
+ *     "completed_at":       null,
+ *     "quest_name":         "Extermínio de Goblins",
+ *     "quest_objectives":   [ ...QuestObjective[] ],
+ *     "quest_rewards":      { "xp": 500, "gold": 100 },
+ *     "quest_type":         "main" | "side"
+ *   }
+ * ]
+ * ```
+ *
+ * ## Comportamento
+ * - Faz duas chamadas em paralelo ao backend:
+ *   1. `GET /api/v1/game-logic/quests/` — progresso das missões do jogador
+ *   2. `GET /api/v1/game-logic/quest-templates/` — templates com nomes e objetivos
+ * - Se templates falharem, retorna progresso sem enriquecimento (nomes = quest_id).
+ *
+ * ## Erros
+ * - `401 Not authenticated` — token ausente ou expirado.
+ *
+ * ## Usado por
+ * - `QuestTracker` em `features/game/components/QuestTracker.tsx`
+ */
 import { NextResponse } from "next/server";
 import { backendFetch } from "@/lib/backend";
 import { getAccessToken } from "@/lib/auth-cookies";

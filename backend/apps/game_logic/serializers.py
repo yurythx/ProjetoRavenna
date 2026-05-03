@@ -1,5 +1,49 @@
 """
-Serializers for game_logic app.
+Serializers para o app game_logic.
+
+Este módulo contém todos os serializers DRF usados nas views de game_logic.
+Cada serializer valida entrada ou formata saída de um modelo ou operação específica.
+
+## Serializers de Saída (leitura)
+
+### PlayerStatsSerializer
+Serializa `PlayerStats` completo: level, XP, HP/MP (atual e máximo), atributos,
+pontos disponíveis, classe, raça e facção. Usado em `GET /api/v1/game-logic/`.
+
+### PlayerInventorySerializer
+Serializa `PlayerInventory` com lista de itens via `SerializerMethodField`.
+Cada item inclui: id, slot_index, template_id, name, quantity, equip_slot,
+rarity, item_type. Usado em `GET /api/v1/game-logic/inventory/`.
+
+### PlayerSkillSerializer
+Serializa `PlayerSkill` com dados do template (nome, descrição, tipo).
+Usado em `GET /api/v1/game-logic/skills/`.
+
+### QuestProgressSerializer
+Serializa o progresso de missão com os objetivos atuais (dict de contadores).
+Usado em `GET /api/v1/game-logic/quests/`.
+
+### QuestTemplateSerializer
+Serializa templates de missão (estático): nome, tipo, objetivos, recompensas.
+Usado em `GET /api/v1/game-logic/quest-templates/`.
+
+## Serializers de Entrada (validação)
+
+### AllocatePointsSerializer
+Valida `{ strength?, agility?, intelligence?, vitality? }`. Todos opcionais,
+inteiros ≥ 0. Soma total deve ser ≤ `points_remaining` (validado no service).
+
+### CreateCharacterSerializer
+Valida criação inicial: `{ name, class_type, race, faction }`.
+Verifica unicidade de nome e opções válidas de classe/raça/facção.
+
+### EquipItemSerializer / AddItemSerializer / GainExperienceSerializer
+Validam operações específicas de inventário e XP.
+
+## Convenção
+- Serializers de leitura têm sufixo `Serializer`.
+- Campos de entrada inválidos retornam 400 com detalhes no corpo.
+- Campos monetários (gold) e de quantidade são inteiros não-negativos.
 """
 from rest_framework import serializers
 

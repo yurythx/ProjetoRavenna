@@ -1,3 +1,35 @@
+"""
+URLs do app game_logic — montado sob /api/v1/game-logic/ em config/urls.py.
+
+## Rotas Disponíveis
+
+| Método        | URL                                    | View                     | Descrição                                  |
+|---------------|----------------------------------------|--------------------------|---------------------------------------------|
+| GET           | /                                      | PlayerInstancesView      | Stats + Inventário do jogador autenticado  |
+| GET/POST      | /inventory/                            | InventoryView            | Inventário; POST admin adiciona item        |
+| GET/PUT/DELETE| /inventory/<item_index>/               | InventoryItemView        | Operações em item específico por índice     |
+| POST          | /inventory/equip/                      | EquipItemView            | Equipa item pelo item_id                    |
+| POST          | /inventory/unequip/                    | UnequipItemView          | Desequipa item pelo item_id                 |
+| GET           | /stats/                                | StatsView                | Stats do personagem                         |
+| POST          | /stats/gain-xp/                        | GainExperienceView       | Ganhar XP (server-to-server)                |
+| POST          | /stats/allocate/                       | AllocatePointsView       | Alocar pontos de atributo                   |
+| GET           | /quests/                               | QuestProgressView        | Missões ativas do jogador                   |
+| POST          | /quests/complete/                      | QuestCompleteView        | Marcar missão como concluída                |
+| GET           | /skills/                               | PlayerSkillsView         | Habilidades do jogador                      |
+| POST          | /skills/<skill_id>/upgrade/            | UpgradeSkillView         | Evoluir habilidade                          |
+| GET           | /leaderboard/                          | LeaderboardView          | Top jogadores por XP (Redis)                |
+| GET/POST      | /session/                              | GameSessionView          | Sessão de jogo ativa                        |
+| GET           | /quest-templates/                      | QuestTemplatesView       | Templates de missão (estático)              |
+| POST          | /events/                               | GameEventWebhookView     | Webhook de eventos do servidor Unity        |
+| GET           | /game-state/<user_id>/                 | GameStateView            | Estado completo para servidor Unity         |
+| GET/POST/DEL  | /party/                                | PartyView                | Consultar/criar/sair de grupo               |
+| POST          | /party/invite/                         | PartyInviteView          | Convidar jogador ao grupo                   |
+| POST          | /character/create/                     | CreateCharacterView      | Criar personagem no onboarding              |
+
+## Autenticação
+Todas as rotas requerem `IsAuthenticated` (JWT ou session).
+Exceções: `GameEventWebhookView` usa `GameServerIPPermission` (IP allowlist + HMAC).
+"""
 from django.urls import path
 from apps.game_logic.views import (
     AllocatePointsView,

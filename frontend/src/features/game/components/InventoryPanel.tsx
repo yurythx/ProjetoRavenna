@@ -1,3 +1,57 @@
+/**
+ * @module InventoryPanel
+ *
+ * Painel interativo de inventário do jogador exibido na aba "Inventário"
+ * da página /play. Renderiza uma grade 5×10 de slots, permite selecionar
+ * itens para ver detalhes e executar ações de equipar/desequipar.
+ *
+ * ## Responsabilidade
+ * - Exibir todos os slots do inventário (mínimo 20), preenchidos ou vazios.
+ * - Mostrar ouro atual e barra de capacidade (slots usados / máximo).
+ * - Ao clicar em um item, abrir painel lateral com nome, tipo, raridade e ações.
+ * - Para itens equipáveis (weapon/offhand/helmet/chest etc.): exibir seletor de
+ *   slot e botão "Equipar" que faz POST /api/game/inventory/equip.
+ * - Para itens já equipados: exibir botão "Desequipar" que faz POST
+ *   /api/game/inventory/unequip.
+ * - Para materiais e não-equipáveis: exibir mensagem informativa sem ações.
+ * - Ao concluir qualquer ação, chama `onInventoryChange` para que o componente
+ *   pai recarregue os dados atualizados.
+ *
+ * ## Como Usar
+ * ```tsx
+ * import { InventoryPanel } from "@/features/game/components/InventoryPanel";
+ *
+ * <InventoryPanel
+ *   inventory={playerInventory}   // PlayerInventory do backend
+ *   onInventoryChange={refetch}   // callback disparado após equip/unequip
+ * />
+ * ```
+ *
+ * ## Props
+ * - `inventory` — objeto `PlayerInventory` com gold, slots_used, max_slots e items[].
+ * - `onInventoryChange` — função sem argumentos chamada após qualquer mutação
+ *   bem-sucedida; normalmente invalida o React Query que fornece os dados.
+ *
+ * ## API Consumida
+ * - `POST /api/game/inventory/equip`   — body: { player_item_id, equip_slot }
+ * - `POST /api/game/inventory/unequip` — body: { equip_slot }
+ *
+ * ## Mapeamento de Tipos → Slots
+ * weapon  → ["weapon", "offhand"]
+ * offhand → ["offhand"]
+ * helmet  → ["helmet"]
+ * chest   → ["chest"]
+ * gloves  → ["gloves"]
+ * boots   → ["boots"]
+ * ring    → ["ring_1", "ring_2"]
+ * amulet  → ["amulet"]
+ *
+ * ## Observações
+ * - Usa `useTransition` do React para manter a UI responsiva durante fetches.
+ * - Itens com `item_type` sem mapeamento em TYPE_TO_SLOTS são tratados como
+ *   não-equipáveis.
+ * - O painel de detalhe é fechado ao clicar no botão ✕ ou ao selecionar outro item.
+ */
 "use client";
 
 import React, { useState, useTransition } from "react";

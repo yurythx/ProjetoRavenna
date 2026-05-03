@@ -1,3 +1,41 @@
+/**
+ * @module PlayerInventoryCard
+ *
+ * Card somente-leitura do inventário do jogador, usado em páginas de perfil
+ * e resumo (ex.: /me). Difere do InventoryPanel — não possui interação de
+ * equipar/desequipar; serve apenas para visualização rápida.
+ *
+ * ## Responsabilidade
+ * - Exibir ouro atual no cabeçalho.
+ * - Renderizar barra de capacidade (slots_used / max_slots) com cor reativa:
+ *   verde abaixo de 70%, amarelo entre 70–90%, vermelho acima de 90%.
+ * - Mostrar grade de itens (mínimo 20 slots) com cor por raridade e contador de
+ *   quantidade (×N) para itens empilháveis.
+ * - Tooltip nativo (atributo `title`) com nome completo + quantidade ao hover.
+ *
+ * ## Como Usar
+ * ```tsx
+ * import { PlayerInventoryCard } from "@/features/game/components/PlayerInventoryCard";
+ *
+ * <PlayerInventoryCard inventory={playerInventory} />
+ * ```
+ *
+ * ## Props
+ * - `inventory` — objeto `PlayerInventory` com gold, slots_used, max_slots e items[].
+ *
+ * ## Diferença em Relação ao InventoryPanel
+ * | Recurso                  | PlayerInventoryCard | InventoryPanel |
+ * |--------------------------|---------------------|----------------|
+ * | Visualização             | ✅                  | ✅             |
+ * | Equip/Unequip interativo | ❌                  | ✅             |
+ * | Painel de detalhe        | ❌                  | ✅             |
+ * | Uso recomendado          | Perfil / resumo     | Página /play   |
+ *
+ * ## Observações
+ * - Não faz fetch — recebe `inventory` já carregado pelo componente pai.
+ * - Cor da grade usa `RARITY_COLORS` que mapeia nome do item a CSS vars; em
+ *   produção deveria usar `item.rarity` para consistência.
+ */
 "use client";
 
 import { PlayerInventory } from "@/types";

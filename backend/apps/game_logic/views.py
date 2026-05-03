@@ -1,3 +1,61 @@
+"""
+Views do app game_logic — endpoints REST para o frontend e o servidor Unity.
+
+Este módulo define todas as APIViews que expõem a lógica do jogo via HTTP.
+As views são thin controllers: validam entrada via serializers, delegam ao
+`GameLogicService` e formatam a resposta.
+
+## Views por Categoria
+
+### Instâncias do Jogador
+- `PlayerInstancesView` (GET /) — stats + inventário do jogador autenticado
+- `StatsView` (GET /stats/) — somente stats
+- `InventoryView` (GET/POST /inventory/) — inventário; POST admin adiciona item
+
+### Inventário
+- `InventoryItemView` (GET/PUT/DELETE /inventory/<index>/) — item por slot
+- `EquipItemView` (POST /inventory/equip/) — equipar item
+- `UnequipItemView` (POST /inventory/unequip/) — desequipar item
+
+### Habilidades
+- `PlayerSkillsView` (GET /skills/) — lista de habilidades do jogador
+- `UpgradeSkillView` (POST /skills/<uuid>/upgrade/) — evoluir habilidade
+
+### Stats e Progressão
+- `GainExperienceView` (POST /stats/gain-xp/) — conceder XP (server-to-server)
+- `AllocatePointsView` (POST /stats/allocate/) — alocar pontos de atributo
+
+### Missões
+- `QuestProgressView` (GET /quests/) — progresso das missões ativas
+- `QuestCompleteView` (POST /quests/complete/) — concluir missão
+- `QuestTemplatesView` (GET /quest-templates/) — templates estáticos
+
+### Grupo (Party)
+- `PartyView` (GET/POST/DELETE /party/) — consultar, criar, sair/dissolver grupo
+- `PartyInviteView` (POST /party/invite/) — convidar membro ao grupo
+
+### Ranking
+- `LeaderboardView` (GET /leaderboard/?limit=N) — top jogadores via Redis
+
+### Integração com Servidor Unity
+- `GameEventWebhookView` (POST /events/) — webhook HMAC para eventos do Unity
+- `GameStateView` (GET /game-state/<user_id>/) — estado completo para o Unity
+- `GameSessionView` (GET/POST /session/) — sessão ativa de jogo
+
+### Onboarding
+- `CreateCharacterView` (POST /character/create/) — criação inicial do personagem
+
+## Autenticação e Permissões
+- Jogador autenticado: `IsAuthenticated` (JWT via DRF SimpleJWT)
+- Admin: verifica `request.user.is_staff`
+- Servidor Unity: `GameServerIPPermission` (IP allowlist) + HMAC header
+
+## Padrão de Resposta de Erro
+```python
+return Response({"error": "Mensagem amigável"}, status=400)
+```
+Erros de validação de serializer retornam os detalhes nativos do DRF.
+"""
 import hashlib
 import hmac
 import logging

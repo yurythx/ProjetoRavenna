@@ -1,3 +1,37 @@
+/**
+ * @module LeaderboardCard
+ *
+ * Card do ranking global dos top heróis, usado em páginas de painel e perfil.
+ * Exibe os N primeiros colocados com ícones de medalha (ouro/prata/bronze),
+ * avatar inicial e pontuação em XP.
+ *
+ * ## Responsabilidade
+ * - Buscar dados do ranking via hook `useLeaderboard(limit)`.
+ * - Renderizar skeleton animado durante carregamento.
+ * - Exibir mensagem vazia quando não há nenhum herói ranqueado.
+ * - Aplicar estilos diferenciados para top 3 (cores de medalha) e demais posições.
+ * - Mostrar nota "Atualizado em tempo real via Redis" como rodapé informativo.
+ *
+ * ## Como Usar
+ * ```tsx
+ * import { LeaderboardCard } from "@/features/game/components/LeaderboardCard";
+ *
+ * // Exibe top 5 (limite fixado internamente)
+ * <LeaderboardCard />
+ * ```
+ *
+ * ## Sem Props
+ * O componente não recebe props. O limite de resultados é fixado internamente em 5.
+ * Para alterar, edite a chamada `useLeaderboard(5)` dentro do componente.
+ *
+ * ## Dependências Internas
+ * - `use-leaderboard.ts` — hook que busca GET /api/v1/game-logic/leaderboard/
+ *   via axios direto ao backend (não via Next.js API route).
+ *
+ * ## Observações
+ * - O backend calcula o score com base em XP total acumulado.
+ * - A classificação é atualizada a cada ação relevante do jogador no servidor de jogo.
+ */
 "use client";
 
 import { useLeaderboard } from "../hooks/use-leaderboard";

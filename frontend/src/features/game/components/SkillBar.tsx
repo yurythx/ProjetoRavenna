@@ -1,3 +1,51 @@
+/**
+ * @module SkillBar
+ *
+ * Barra de habilidades do jogador exibida na aba "Habilidades" da página /play.
+ * Mostra 8 slots de ação (grade), lista todas as habilidades aprendidas com
+ * indicadores de nível e permite evoluir habilidades gastando ouro.
+ *
+ * ## Responsabilidade
+ * - Renderizar uma grade de 8 slots numerados (1–8) mapeados por `slot_index`.
+ * - Exibir habilidades equipadas em seus slots com nome abreviado e nível (Lv X).
+ * - Listar todas as habilidades com nome completo, barra de pips de nível (1–5),
+ *   custo de upgrade e botão de ação.
+ * - Calcular custo de upgrade: `current_level × 100` ouro.
+ * - Desabilitar o botão quando `gold < cost` ou habilidade está no nível máximo (5).
+ * - Habilidades no nível máximo exibem badge "MAX" em vez do botão.
+ * - Habilidades aprendidas mas não equipadas (is_equipped = false) aparecem na
+ *   lista com aviso de slot vazio.
+ * - Ao clicar em upgrade, faz POST /api/game/skills/{id}/upgrade e chama
+ *   `onSkillChange` em caso de sucesso.
+ *
+ * ## Como Usar
+ * ```tsx
+ * import { SkillBar } from "@/features/game/components/SkillBar";
+ *
+ * <SkillBar
+ *   skills={playerSkills}     // PlayerSkill[] do backend
+ *   gold={inventory.gold}     // ouro atual para verificar custo de upgrade
+ *   onSkillChange={refetch}   // callback após upgrade bem-sucedido
+ * />
+ * ```
+ *
+ * ## Props
+ * - `skills`        — array de `PlayerSkill`; pode ser vazio (exibe mensagem).
+ * - `gold`          — ouro disponível; controla se botão de upgrade está ativo.
+ * - `onSkillChange` — chamado após upgrade bem-sucedido; normalmente invalida query.
+ *
+ * ## API Consumida
+ * - `POST /api/game/skills/{id}/upgrade` — sem body; retorna skill atualizada.
+ *
+ * ## Regras de Negócio
+ * - MAX_SKILL_LEVEL = 5; acima disso nenhum upgrade é possível.
+ * - Custo: nível 1 → 100g, nível 2 → 200g, ..., nível 4 → 400g.
+ * - slot_index = null significa habilidade aprendida mas não alocada em slot.
+ *
+ * ## Observações
+ * - Usa `useTransition` para evitar bloquear a UI durante o POST de upgrade.
+ * - Erros de API são exibidos inline ao lado do botão da habilidade afetada.
+ */
 "use client";
 
 import React, { useState, useTransition } from "react";

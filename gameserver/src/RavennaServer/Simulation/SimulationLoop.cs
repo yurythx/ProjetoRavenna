@@ -1,3 +1,51 @@
+// =============================================================================
+// SimulationLoop.cs — Loop de simulação autoritativo a 30 Hz
+// =============================================================================
+//
+// O coração do servidor. Executa em uma thread OS dedicada e processa todos
+// os estados de jogo: movimento, combate, NPCs e snapshots de mundo.
+//
+// Sequência de cada tick (1/30s ≈ 33ms):
+//   1. Drena os ReceiveChannels de cada PlayerSession (mensagens KCP)
+//   2. Atualiza o relógio KCP de cada session
+//   3. Tenta respawn de jogadores mortos
+//   4. Avança posições por MovementController.StepPlayer()
+//   5. Poda efeitos ativos expirados, executa máquina de estado de combate
+//   6. Delega AI dos NPCs para NpcManager.Tick()
+//   7. Envia WorldSnapshot para cada jogador (interest management via SpatialGrid)
+//   8. Expulsa sessões sem heartbeat (> 30s)
+//
+// Mensagens do cliente (msgType no primeiro byte):
+//   0x01  C2S_Move         — movimento legado (client-reported, tratado como MoveTo)
+//   0x02  C2S_Action       — ação genérica legada (fire-and-forget ao Django)
+//   0x03  C2S_MoveTo       — destino de click-to-move
+//   0x04  C2S_AttackTarget — iniciar ataque em alvo (NPC ou jogador)
+//   0x05  C2S_StopAction   — cancelar movimento e combate
+//   0x06  C2S_UseSkill     — ativar habilidade
+//   0xFF  ping/heartbeat   — apenas atualiza LastHeartbeatMs
+//
+// Mensagens ao cliente (msgType no primeiro byte):
+//   0x10  S2C_WorldSnapshot     — posição e estado de todas as entidades próximas
+//   0x11  S2C_DamageEvent       — dano causado/recebido
+//   0x12  S2C_EntityDied        — entidade morreu
+//   0x13  S2C_CombatStateChanged — mudança de estado de combate
+//   0x14  S2C_EffectApplied     — buff/debuff aplicado
+//   0x20  S2C_Event ("kicked")  — expulsão do servidor
+//
+// Máquina de Estado de Combate do Jogador:
+//   Idle → (AttackTarget) → Chasing → (dentro do range) → Attacking
+//   Attacking → (alvo fora do range) → Chasing
+//   Chasing/Attacking → (StopAction) → Idle
+//   Qualquer → (HP=0) → Dead → (10s) → Idle (respawn)
+//
+// Política zero-alocação no tick:
+//   Sem LINQ, sem new() no corpo do tick. Usa _neighbourScratch e
+//   _snapshotScratch como listas pré-alocadas reutilizadas a cada tick.
+//
+// Party XP Split:
+//   Ao matar NPC com XpReward > 0, o XP é dividido igualmente entre todos
+//   os membros do grupo do killer que estejam dentro de 3000cm do kill.
+// =============================================================================
 using System.Buffers;
 using System.Collections.Concurrent;
 using System.Diagnostics;

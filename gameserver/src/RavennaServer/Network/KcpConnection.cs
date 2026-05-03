@@ -1,3 +1,40 @@
+// =============================================================================
+// KcpConnection.cs — Implementação KCP (Reliable UDP) em C# puro
+// =============================================================================
+//
+// KCP é um protocolo de transporte confiável e ordenado sobre UDP, projetado
+// para jogos onde baixa latência é crítica mas entrega garantida é necessária.
+// Esta implementação é baseada no algoritmo de referência do skywind3000.
+//
+// Modo de operação ("turbo/game mode"):
+//   - nodelay ativado: sem espera de ACK para enviar próximo segmento
+//   - intervalo de flush: 10ms (não 100ms como no modo normal)
+//   - sem controle de congestionamento TCP-style
+//   - RTO mínimo: 100ms, máximo: 60s, backoff: 1.5×
+//   - Fast retransmit após 2 ACKs faltando (FASTACK=2)
+//   - Dead link após 20 retransmissões (DEADLINK=20)
+//
+// API pública:
+//   Input(span)   — alimentar datagram UDP recebido da rede
+//   Send(span)    — enfileirar dados para envio confiável
+//   Recv(span)    — ler próxima mensagem remontada
+//   Update(ms)    — chamar a cada tick (~10ms) para drive da máquina de estado
+//
+// Zero-alocação:
+//   Segmentos usam um object pool (ConcurrentBag) para evitar GC.
+//   O buffer de flush é pre-alocado via ArrayPool e reutilizado.
+//
+// Integração com SimulationLoop:
+//   - UdpSocketListener chama Input() ao receber um datagram.
+//   - SimulationLoop chama Update() a cada tick (30Hz).
+//   - SimulationLoop chama Recv() para ler mensagens completas.
+//   - SimulationLoop chama Send() para enviar snapshots e eventos ao cliente.
+//
+// Para o cliente Unity:
+//   Use a biblioteca KCP do C# ou a porta kcp2k para Unity.
+//   Configure com as mesmas constantes: nodelay=true, interval=10, resend=2.
+//   O conv_id é atribuído pelo servidor no handshake (S2C_HandshakeAck.conv_id).
+// =============================================================================
 using System.Buffers;
 using System.Buffers.Binary;
 using System.Collections.Concurrent;

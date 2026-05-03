@@ -1,3 +1,44 @@
+// =============================================================================
+// DjangoBridge.cs — Ponte entre o servidor de jogo C# e o backend Django
+// =============================================================================
+//
+// Toda persistência de dados de jogo passa por aqui. O servidor Unity nunca
+// acessa o banco diretamente — ele envia eventos ao Django via HTTP, e o
+// Django aplica as mudanças com validação, anti-cheat e transações.
+//
+// Dois tipos de chamada:
+//
+//   SendEventAsync(GameEvent) — fire-and-forget
+//     Posta um evento assíncrono em POST /api/v1/game-logic/events/
+//     Não bloqueia a simulação. Falhas são logadas mas não relançadas.
+//     3 tentativas com backoff exponencial (200ms, 400ms, 600ms).
+//
+//   FetchPlayerStateAsync(userId) — handshake síncrono
+//     Busca o estado completo do jogador em GET /api/v1/game-logic/game-state/<userId>/
+//     Timeout de 300ms. Chamado uma vez por conexão na thread de rede.
+//     Retorna null se falhar — o jogador é criado com atributos padrão.
+//
+// Autenticação: HMAC-SHA256 com chave DJANGO_WEBHOOK_SECRET
+//   Header: X-Webhook-Secret: <hex(hmac(body_or_userId))>
+//   Validado por GameEventWebhookView e GameStateView no Django.
+//
+// Eventos enviados pelo servidor:
+//   player_connected   — usuário entrou no servidor
+//   player_disconnected — usuário saiu (com posição e HP final)
+//   player_action      — ação genérica (legado)
+//   xp_gained          — XP a ser creditado (com party split quando aplicável)
+//   npc_killed         — NPC morto (para progresso de quest)
+//   player_killed      — PvP kill
+//   player_died        — jogador morreu (para penalidade)
+//   item_collected     — item de loot para adicionar ao inventário
+//   use_skill          — habilidade usada (para rastreamento de progressão)
+//
+// Tipos de retorno do FetchPlayerStateAsync:
+//   PlayerState   — todos os dados que a simulação precisa do personagem
+//   EquipmentBonuses — bônus totais de equipamentos (soma de todos os slots)
+//   PassiveBonuses   — bônus de passivas de classe e raça
+//   SkillState[]     — habilidades aprendidas com server_id e nível atual
+// =============================================================================
 using System.Net.Http.Json;
 using System.Security.Cryptography;
 using System.Text;

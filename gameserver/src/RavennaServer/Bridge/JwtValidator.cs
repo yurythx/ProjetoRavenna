@@ -1,3 +1,32 @@
+// =============================================================================
+// JwtValidator.cs — Validação offline de tokens JWT RS256
+// =============================================================================
+//
+// Valida tokens emitidos pelo Django (SimpleJWT + RSA) sem chamada de rede.
+// O servidor precisa apenas da chave pública RSA montada em:
+//   JWT_PUBLIC_KEY_PATH (default: /app/keys/public.pem)
+//
+// Dois métodos públicos:
+//
+//   Validate(token)         — valida assinatura + expiração, retorna user_id
+//   ValidateUnityAuth(token) — igual, mas TAMBÉM exige token_type == "unity_auth"
+//
+// O cliente Unity deve obter um token específico via:
+//   POST /api/v1/auth/game-token/
+//   Headers: Authorization: Bearer <access_token>
+//   Response: { "unity_token": "<jwt com token_type=unity_auth>" }
+//
+// Esse token separado garante que tokens de API genéricos não podem ser
+// usados para autenticar no servidor de jogo — evita vazamento de tokens.
+//
+// Configuração da chave (docker-compose.yml):
+//   volumes:
+//     - ./keys/public.pem:/app/keys/public.pem:ro
+//
+// A chave pública deve ser gerada junto com a privada que o Django usa:
+//   openssl genrsa -out private.pem 2048
+//   openssl rsa -in private.pem -pubout -out public.pem
+// =============================================================================
 using System.Security.Cryptography;
 using Microsoft.IdentityModel.Tokens;
 using System.IdentityModel.Tokens.Jwt;

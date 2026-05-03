@@ -1,3 +1,47 @@
+// =============================================================================
+// Program.cs — Ponto de entrada do RavennaServer (servidor headless C#)
+// =============================================================================
+//
+// Este arquivo cria e conecta todos os subsistemas do servidor de jogo.
+// Não contém lógica própria — apenas lê variáveis de ambiente, instancia
+// as dependências na ordem correta e aguarda o cancelamento via Ctrl+C.
+//
+// Arquitetura de alto nível:
+//
+//   ┌──────────────────────────────────────────────────────────────┐
+//   │                    RavennaServer                             │
+//   │                                                              │
+//   │   UdpSocketListener  ──→  SimulationLoop  ──→  DjangoBridge │
+//   │        ↑ recebe UDP            ↓ ticks 30 Hz      ↓ HTTP    │
+//   │   KcpConnection (por          NpcManager          eventos   │
+//   │   jogador conectado)          SpatialGrid         persistência│
+//   │                                                              │
+//   │   JwtValidator — valida handshake offline (RSA/RS256)        │
+//   │   HealthServer — HTTP :7778 para health check do Docker      │
+//   └──────────────────────────────────────────────────────────────┘
+//
+// Variáveis de Ambiente:
+//   UDP_PORT             (default: 7777) — porta UDP do servidor
+//   HEALTH_PORT          (default: 7778) — porta HTTP do health check
+//   DJANGO_URL           (default: http://localhost:8001) — URL do backend
+//   JWT_PUBLIC_KEY_PATH  (default: /app/keys/public.pem) — chave pública RSA
+//   DJANGO_WEBHOOK_SECRET (default: changeme) — segredo HMAC dos webhooks
+//   WORLD_WIDTH/HEIGHT   (default: 10000 cm cada) — dimensões do mundo
+//   SPATIAL_CELL_SIZE    (default: 1500 cm) — tamanho das células do grid
+//   NPC_SPAWNS_PATH      (default: /app/config/spawns.json) — config de spawns
+//
+// Como conectar o Unity:
+//   1. O cliente Unity envia um pacote UDP com magic prefix 0xCAFE1337
+//      contendo um JWT do tipo "unity_auth" (obtido em /api/v1/auth/game-token/).
+//   2. O servidor valida o JWT offline, busca o estado em /game-state/<userId>/
+//      e cria uma PlayerSession com KCP.
+//   3. Após o handshake, todo tráfego é KCP/Protobuf sobre UDP.
+//
+// Para rodar localmente:
+//   docker compose up gameserver
+//   # ou
+//   cd gameserver && dotnet run
+// =============================================================================
 using RavennaServer;
 using RavennaServer.Bridge;
 using RavennaServer.Network;

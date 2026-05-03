@@ -1,3 +1,31 @@
+"""
+Permissões customizadas do app game_logic.
+
+Este módulo define classes de permissão DRF para proteger endpoints
+que só devem ser acessados pelo servidor de jogo Unity, não por jogadores.
+
+## Classes
+
+### GameServerIPPermission
+Restringe acesso a IPs configurados em `GAMESERVER_ALLOWED_IPS` (settings).
+
+**Uso:**
+```python
+class GameEventWebhookView(APIView):
+    permission_classes = [GameServerIPPermission]
+```
+
+**Configuração (settings.py / .env):**
+```python
+GAMESERVER_ALLOWED_IPS = ["172.20.0.5"]  # IP do container Unity no Docker
+```
+Se a lista estiver vazia (padrão), todos os IPs são permitidos — útil em dev.
+Em produção, sempre defina este valor para o IP do servidor Unity.
+
+**Cabeçalhos Suportados:**
+- `X-Forwarded-For` (honrado se proxy confiável configurado)
+- `REMOTE_ADDR` (fallback direto)
+"""
 import logging
 from django.conf import settings
 from rest_framework.permissions import BasePermission

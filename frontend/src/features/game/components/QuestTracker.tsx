@@ -1,3 +1,52 @@
+/**
+ * @module QuestTracker
+ *
+ * Rastreador de missões exibido na aba "Missões" da página /play.
+ * Busca as missões ativas e concluídas do jogador, exibindo progresso
+ * de objetivos, recompensas e badge de tipo (Principal / Secundária etc.).
+ *
+ * ## Responsabilidade
+ * - Buscar dados via GET /api/game/quests (auto-fetch com React Query).
+ * - Separar missões em "ativas" (in_progress) e "concluídas" (completed).
+ * - Exibir cada missão ativa com: nome, badge de tipo, objetivos com barra de
+ *   progresso, recompensas de XP e ouro.
+ * - Exibir checkbox ✓ em objetivos cujo progresso atingiu ou superou o target.
+ * - Missões concluídas ficam colapsadas atrás de um toggle "Concluídas (N)".
+ * - Mostrar skeleton animado durante o carregamento.
+ * - Mostrar mensagem de erro quando o fetch falha.
+ * - Mostrar "Nenhuma missão ativa" quando a lista está vazia.
+ *
+ * ## Como Usar
+ * ```tsx
+ * import { QuestTracker } from "@/features/game/components/QuestTracker";
+ *
+ * // Sem props — busca dados autonomamente via React Query
+ * <QuestTracker />
+ * ```
+ *
+ * ## API Consumida
+ * - `GET /api/game/quests` — retorna QuestProgress[] já enriquecido com
+ *   dados do template (nome, objetivos, recompensas, tipo).
+ *   Os dados ficam em cache por 30 segundos (staleTime).
+ *
+ * ## Tipos Relevantes (src/types/index.ts)
+ * - `QuestProgress` — inclui campos join do template: quest_name,
+ *   quest_objectives, quest_rewards, quest_type.
+ * - `QuestObjective` — { key, description, target_count }
+ * - `QuestRewards`   — { xp?, gold?, items? }
+ *
+ * ## Mapeamento Visual
+ * - quest_type "main"       → badge verde  "Principal"
+ * - quest_type "side"       → badge roxo   "Secundária"
+ * - quest_type "daily"      → badge azul   "Diária"
+ * - quest_type "repeatable" → badge laranja "Repetível"
+ *
+ * ## Observações
+ * - O componente não recebe props; gerencia seu próprio estado de fetch.
+ * - O join entre QuestProgress e QuestTemplate é feito no route handler
+ *   Next.js (api/game/quests/route.ts), não neste componente.
+ * - Para forçar um recarregamento manual, invalide a query key ["player-quests"].
+ */
 "use client";
 
 import React, { useState } from "react";

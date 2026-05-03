@@ -1,3 +1,35 @@
+/**
+ * @module /api/game/stats/allocate
+ *
+ * Rota proxy Next.js para alocação de pontos de atributo do personagem.
+ * Recebe os atributos a serem incrementados e encaminha ao backend Django.
+ *
+ * ## Endpoint
+ * `POST /api/game/stats/allocate`
+ *
+ * ## Corpo da Requisição
+ * ```json
+ * {
+ *   "strength":     1,
+ *   "agility":      0,
+ *   "intelligence": 2,
+ *   "vitality":     0
+ * }
+ * ```
+ * Apenas os campos com valor > 0 precisam ser enviados.
+ *
+ * ## Resposta (200 OK)
+ * Objeto `PlayerStats` completo com os atributos atualizados e `points_remaining` decrementado.
+ *
+ * ## Erros
+ * - `400 Invalid JSON body` — corpo ausente ou malformado.
+ * - `400 Bad Request` — pontos insuficientes ou valor inválido (propagado do backend).
+ * - `401 Not authenticated` — token ausente ou expirado.
+ *
+ * ## Usado por
+ * - Hook `useAllocatePoints` em `features/game/hooks/use-allocate-points.ts`
+ * - `PlayerStatsCard` (alocação individual) e `InventoryPanel` (alocação em lote)
+ */
 import { NextResponse } from "next/server";
 import { backendFetch } from "@/lib/backend";
 import { getAccessToken } from "@/lib/auth-cookies";

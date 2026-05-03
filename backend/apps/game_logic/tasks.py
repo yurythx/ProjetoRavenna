@@ -1,3 +1,49 @@
+"""
+Tarefas assíncronas Celery do app game_logic.
+
+Este módulo define tarefas que rodam fora do ciclo de requisição HTTP,
+agendadas pelo Celery Beat ou disparadas por eventos do jogo.
+
+## Tarefas
+
+### rebuild_leaderboard_cache
+Reconstrói o Sorted Set do ranking no Redis a partir dos dados do banco.
+- Executa em batch de 500 jogadores com pipeline Redis para performance.
+- Fallback automático para LocMemCache se Redis estiver indisponível.
+- **Agendar:** a cada 10 minutos via Celery Beat.
+  ```python
+  # settings/celery.py
+  CELERY_BEAT_SCHEDULE = {
+      "rebuild-leaderboard": {
+          "task": "apps.game_logic.tasks.rebuild_leaderboard_cache",
+          "schedule": crontab(minute="*/10"),
+      },
+  }
+  ```
+
+### deliver_quest_rewards
+Entrega as recompensas de uma missão concluída de forma assíncrona.
+- Idempotente: `complete_quest` verifica status antes de aplicar recompensas.
+- Disparada por `QuestCompleteView` após marcar missão como concluída.
+  ```python
+  deliver_quest_rewards.delay(str(user.id), str(quest_id))
+  ```
+
+### cleanup_stale_game_sessions
+Marca como inativas sessões de jogo sem heartbeat por mais de 60 segundos.
+- **Agendar:** a cada 2 minutos via Celery Beat.
+- Jogadores desconectados abruptamente terão sua sessão encerrada automaticamente.
+
+## Execução Manual (debug)
+```bash
+docker compose exec backend celery -A config worker -l info
+# Em outro terminal:
+docker compose exec backend python manage.py shell -c "
+from apps.game_logic.tasks import rebuild_leaderboard_cache
+rebuild_leaderboard_cache.delay()
+"
+```
+"""
 import logging
 
 from celery import shared_task
