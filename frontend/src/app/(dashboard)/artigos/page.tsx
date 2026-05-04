@@ -26,8 +26,8 @@ type Article = {
 // ── Data Fetch ───────────────────────────────────────────────────────────────
 
 async function fetchArticles() {
-  const res = await fetch("/api/v1/blog/articles?page=1");
-  if (!res.ok) throw new Error("Erro ao carregar artigos");
+  const res = await fetch("/api/v1/blog/posts/?page=1");
+  if (!res.ok) throw new Error("Erro ao carregar posts");
   return res.json();
 }
 
@@ -147,7 +147,7 @@ export default function ArticlesAdminPage() {
                     </td>
                     <td className="px-6 py-5">
                       <span className="text-[11px] text-[var(--rv-text-dim)]">
-                        {format(new Error(art.created_at), "dd MMM, yyyy", { locale: ptBR })}
+                        {format(new Date(art.created_at), "dd MMM, yyyy", { locale: ptBR })}
                       </span>
                     </td>
                     <td className="px-6 py-5 text-right">

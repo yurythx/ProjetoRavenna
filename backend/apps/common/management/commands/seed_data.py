@@ -1,6 +1,6 @@
 from django.core.management.base import BaseCommand
-from apps.blog.models import Category as BlogCategory, Article
-from apps.forum.models import Category as ForumCategory, Thread, Post
+from apps.blog.models import Category as BlogCategory, Post as BlogPost
+from apps.forum.models import ForumCategory, Topic, Reply
 from django.contrib.auth import get_user_model
 from django.utils.text import slugify
 from django.utils import timezone
@@ -35,18 +35,20 @@ class Command(BaseCommand):
             if created:
                 self.stdout.write(f"  + Categoria Blog '{name}' criada.")
 
-        # Sample Article
-        if not Article.objects.exists():
-            Article.objects.create(
+        # Sample BlogPost
+        if not BlogPost.objects.exists():
+            BlogPost.objects.create(
                 title="Bem-vindo ao Novo Ravenna",
                 slug=slugify("Bem-vindo ao Novo Ravenna"),
+                excerpt="Explorando as novas fronteiras do mundo de Ravenna.",
                 content="<p>Estamos entusiasmados em apresentar o novo portal do herói e o sistema de multi-personagens.</p>",
                 category=blog_categories["Notícias"],
                 author=admin,
                 status="published",
-                is_active=True
+                is_public=True,
+                published_at=timezone.now()
             )
-            self.stdout.write("  + Artigo de boas-vindas criado.")
+            self.stdout.write("  + Post de boas-vindas criado.")
 
         # --- Forum Seeding ---
         forum_cats_data = [
@@ -66,19 +68,22 @@ class Command(BaseCommand):
             if created:
                 self.stdout.write(f"  + Categoria Fórum '{name}' criada.")
 
-        # Sample Thread
-        if not Thread.objects.exists():
-            thread = Thread.objects.create(
+        # Sample Topic
+        if not Topic.objects.exists():
+            topic = Topic.objects.create(
                 title="Sugestões para novas classes?",
                 slug=slugify("Sugestões para novas classes"),
+                content="Quais classes vocês gostariam de ver no futuro de Ravenna? Deixem suas ideias abaixo!",
                 category=forum_categories["Sugestões & Feedback"],
                 author=admin,
-                is_active=True
+                status="open",
+                last_reply_at=timezone.now()
             )
-            Post.objects.create(
-                thread=thread,
+            # Create a reply
+            Reply.objects.create(
+                topic=topic,
                 author=admin,
-                content="Quais classes vocês gostariam de ver no futuro de Ravenna? Deixem suas ideias abaixo!"
+                content="Eu adoraria ver uma classe focada em invocação!"
             )
             self.stdout.write("  + Tópico de sugestões criado.")
 
