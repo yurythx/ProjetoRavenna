@@ -274,7 +274,7 @@ class GameConsumer(AsyncWebsocketConsumer):
             {
                 "type": "world.update",
                 "player_id": str(self.user.id),
-                "display_name": self.user.display_name,
+                "display_name": getattr(self, "char_name", self.user.display_name),
                 "x": x,
                 "y": y,
                 "map_key": map_key,
@@ -294,7 +294,10 @@ class GameConsumer(AsyncWebsocketConsumer):
     @database_sync_to_async
     def _get_active_session(self):
         from apps.game_logic.models import GameSession
-        return GameSession.objects.filter(id=self.session_id, player=self.user, is_active=True).first()
+        session = GameSession.objects.filter(id=self.session_id, character__owner=self.user, is_active=True).select_related('character').first()
+        if session:
+            self.char_name = session.character.name
+        return session
 
     @database_sync_to_async
     def _touch_session_heartbeat(self):

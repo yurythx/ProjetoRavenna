@@ -194,7 +194,8 @@ class GameLogicService:
         if amount < 1:
             raise ValueError("amount must be at least 1")
 
-        if hwid and user.hwid and user.hwid != hwid:
+        # HWID check (if user is linked)
+        if hwid and character.owner.hwid and character.owner.hwid != hwid:
             pass
 
         if not bypass_anticheat and amount > 10000:
@@ -207,23 +208,23 @@ class GameLogicService:
             stats.points_remaining += GameLogicService.POINTS_PER_LEVEL
 
         stats.save(update_fields=["experience", "level", "points_remaining", "updated_at"])
-        GameLogicService.update_leaderboard_cache(user, stats)
-        GameLogicService._refresh_state_cache(user)
+        GameLogicService.update_leaderboard_cache(character, stats)
+        GameLogicService._refresh_state_cache(character)
         return stats
 
     @staticmethod
-    def update_leaderboard_cache(user: User, stats: PlayerStats):
+    def update_leaderboard_cache(character: Character, stats: PlayerStats):
         """Update Redis Sorted Set leaderboard. Score = level * 1_000_000 + experience."""
         from django.conf import settings
         key = getattr(settings, "LEADERBOARD_CACHE_KEY", "game:leaderboard")
         score = stats.level * 1_000_000 + stats.experience
-        member = f"{user.id}:{user.display_name or user.username}"
+        user = character.owner
+        member = f"{user.id}:{character.name}"
         try:
             from django_redis import get_redis_connection
             conn = get_redis_connection("default")
             conn.zadd(key, {member: score})
         except Exception:
-            # Fallback: Django generic cache (dict in LocMemCache when Redis unavailable)
             from django.core.cache import cache
             lb = cache.get(key, {})
             lb[member] = score
@@ -274,7 +275,7 @@ class GameLogicService:
 
         stats.points_remaining -= total
         stats.save(update_fields=allowed + ["points_remaining", "updated_at"])
-        GameLogicService._refresh_state_cache(user)
+        GameLogicService._refresh_state_cache(character)
         return stats
 
     @staticmethod
@@ -287,21 +288,21 @@ class GameLogicService:
 
     @staticmethod
     @transaction.atomic
-    def end_game_session(user: User):
+    def end_game_session(character: Character):
         from apps.game_logic.models import GameSession
         from django.utils import timezone
-        GameSession.objects.filter(player=user, is_active=True).update(is_active=False, ended_at=timezone.now())
+        GameSession.objects.filter(character=character, is_active=True).update(is_active=False, ended_at=timezone.now())
 
     @staticmethod
     @transaction.atomic
-    def record_pvp_kill(killer: User, victim: User):
+    def record_pvp_kill(killer: Character, victim: Character):
         """Increment pvp_kills for killer and pvp_deaths for victim atomically."""
         from apps.game_logic.models import PlayerStats
-        killer_stats, _ = PlayerStats.objects.select_for_update().get_or_create(owner=killer)
+        killer_stats, _ = PlayerStats.objects.select_for_update().get_or_create(character=killer)
         killer_stats.pvp_kills += 1
         killer_stats.save(update_fields=["pvp_kills", "updated_at"])
 
-        victim_stats, _ = PlayerStats.objects.select_for_update().get_or_create(owner=victim)
+        victim_stats, _ = PlayerStats.objects.select_for_update().get_or_create(character=victim)
         victim_stats.pvp_deaths += 1
         victim_stats.save(update_fields=["pvp_deaths", "updated_at"])
 
@@ -337,7 +338,7 @@ class GameLogicService:
         items = list(rewards.get("items", []))
 
         if xp > 0:
-            GameLogicService.gain_experience(user, xp, bypass_anticheat=True)
+            GameLogicService.gain_experience(character, xp, bypass_anticheat=True)
 
         if gold > 0:
             inventory, _ = PlayerInventory.objects.select_for_update().get_or_create(character=character)
@@ -349,7 +350,7 @@ class GameLogicService:
             qty = int(item_reward.get("quantity", 1))
             if item_id and qty > 0:
                 try:
-                    GameLogicService.add_item_to_inventory(user, item_id, qty)
+                    GameLogicService.add_item_to_inventory(character, item_id, qty)
                 except Exception as exc:
                     logger.warning("complete_quest: failed to deliver item %s: %s", item_id, exc)
 
@@ -414,7 +415,7 @@ class GameLogicService:
             )
             if all_done:
                 try:
-                    GameLogicService.complete_quest(user, progress.quest_id)
+                    GameLogicService.complete_quest(character, progress.quest_id)
                 except Exception as exc:
                     logger.warning("update_kill_progress: complete_quest failed for %s: %s", progress.quest_id, exc)
 
@@ -585,36 +586,32 @@ class GameLogicService:
 
         item.equip_slot = equip_slot
         item.save(update_fields=["equip_slot", "updated_at"])
-        GameLogicService._refresh_state_cache(user)
+        GameLogicService._refresh_state_cache(character)
         return item
 
     @staticmethod
     @transaction.atomic
-    def unequip_item(user: User, equip_slot: str) -> None:
+    def unequip_item(character: Character, equip_slot: str) -> None:
         """Remove the equipped flag from the item in the given slot."""
         if equip_slot not in GameLogicService._VALID_EQUIP_SLOTS:
             raise ValueError(f"Invalid equip slot: '{equip_slot}'")
-        inventory = PlayerInventory.objects.select_for_update().get(owner=user)
+        inventory = PlayerInventory.objects.select_for_update().get(character=character)
         PlayerItem.objects.select_for_update().filter(
             inventory=inventory, equip_slot=equip_slot
         ).update(equip_slot="")
-        GameLogicService._refresh_state_cache(user)
+        GameLogicService._refresh_state_cache(character)
 
     @staticmethod
-    def preload_player_state_to_redis(user: User) -> None:
-        """Write the full player state to cache (Redis in prod) so the game server
-        can read it in sub-1ms instead of doing an HTTP roundtrip.
-
-        Key: game:player_state:{user_id}   TTL: 3600 s
-        Called after JWT token generation and after every state-mutating operation
-        (equip, allocate, level-up, skill upgrade, party change) via on_commit hook.
+    def preload_character_state_to_redis(character: Character) -> None:
+        """Write the full character state to cache (Redis in prod).
+        Key: game:player_state:{character_id}
         """
         from django.core.cache import cache
-        stats = PlayerStats.objects.filter(owner=user).first()
+        stats = PlayerStats.objects.filter(character=character).first()
         if not stats:
             return
-        bonuses = GameLogicService.get_equipment_bonuses(user)
-        skill_qs = PlayerSkill.objects.filter(owner=user, is_equipped=True).select_related("skill_template")
+        bonuses = GameLogicService.get_equipment_bonuses(character)
+        skill_qs = PlayerSkill.objects.filter(character=character, is_equipped=True).select_related("skill_template")
         skill_list = [
             {
                 "server_id": s.skill_template.server_id,
@@ -624,9 +621,9 @@ class GameLogicService:
             for s in skill_qs
             if s.skill_template.server_id is not None
         ]
-        passive_bonuses = GameLogicService.compute_passive_bonuses(user)
-        active_party = GameLogicService.get_active_party(user)
+        passive_bonuses = GameLogicService.compute_passive_bonuses(character)
         state = {
+            "name":         character.name,
             "hp":           stats.health,
             "max_hp":       stats.max_health,
             "mana":         stats.mana,
@@ -638,22 +635,19 @@ class GameLogicService:
             "agility":      stats.agility,
             "intelligence": stats.intelligence,
             "vitality":     stats.vitality,
-            "faction":      stats.faction,
-            "character_class": stats.character_class,
-            "race":         stats.race,
+            "faction":      character.faction,
+            "character_class": character.character_class,
+            "race":         character.race,
             "equipment_bonuses": bonuses,
             "passive_bonuses":   passive_bonuses,
             "skills":       skill_list,
-            "party_id":     str(active_party.id) if active_party else None,
         }
-        cache.set(f"game:player_state:{user.id}", state, timeout=3600)
+        cache.set(f"game:player_state:{character.id}", state, timeout=3600)
 
     @staticmethod
-    def _refresh_state_cache(user: User) -> None:
-        """Schedule a cache refresh to run after the current transaction commits.
-        Safe to call inside @transaction.atomic — the write only happens on success.
-        """
-        transaction.on_commit(lambda: GameLogicService.preload_player_state_to_redis(user))
+    def _refresh_state_cache(character: Character) -> None:
+        """Schedule a cache refresh to run after the current transaction commits."""
+        transaction.on_commit(lambda: GameLogicService.preload_character_state_to_redis(character))
 
     # ── Class / racial passive server_ids (mirrors game_data/0006 migration) ────
     _CLASS_PASSIVE_SERVER_ID: dict[str, int] = {
@@ -785,16 +779,12 @@ class GameLogicService:
         return character
 
     @staticmethod
-    def _grant_passives(user: User, character_class: str, race: str) -> None:
-        """Grant the class passive and racial passive PlayerSkill records.
-
-        Passives are always equipped (always active) and never appear in the
-        active skill bar — they are identified by is_passive / is_racial_passive.
-        """
+    def _grant_passives_to_char(character: Character) -> None:
+        """Grant the class passive and racial passive PlayerSkill records."""
         from apps.game_data.models import SkillTemplate
         server_ids = []
-        cls_sid  = GameLogicService._CLASS_PASSIVE_SERVER_ID.get(character_class)
-        race_sid = GameLogicService._RACE_PASSIVE_SERVER_ID.get(race)
+        cls_sid  = GameLogicService._CLASS_PASSIVE_SERVER_ID.get(character.character_class)
+        race_sid = GameLogicService._RACE_PASSIVE_SERVER_ID.get(character.race)
         if cls_sid:  server_ids.append(cls_sid)
         if race_sid: server_ids.append(race_sid)
         if not server_ids:
@@ -806,29 +796,16 @@ class GameLogicService:
         for sid in server_ids:
             template = templates.get(sid)
             if template is None:
-                logger.warning("_grant_passives: SkillTemplate server_id=%s not found", sid)
                 continue
             PlayerSkill.objects.get_or_create(
-                owner=user,
+                character=character,
                 skill_template=template,
                 defaults={"current_level": 1, "is_equipped": True},
             )
 
     @staticmethod
-    def compute_passive_bonuses(user: User) -> dict:
-        """Accumulate all passive stat bonuses for a player.
-
-        Reads every PlayerSkill whose SkillTemplate has is_passive=True or
-        is_racial_passive=True, extracts level_scaling[current_level - 1],
-        and returns a flat dict of summed bonuses ready for the game state.
-
-        Effect keys match the C# PassiveBonuses DTO property names (snake_case):
-          str, agi, int, vit,
-          max_hp_pct, max_mana_pct,
-          phys_damage_pct, mag_damage_pct,
-          phys_defense_pct, mag_defense_pct,
-          move_speed_pct, attack_range_pct
-        """
+    def compute_passive_bonuses(character: Character) -> dict:
+        """Accumulate all passive stat bonuses for a character."""
         bonuses: dict[str, int] = {
             "str": 0, "agi": 0, "int": 0, "vit": 0,
             "max_hp_pct": 0,    "max_mana_pct": 0,
@@ -836,7 +813,7 @@ class GameLogicService:
             "phys_defense_pct": 0, "mag_defense_pct": 0,
             "move_speed_pct": 0, "attack_range_pct": 0,
         }
-        passives = PlayerSkill.objects.filter(owner=user).select_related("skill_template")
+        passives = PlayerSkill.objects.filter(character=character).select_related("skill_template")
         for ps in passives:
             t = ps.skill_template
             if not (t.is_passive or t.is_racial_passive):
@@ -851,15 +828,10 @@ class GameLogicService:
         return bonuses
 
     @staticmethod
-    def grant_starter_skills(user: User, character_class: str) -> list[PlayerSkill]:
-        """Create PlayerSkill records for each starter skill of the given class.
-
-        Looks up SkillTemplate by server_id (the bridge to the C# SkillRegistry).
-        Silently skips any server_id whose SkillTemplate row doesn't exist yet,
-        so missing seeds never block character creation.
-        """
+    def grant_starter_skills_to_char(character: Character) -> list[PlayerSkill]:
+        """Create PlayerSkill records for each starter skill of the given character."""
         from apps.game_data.models import SkillTemplate
-        server_ids = GameLogicService._CLASS_STARTER_SKILLS.get(character_class, [])
+        server_ids = GameLogicService._CLASS_STARTER_SKILLS.get(character.character_class, [])
         templates  = {
             t.server_id: t
             for t in SkillTemplate.objects.filter(server_id__in=server_ids)
@@ -868,12 +840,9 @@ class GameLogicService:
         for sid in server_ids:
             template = templates.get(sid)
             if template is None:
-                logger.warning(
-                    "grant_starter_skills: SkillTemplate with server_id=%s not found, skipping", sid
-                )
                 continue
             skill, _ = PlayerSkill.objects.get_or_create(
-                owner=user,
+                character=character,
                 skill_template=template,
                 defaults={"current_level": 1, "is_equipped": True, "slot_index": len(granted)},
             )
@@ -882,12 +851,10 @@ class GameLogicService:
 
     @staticmethod
     @transaction.atomic
-    def apply_death_penalty(user: User) -> dict:
-        """Deduct 10 % of current XP and 10 % of current gold on death.
-        Neither stat can drop below 0; level is never reduced.
-        Returns a dict with the actual amounts lost."""
-        stats, _     = PlayerStats.objects.select_for_update().get_or_create(owner=user)
-        inventory, _ = PlayerInventory.objects.select_for_update().get_or_create(owner=user)
+    def apply_death_penalty(character: Character) -> dict:
+        """Deduct 10 % of current XP and 10 % of current gold on death."""
+        stats, _     = PlayerStats.objects.select_for_update().get_or_create(character=character)
+        inventory, _ = PlayerInventory.objects.select_for_update().get_or_create(character=character)
 
         xp_lost   = max(1, stats.experience // 10)
         gold_lost = inventory.gold // 10
@@ -906,7 +873,7 @@ class GameLogicService:
 
     @staticmethod
     @transaction.atomic
-    def upgrade_skill(user: User, player_skill_id: str) -> PlayerSkill:
+    def upgrade_skill(character: Character, player_skill_id: str) -> PlayerSkill:
         """Manually upgrade a learned skill by spending gold.
 
         Cost: current_level × UPGRADE_COST_PER_LEVEL gold.
@@ -915,7 +882,7 @@ class GameLogicService:
         """
         from apps.game_data.models import SkillTemplate as _SkillTemplate
         try:
-            skill = PlayerSkill.objects.select_for_update().get(id=player_skill_id, owner=user)
+            skill = PlayerSkill.objects.select_for_update().get(id=player_skill_id, character=character)
         except PlayerSkill.DoesNotExist:
             raise ValueError("Skill not found.")
 
@@ -929,7 +896,7 @@ class GameLogicService:
             )
 
         cost = skill.current_level * GameLogicService.UPGRADE_COST_PER_LEVEL
-        inventory, _ = PlayerInventory.objects.select_for_update().get_or_create(owner=user)
+        inventory, _ = PlayerInventory.objects.select_for_update().get_or_create(character=character)
         if inventory.gold < cost:
             raise ValueError(f"Insufficient gold. Need {cost}, have {inventory.gold}.")
 
@@ -943,16 +910,16 @@ class GameLogicService:
 
     @staticmethod
     @transaction.atomic
-    def learn_skill(user: User, skill_template_id: str) -> PlayerSkill:
+    def learn_skill(character: Character, skill_template_id: str) -> PlayerSkill:
         from apps.game_data.models import SkillTemplate
         skill_template = SkillTemplate.objects.get(id=skill_template_id)
         player_skill, created = PlayerSkill.objects.select_for_update().get_or_create(
-            owner=user, skill_template=skill_template, defaults={"is_equipped": False}
+            character=character, skill_template=skill_template, defaults={"is_equipped": False}
         )
         if not created:
             player_skill.current_level += 1
             player_skill.save(update_fields=["current_level", "updated_at"])
-        GameLogicService._refresh_state_cache(user)
+        GameLogicService._refresh_state_cache(character)
         return player_skill
 
     # ── Party management ──────────────────────────────────────────────────────

@@ -204,6 +204,7 @@ class PlayerSkill(UUIDModel):
 
 class GameSession(UUIDModel):
     character = models.ForeignKey(Character, on_delete=models.CASCADE, related_name='sessions')
+    last_map_key = models.CharField(max_length=100, null=True, blank=True)
     started_at = models.DateTimeField(auto_now_add=True)
     last_heartbeat_at = models.DateTimeField(auto_now=True)
     ended_at = models.DateTimeField(null=True, blank=True)
